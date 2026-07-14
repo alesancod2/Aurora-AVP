@@ -1,0 +1,403 @@
+/* ============================================
+   Auto Vale Prevencoes - Aeasy
+   CSS Principal (estilos movidos do inline)
+   ============================================ */
+
+/* ---- Variaveis CSS ---- */
+:root {
+    --primary: #5953c0;
+    --primary-dark: #2d2973;
+    --btn-purple: #5549e3;
+    --btn-light-purple: #dfdeff;
+    --btn-gray: #828282;
+    --header-black: #232323;
+    --danger: #e84545;
+    --white: #fff;
+    --light-bg: #f4f4f4;
+    --light-bg-hover: #ebebeb;
+}
+
+/* ---- Botoes ---- */
+.btn-primary {
+    color: var(--white);
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    color: var(--white);
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-info {
+    color: var(--white);
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-info:hover,
+.btn-info:focus {
+    color: var(--white);
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+
+/* ---- Gradientes e Cores de Texto ---- */
+.bg-gradiente-blue {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+}
+
+.text-color-primary {
+    color: var(--primary);
+}
+
+/* ---- Header ---- */
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background-color: var(--white);
+    border-bottom: 1px solid #eee;
+}
+
+.header-top .logo .welcome img {
+    max-height: 50px;
+}
+
+.header-top .user-info {
+    display: flex;
+    align-items: center;
+}
+
+.header-top .user-info .details {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-top .user-info .notificacoes {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-top .user-info .notificacoes .avatar {
+    font-size: 1.2rem;
+    color: #555;
+    cursor: pointer;
+    position: relative;
+}
+
+.header-top .user-info .notificacoes .avatar:hover {
+    color: var(--primary);
+}
+
+.header-top .user-info .info {
+    text-align: right;
+    margin: 0 12px;
+}
+
+.header-top .user-info .info .name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.header-top .user-info .info .time-logout {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+/* ---- Header Page (Breadcrumb) ---- */
+.header-page {
+    background-color: var(--primary);
+    padding: 12px 16px;
+}
+
+.header-page .breadcrumb {
+    margin-bottom: 0;
+}
+
+
+/* ---- Navegacao ---- */
+.header-nav {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 0 16px;
+}
+
+.header-nav .menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.header-nav .menu .item-menu {
+    position: relative;
+}
+
+.header-nav .menu .item-menu > a {
+    display: block;
+    padding: 10px 14px;
+    color: #333;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.header-nav .menu .item-menu > a:hover {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.header-nav .submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--white);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 220px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    list-style: none;
+    padding: 4px 0;
+    margin: 0;
+}
+
+.header-nav .item-menu:hover > .submenu,
+.header-nav .item-submenu:hover > .submenu {
+    display: block;
+}
+
+.header-nav .submenu .item-submenu {
+    position: relative;
+}
+
+.header-nav .submenu .item-submenu > a {
+    display: block;
+    padding: 8px 14px;
+    color: #333;
+    text-decoration: none;
+    font-size: 0.82rem;
+    transition: background-color 0.15s;
+}
+
+.header-nav .submenu .item-submenu > a:hover {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.header-nav .submenu .submenu {
+    top: 0;
+    left: 100%;
+}
+
+
+/* ---- Content ---- */
+.content-page {
+    margin-bottom: 0;
+}
+
+.content {
+    padding: 20px;
+}
+
+/* ---- Menu Historico Vendas ---- */
+.content .menu-historico-vendas a {
+    color: var(--primary) !important;
+}
+
+.content .menu-historico-vendas a:hover,
+.menu-historico-vendas a.active {
+    background-color: var(--primary) !important;
+    color: #f6fdff !important;
+}
+
+/* ---- DataTable: Ocultar Colunas ---- */
+div.dt-button-collection.btn-ocultar-columns {
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    padding: 10px !important;
+    width: 250px !important;
+    background-color: white !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175) !important;
+}
+
+div.dt-button-collection.btn-ocultar-columns a.dt-button.active {
+    background-color: var(--primary) !important;
+    color: white !important;
+    background-image: none !important;
+}
+
+/* ---- Badge NOVO (Pesquisa) ---- */
+.badge-novo-pesquisa {
+    position: absolute;
+    top: -6px;
+    left: -4px;
+    background: var(--btn-purple);
+    color: var(--white);
+    font-size: 8px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 2px 6px;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: pulse-novo 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-novo {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+}
+
+/* ---- Badge Filtro Ativo ---- */
+.badge-filtro-ativo {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--danger);
+    color: var(--white);
+    font-size: 8px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 2px 6px;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    border: 1.5px solid var(--white);
+}
+
+
+/* ---- Chip Filtro Ativo ---- */
+.chip-filtro-ativo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0eeff;
+    border: 1px solid #c8c2f9;
+    border-radius: 20px;
+    padding: 3px 10px 3px 8px;
+    font-size: 12px;
+    color: var(--btn-purple);
+    font-weight: 600;
+}
+
+.chip-filtro-ativo .btn-limpar-chip {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--btn-purple);
+    line-height: 1;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.chip-filtro-ativo .btn-limpar-chip:hover {
+    color: var(--danger);
+}
+
+/* ---- Modal Pesquisa Spotlight ---- */
+#modal-pesquisa-geral .modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    padding: 20px 24px 24px;
+}
+
+/* ---- Pills de Tipo ---- */
+.tipo-pesquisa-pill {
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    background: var(--white);
+    color: #555;
+    transition: all 0.15s;
+    line-height: 1.5;
+}
+
+.tipo-pesquisa-pill:hover {
+    border-color: var(--btn-purple);
+    color: var(--btn-purple);
+}
+
+.tipo-pesquisa-pill.active {
+    background: var(--btn-purple);
+    color: var(--white);
+    border-color: var(--btn-purple);
+}
+
+/* ---- Input Pesquisa Principal ---- */
+#pesquisa-geral {
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    padding: 11px 16px;
+    background: var(--light-bg);
+    color: #333;
+    flex: 1;
+    min-width: 0;
+    outline: none;
+    transition: background 0.15s;
+}
+
+#pesquisa-geral:focus {
+    background: var(--light-bg-hover);
+    box-shadow: none;
+}
+
+/* ---- Select Campo Pesquisa ---- */
+#campo-pesquisa {
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    appearance: auto;
+    border-radius: 12px;
+    font-size: 13px;
+    padding: 10px 12px;
+    border: none;
+    background: var(--light-bg);
+    color: #555;
+    cursor: pointer;
+    flex-shrink: 0;
+    outline: none;
+}
+
+#campo-pesquisa:focus {
+    box-shadow: none;
+    background: var(--light-bg-hover);
+}
+
+/* ---- Responsividade ---- */
+@media (max-width: 768px) {
+    .header-top {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .header-nav .menu {
+        flex-direction: column;
+    }
+
+    .header-nav .submenu {
+        position: static;
+        box-shadow: none;
+        border: none;
+        padding-left: 16px;
+    }
+}
