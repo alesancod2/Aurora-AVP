@@ -226,11 +226,11 @@ const DashboardComercial = (function () {
         const perdidas = registros.filter(r => ['2', '3'].includes(r.VendasSituacaoEnum));
 
         const valorVendido = vendas.reduce((sum, v) => {
-            return sum + parseFloat(String(v.VendasCarrosValorMensal || '0').replace(',', '.'));
+            return sum + parseFloat(String(v.VendasCarrosValorTotal || '0').replace(',', '.'));
         }, 0);
 
         const valorPerdido = perdidas.reduce((sum, v) => {
-            return sum + parseFloat(String(v.VendasCarrosValorMensal || '0').replace(',', '.'));
+            return sum + parseFloat(String(v.VendasCarrosValorTotal || '0').replace(',', '.'));
         }, 0);
 
         // Ranking por consultor
@@ -242,7 +242,7 @@ const DashboardComercial = (function () {
             rankingMap[id].cotacoes++;
             if (r.VendasSituacaoEnum === '1') {
                 rankingMap[id].vendas++;
-                rankingMap[id].valor += parseFloat(String(r.VendasCarrosValorMensal || '0').replace(',', '.'));
+                rankingMap[id].valor += parseFloat(String(r.VendasCarrosValorTotal || '0').replace(',', '.'));
             }
         });
 

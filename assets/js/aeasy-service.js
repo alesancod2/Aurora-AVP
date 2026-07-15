@@ -787,7 +787,7 @@ const AeasyService = (function () {
     //   formPesquisa[search]=VALOR
     //
     // Campos financeiros:
-    //   VendasCarrosValorMensal (numeric string ex: "65.90")
+    //   VendasCarrosValorTotal (numeric string ex: "65.90")
     //   VendasCarrosValorAdesao (ex: "R$ 250,00")
     //   VendasCarrosValorFipe (ex: "R$ 15.524,00")
     //   VendasCarrosValorTotal (numeric: "65.90")
@@ -1078,12 +1078,12 @@ const AeasyService = (function () {
 
         // 4. Calcular valores financeiros
         const valorTotalVendido = vendas.reduce((sum, v) => {
-            const valor = parseFloat(String(v.VendasCarrosValorMensal || '0').replace(',', '.'));
+            const valor = parseFloat(String(v.VendasCarrosValorTotal || '0').replace(',', '.'));
             return sum + valor;
         }, 0);
 
         const valorTotalPerdido = perdidas.reduce((sum, v) => {
-            const valor = parseFloat(String(v.VendasCarrosValorMensal || '0').replace(',', '.'));
+            const valor = parseFloat(String(v.VendasCarrosValorTotal || '0').replace(',', '.'));
             return sum + valor;
         }, 0);
 
@@ -1114,7 +1114,7 @@ const AeasyService = (function () {
                 rankingMap[consultorId].cotacoes++;
                 if (r.VendasSituacaoEnum === '1') {
                     rankingMap[consultorId].vendas++;
-                    const valor = parseFloat(String(r.VendasCarrosValorMensal || '0').replace(',', '.'));
+                    const valor = parseFloat(String(r.VendasCarrosValorTotal || '0').replace(',', '.'));
                     rankingMap[consultorId].valor += valor;
                 }
             }
@@ -1230,7 +1230,7 @@ const AeasyService = (function () {
         const perdidas = registros.filter(r => ['2', '3'].includes(r.VendasSituacaoEnum));
 
         const valorVendido = vendas.reduce((sum, v) => {
-            return sum + parseFloat(String(v.VendasCarrosValorMensal || '0').replace(',', '.'));
+            return sum + parseFloat(String(v.VendasCarrosValorTotal || '0').replace(',', '.'));
         }, 0);
 
         return {
