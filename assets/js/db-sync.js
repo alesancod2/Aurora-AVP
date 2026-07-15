@@ -18,9 +18,13 @@ const DbSync = (function () {
 
     // --- Config ---
     const CONFIG = {
-        edgeFunctionUrl: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/import-data',
+        edgeFunctionUrl: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
         supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
-        delayBetweenCalls: 2000, // 2s entre chamadas à Edge Function
+        supabaseServiceKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDExNzc1MSwiZXhwIjoyMDk5NjkzNzUxfQ.4nIV41kQHEFAwCV2VjROZcm20BnySmZ7FVlAMJAFvr4',
+        supabaseUrl: 'https://zjacembodtjrkynfmtxf.supabase.co',
+        delayBetweenCalls: 1500,
+        batchSize: 500,
+        upsertChunkSize: 200,
     };
 
     // --- State ---
@@ -125,60 +129,71 @@ const DbSync = (function () {
 
         while (!_cancelled) {
             iteration++;
-            addLog(`Chamada #${iteration} (offset=${offset}, batch=${batchSize}, max=${maxBatches})`, 'info');
+            addLog(`Lote #${iteration} (offset=${offset}, batch=${batchSize})`, 'info');
 
-            const result = await callEdgeFunction(target, batchSize, offset, maxBatches);
+            // 1. Fetch from aEasy via aeasy-prox
+            const fetchResult = await fetchFromAeasy(target, offset, batchSize);
 
-            if (!result.success) {
-                throw new Error(result.error || 'Edge Function retornou erro');
-            }
-
-            const data = result.results[target];
-            if (!data) {
-                addLog(`Sem dados retornados para ${target}`, 'warn');
+            if (!fetchResult || !fetchResult.data || !fetchResult.data.length) {
+                addLog(`Sem mais registros para ${target}`, 'info');
                 break;
             }
 
-            totalRecords = data.total || totalRecords;
-            _totalInserted[target] += data.inserted || 0;
+            totalRecords = fetchResult.total || totalRecords;
+            const records = fetchResult.data;
+
+            // 2. Map and upsert to Supabase
+            const mapped = records.map(target === 'consultores' ? mapConsultor : mapVenda);
+            const inserted = await upsertToSupabase(target, mapped);
+            _totalInserted[target] += inserted;
 
             const pct = totalRecords > 0
                 ? Math.min(100, Math.round((_totalInserted[target] / totalRecords) * 100))
                 : 0;
 
             updateProgress(pct, `${target}: ${_totalInserted[target]}/${totalRecords} registros`);
-            addLog(`${target}: +${data.inserted} inseridos (${_totalInserted[target]}/${totalRecords})`, 'ok');
+            addLog(`${target}: +${inserted} inseridos (${_totalInserted[target]}/${totalRecords})`, 'ok');
 
-            // Check if complete
-            if (data.status === 'complete' || data.next_offset === null) {
+            offset += batchSize;
+            if (offset >= totalRecords) {
                 addLog(`${target} concluído!`, 'ok');
                 updateProgress(100, `${target}: ${_totalInserted[target]}/${totalRecords} - Completo!`);
                 break;
             }
 
-            // Timeout or partial - continue with next offset
-            if (data.status === 'timeout' || data.status === 'partial') {
-                offset = data.next_offset;
-                addLog(`Continuando do offset ${offset}...`, 'info');
-                await sleep(CONFIG.delayBetweenCalls);
-                continue;
+            if (iteration >= maxBatches) {
+                addLog(`Limite de ${maxBatches} lotes atingido. Parcial.`, 'warn');
+                break;
             }
 
-            // Error
-            if (data.status === 'error') {
-                throw new Error(data.error || `Erro ao importar ${target}`);
-            }
-
-            break;
+            await sleep(CONFIG.delayBetweenCalls);
         }
     }
 
-    async function callEdgeFunction(target, batchSize, offset, maxBatches) {
+    // --- Fetch data from aEasy via aeasy-prox ---
+    async function fetchFromAeasy(target, offset, length) {
+        const endpoint = target === 'consultores' ? '/consultores/listagem' : '/vendas/listagem';
+        const method = target === 'consultores' ? 'GET' : 'POST';
+        const columnName = target === 'consultores' ? 'IndividuosNome' : 'ClientesIndividuosNome';
+
+        // Build DataTables params
+        const params = new URLSearchParams();
+        params.append('draw', '1');
+        params.append('start', String(offset));
+        params.append('length', String(length));
+        params.append('columns[0][data]', columnName);
+        params.append('columns[0][name]', columnName);
+        params.append('columns[0][orderable]', 'true');
+        params.append('columns[0][searchable]', 'false');
+        params.append('order[0][column]', '0');
+        params.append('order[0][dir]', 'asc');
+        params.append('formPesquisa[submitFilter]', 'true');
+
         const payload = {
-            target: target,
-            batch_size: batchSize,
-            offset: offset,
-            max_batches: maxBatches,
+            action: 'request',
+            method: method,
+            endpoint: method === 'GET' ? `${endpoint}?${params.toString()}` : endpoint,
+            body: method === 'POST' ? params.toString() : '',
         };
 
         const response = await fetch(CONFIG.edgeFunctionUrl, {
@@ -192,11 +207,86 @@ const DbSync = (function () {
         });
 
         if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errText.substring(0, 200)}`);
+            throw new Error(`HTTP ${response.status}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+
+        const data = result.data;
+        if (!data || !data.data) throw new Error('Resposta sem dados');
+
+        return { data: data.data, total: parseInt(data.recordsFiltered || data.recordsTotal || '0') };
+    }
+
+    // --- Upsert to Supabase DB ---
+    async function upsertToSupabase(table, records) {
+        let inserted = 0;
+        const conflictCol = table === 'consultores' ? 'consultores_id' : 'vendas_id';
+
+        for (let i = 0; i < records.length; i += CONFIG.upsertChunkSize) {
+            const chunk = records.slice(i, i + CONFIG.upsertChunkSize);
+            const resp = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?on_conflict=${conflictCol}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.supabaseServiceKey}`,
+                    'apikey': CONFIG.supabaseServiceKey,
+                    'Prefer': 'resolution=merge-duplicates',
+                },
+                body: JSON.stringify(chunk),
+            });
+            if (resp.ok) {
+                inserted += chunk.length;
+            } else {
+                const err = await resp.text();
+                addLog(`Erro upsert: ${resp.status} - ${err.substring(0, 100)}`, 'error');
+            }
+        }
+        return inserted;
+    }
+
+    // --- Field Mappers ---
+    function parseDecimal(value) {
+        if (!value) return null;
+        const str = String(value).replace(/[R$\s.]/g, '').replace(',', '.');
+        const num = parseFloat(str);
+        return isNaN(num) ? null : num;
+    }
+
+    function mapConsultor(raw) {
+        return {
+            consultores_id: raw.ConsultoresId,
+            individuos_nome: raw.IndividuosNome || '',
+            individuos_documento: raw.IndividuosDocumento || null,
+            individuos_email: raw.IndividuosEmail || null,
+            individuos_login: raw.IndividuosLogin || null,
+            consultores_tipo_consultor_enum: raw.ConsultoresTipoConsultorEnum ? parseInt(String(raw.ConsultoresTipoConsultorEnum)) : null,
+            consultores_situacao_cadastro_enum: raw.ConsultoresSituacaoCadastroEnum ? parseInt(String(raw.ConsultoresSituacaoCadastroEnum)) : null,
+            consultores_patrocinador_individuos_nome: raw.ConsultoresPatrocinadorIndividuosNome || null,
+            grupos_empresas_nome: raw.GruposEmpresasNome || null,
+            synced_at: new Date().toISOString(),
+        };
+    }
+
+    function mapVenda(raw) {
+        return {
+            vendas_id: raw.VendasId,
+            clientes_individuos_nome: raw.ClientesIndividuosNome || null,
+            clientes_individuos_documento: raw.ClientesIndividuosDocumento || null,
+            vendas_carros_placa: raw.VendasCarrosPlaca || null,
+            vendas_carros_marcas_nome: raw.VendasCarrosMarcasNome || null,
+            vendas_carros_modelos_nome: raw.VendasCarrosModelosNome || null,
+            vendas_carros_valor_total: parseDecimal(raw.VendasCarrosValorTotal),
+            vendas_situacao_enum: raw.VendasSituacaoEnum ? parseInt(String(raw.VendasSituacaoEnum)) : 1,
+            vendas_data_cadastro: raw.VendasDataCadastro || null,
+            vendas_data_ativacao: raw.VendasDataAtivacao || null,
+            vendas_consultores_id: raw.VendasConsultoresId || null,
+            consultores_nome: raw.ConsultoresNome || null,
+            consultores_centro_custo_nome: raw.ConsultoresCentroCustoNome || null,
+            synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
     }
 
     // --- UI Helpers ---
