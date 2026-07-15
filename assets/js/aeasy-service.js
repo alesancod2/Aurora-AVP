@@ -29,16 +29,15 @@ const AeasyService = (function () {
             Nome: 'Alesanco dos Santos Ferreira',
             Empresa: 'autovaleprevencoes',
         },
-        // Proxy CORS - Supabase Edge Function (mantém sessão server-side)
-        // Quando o gateway normalizar, funciona automaticamente
+        // Proxy CORS - Netlify Serverless Function (mantém sessão server-side)
         corsProxy: {
             enabled: true,
-            provider: 'supabase',
+            provider: 'netlify',
             providers: {
-                supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
+                netlify: 'https://aurora-avp.netlify.app/api/proxy',
             },
             supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
-            fallbackOrder: ['supabase'],
+            fallbackOrder: ['netlify'],
         },
         cache: {
             enabled: true,
@@ -307,8 +306,8 @@ const AeasyService = (function () {
             return await directRequest(method, endpoint, data, headers);
         }
 
-        // Via proxy com sessão server-side (PHP, Vercel ou Supabase)
-        if (['supabase', 'php', 'vercel'].includes(CONFIG.corsProxy.provider)) {
+        // Via proxy com sessão server-side (PHP, Vercel, Supabase ou Netlify)
+        if (['supabase', 'php', 'vercel', 'netlify'].includes(CONFIG.corsProxy.provider)) {
             return await supabaseProxyRequest(method, endpoint, data);
         }
 
@@ -510,7 +509,7 @@ const AeasyService = (function () {
         try {
             const useProxy = CONFIG.corsProxy.enabled && !isLocalhost();
 
-            if (useProxy && ['supabase', 'php', 'vercel'].includes(CONFIG.corsProxy.provider)) {
+            if (useProxy && ['supabase', 'php', 'vercel', 'netlify'].includes(CONFIG.corsProxy.provider)) {
                 // Login via proxy com sessão server-side
                 const proxyUrl = CONFIG.corsProxy.providers[CONFIG.corsProxy.provider];
 
