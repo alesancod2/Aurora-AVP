@@ -5,352 +5,368 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="">
-    <title>Auto Vale Prevenções - Dashboard Comercial</title>
+    <title>Aurora AVP - Dashboard Comercial</title>
 
     <link id="favicon" rel="shortcut icon"
-        href="https://imagens.autovaleprevencoes.org/Favicon.png"
-        type="image/png" />
+        href="https://imagens.autovaleprevencoes.org/Favicon.png" type="image/png" />
 
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-    <link href="assets/css/custom.css" rel="stylesheet">
+
+    <!-- Dashboard CSS -->
     <link href="assets/css/dashboard-comercial.css" rel="stylesheet">
 </head>
 <body>
 
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <img src="https://imagens.autovaleprevencoes.org/Logomarca.png" alt="Auto Vale" class="sidebar-logo">
+        <span class="sidebar-brand-text">Aurora</span>
+    </div>
 
-<!-- ====== HEADER ====== -->
-<header>
-    <div class="header-top">
-        <div class="logo">
-            <div class="welcome">
-                <img height="50"
-                    src="https://imagens.autovaleprevencoes.org/Logomarca.png"
-                    alt="Auto Vale Prevenções" />
-            </div>
-        </div>
-        <div class="user-info">
-            <div class="details">
-                <div class="info">
-                    <div class="name">Dashboard Comercial</div>
-                    <div class="d-flex gap-2">
-                        <div class="time-logout" id="ultima-atualizacao">Carregando...</div>
-                    </div>
-                </div>
-                <div class="actions">
-                    <a href="index.html" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-arrow-left"></i> Voltar
-                    </a>
-                </div>
+    <nav class="sidebar-nav">
+        <a href="index.html" class="sidebar-link">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Painel</span>
+        </a>
+        <a href="#" class="sidebar-link active">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>Comercial</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-people"></i>
+            <span>Equipe</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-wallet2"></i>
+            <span>Financeiro</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-bullseye"></i>
+            <span>Metas</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="sidebar-user-avatar">AF</div>
+            <div class="sidebar-user-info">
+                <span class="sidebar-user-name">Alesanco</span>
+                <span class="sidebar-user-role">Admin</span>
             </div>
         </div>
     </div>
-</header>
+</aside>
 
 
-<!-- ====== BREADCRUMB ====== -->
-<div class="content-page">
-    <div class="header-page">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 d-flex align-items-center gap-1">
-                <li class="breadcrumb-item text-white fw-lighter">Home</li>
-                <li class="breadcrumb-item text-white fs-3 fw-bolder active">Dashboard Comercial</li>
-            </ol>
-        </nav>
-    </div>
-</div>
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main-content">
 
-<!-- ====== CONTEÚDO PRINCIPAL ====== -->
-<div class="content">
+    <!-- Top Bar -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="btn-sidebar-toggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="topbar-title">
+                <h1>Dashboard Comercial</h1>
+                <p id="ultima-atualizacao">Carregando dados...</p>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="topbar-btn" id="btn-limpar-cache" title="Atualizar dados">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="topbar-btn" id="btn-toggle-logs" title="Console">
+                <i class="bi bi-terminal"></i>
+            </button>
+        </div>
+    </header>
 
     <!-- Alertas -->
     <div id="alerts-container"></div>
 
     <!-- ====== FILTROS ====== -->
-    <div class="dashboard-filters">
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-2">
-                <label for="filtro-periodo-rapido">Período</label>
-                <select class="form-select form-select-sm" id="filtro-periodo-rapido">
-                    <option value="mes" selected>Este Mês</option>
+    <section class="filters-section">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label>Periodo</label>
+                <select class="filter-select" id="filtro-periodo-rapido">
+                    <option value="mes" selected>Este Mes</option>
                     <option value="hoje">Hoje</option>
                     <option value="semana">Esta Semana</option>
-                    <option value="trimestre">Este Trimestre</option>
+                    <option value="trimestre">Trimestre</option>
                     <option value="ano">Este Ano</option>
-                    <option value="custom">Personalizado</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
-                <label for="filtro-data-inicio">Data Início</label>
-                <input type="date" class="form-control form-control-sm" id="filtro-data-inicio" />
+            <div class="filter-group">
+                <label>De</label>
+                <input type="date" class="filter-input" id="filtro-data-inicio" />
             </div>
-            <div class="col-6 col-md-2">
-                <label for="filtro-data-fim">Data Fim</label>
-                <input type="date" class="form-control form-control-sm" id="filtro-data-fim" />
+            <div class="filter-group">
+                <label>Ate</label>
+                <input type="date" class="filter-input" id="filtro-data-fim" />
             </div>
-            <div class="col-12 col-md-2">
-                <label for="filtro-gestor">Gestor</label>
-                <select class="form-select form-select-sm" id="filtro-gestor">
-                    <option value="">Todos os Gestores</option>
+            <div class="filter-group">
+                <label>Gestor</label>
+                <select class="filter-select" id="filtro-gestor">
+                    <option value="">Todos</option>
                 </select>
             </div>
-            <div class="col-12 col-md-2">
-                <label for="filtro-vendedor">Vendedor</label>
-                <select class="form-select form-select-sm" id="filtro-vendedor">
-                    <option value="">Toda a Equipe</option>
+            <div class="filter-group">
+                <label>Vendedor</label>
+                <select class="filter-select" id="filtro-vendedor">
+                    <option value="">Equipe</option>
                 </select>
             </div>
-            <div class="col-12 col-md-2">
-                <button class="btn btn-primary btn-sm w-100" id="btn-filtrar">
+            <div class="filter-group">
+                <label>Regional</label>
+                <select class="filter-select" id="filtro-regional">
+                    <option value="">Todas</option>
+                    <option value="Empresa">01 - AutoVale</option>
+                    <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
+                    <option value="Juazeiro">03 - Juazeiro</option>
+                    <option value="Bomfim">04 - Sr. Bomfim</option>
+                    <option value="Itabuna">05 - Itabuna</option>
+                    <option value="JNorte">06 - J. Norte</option>
+                    <option value="Maceio">07 - Maceio</option>
+                    <option value="Salgueiro">08 - Salgueiro</option>
+                    <option value="Arapiraca1">09 - Arapiraca</option>
+                    <option value="SMiguelCampos">10 - S.M. Campos</option>
+                    <option value="C2D9F83C-E5ED-10FC-C44F-F97B974C84F2">11 - Carpina</option>
+                    <option value="DFA87AB6-49FF-B6C0-C971-BB9FDBF343EC">12 - Serra Talhada</option>
+                    <option value="4808A9B4-1D5E-1D95-ECE6-D09FA4F5316F">13 - Propria</option>
+                    <option value="C076FFB2-A1FF-DA78-D2C2-B8049B1C8F91">14 - Horizonte</option>
+                    <option value="746E6EAC-32E8-455C-7230-BC41043D89B0">15 - Feira Santana</option>
+                    <option value="CF7C65F2-833C-F6E6-D726-426982B1453C">16 - Recife</option>
+                </select>
+            </div>
+            <div class="filter-group filter-actions">
+                <button class="btn-filter" id="btn-filtrar">
                     <i class="bi bi-search"></i> Filtrar
                 </button>
             </div>
         </div>
 
-
-        <!-- Filtros avançados (linha 2) -->
-        <div class="row g-2 mt-2">
-            <div class="col-6 col-md-2">
-                <label for="filtro-status">Status</label>
-                <select class="form-select form-select-sm" id="filtro-status">
-                    <option value="">Todos</option>
-                    <option value="1">Ativo</option>
-                    <option value="2">Suspenso</option>
-                    <option value="3">Cancelado</option>
-                    <option value="5">Novo</option>
-                    <option value="4">Aguardando Pagamento</option>
-                    <option value="6">Aguardando Vistoria</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label for="filtro-produto">Produto</label>
-                <select class="form-select form-select-sm" id="filtro-produto">
-                    <option value="">Todos</option>
-                    <option value="1">Proteção Veicular</option>
-                    <option value="5">Rastreamento</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-3">
-                <label for="filtro-regional">Regional/Unidade</label>
-                <select class="form-select form-select-sm" id="filtro-regional">
-                    <option value="">Todas</option>
-                    <option value="Empresa">01 - AutoVale Clube de Benefícios</option>
-                    <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina - PE</option>
-                    <option value="Juazeiro">03 - Juazeiro - BA</option>
-                    <option value="Bomfim">04 - Sr. Bomfim - BA</option>
-                    <option value="Itabuna">05 - Itabuna - BA</option>
-                    <option value="JNorte">06 - J. Norte - CE</option>
-                    <option value="Maceio">07 - Maceió - AL</option>
-                    <option value="Salgueiro">08 - Salgueiro - PE</option>
-                    <option value="Arapiraca1">09 - Arapiraca - AL</option>
-                    <option value="SMiguelCampos">10 - S. Miguel Campos - AL</option>
-                    <option value="C2D9F83C-E5ED-10FC-C44F-F97B974C84F2">11 - Carpina - PE</option>
-                    <option value="DFA87AB6-49FF-B6C0-C971-BB9FDBF343EC">12 - Serra Talhada - PE</option>
-                    <option value="4808A9B4-1D5E-1D95-ECE6-D09FA4F5316F">13 - Própria - SE</option>
-                    <option value="C076FFB2-A1FF-DA78-D2C2-B8049B1C8F91">14 - Horizonte - CE</option>
-                    <option value="746E6EAC-32E8-455C-7230-BC41043D89B0">15 - Feira de Santana - BA</option>
-                    <option value="CF7C65F2-833C-F6E6-D726-426982B1453C">16 - Recife - PE</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label>&nbsp;</label>
-                <div class="d-flex gap-1">
-                    <button class="btn btn-outline-secondary btn-sm" id="btn-limpar-cache" title="Limpar cache">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                    <button class="btn btn-outline-dark btn-sm" id="btn-toggle-logs" title="Ver logs">
-                        <i class="bi bi-terminal"></i> Logs
-                    </button>
+        <!-- Filtros extras (colapsavel) -->
+        <div class="filters-extra" id="filters-extra" style="display:none">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select class="filter-select" id="filtro-status">
+                        <option value="">Todos</option>
+                        <option value="1">Ativo</option>
+                        <option value="2">Suspenso</option>
+                        <option value="3">Cancelado</option>
+                        <option value="5">Novo</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- ====== CARDS DE INDICADORES ====== -->
-    <div class="row g-3 mb-4">
-        <!-- Cotações -->
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
-            <div class="dashboard-card card card-cotacoes">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="card-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    </div>
-                    <div class="card-value" id="card-cotacoes-valor">0</div>
-                    <div class="card-label">Cotações</div>
+                <div class="filter-group">
+                    <label>Produto</label>
+                    <select class="filter-select" id="filtro-produto">
+                        <option value="">Todos</option>
+                        <option value="1">Protecao Veicular</option>
+                        <option value="5">Rastreamento</option>
+                    </select>
                 </div>
             </div>
         </div>
 
-        <!-- Vendas Concretizadas -->
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
-            <div class="dashboard-card card card-vendas">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="card-icon"><i class="bi bi-check-circle"></i></div>
-                    </div>
-                    <div class="card-value" id="card-vendas-valor">0</div>
-                    <div class="card-label">Vendas</div>
-                    <div class="mt-1" style="font-size:0.78rem;color:#0f7b3f" id="card-vendas-total">R$ 0,00</div>
-                </div>
+        <button class="btn-more-filters" id="btn-more-filters">
+            <i class="bi bi-sliders"></i> Mais filtros
+        </button>
+    </section>
+
+
+    <!-- ====== KPI CARDS ====== -->
+    <section class="kpi-grid">
+        <div class="kpi-card kpi-cotacoes">
+            <div class="kpi-icon"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-cotacoes-valor">0</span>
+                <span class="kpi-label">Cotacoes</span>
+            </div>
+            <div class="kpi-trend" id="card-cotacoes-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-vendas">
+            <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-vendas-valor">0</span>
+                <span class="kpi-label">Vendas</span>
+                <span class="kpi-sub" id="card-vendas-total">R$ 0,00</span>
+            </div>
+            <div class="kpi-trend positive" id="card-vendas-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-canceladas">
+            <div class="kpi-icon"><i class="bi bi-x-circle"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-canceladas-valor">0</span>
+                <span class="kpi-label">Canceladas</span>
+                <span class="kpi-sub negative" id="card-canceladas-pct">0%</span>
+            </div>
+            <div class="kpi-trend negative" id="card-canceladas-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-perdidas">
+            <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-perdidas-valor">0</span>
+                <span class="kpi-label">Perdidas</span>
+                <span class="kpi-sub negative" id="card-perdidas-pct">0%</span>
+            </div>
+            <div class="kpi-trend negative" id="card-perdidas-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-conversao">
+            <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-conversao-valor">0%</span>
+                <span class="kpi-label">Conversao</span>
+            </div>
+            <div class="kpi-ring">
+                <svg viewBox="0 0 36 36">
+                    <path class="kpi-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path class="kpi-ring-fill" id="ring-conversao" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
             </div>
         </div>
 
-        <!-- Canceladas -->
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
-            <div class="dashboard-card card card-canceladas">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="card-icon"><i class="bi bi-x-circle"></i></div>
-                    </div>
-                    <div class="card-value" id="card-canceladas-valor">0</div>
-                    <div class="card-label">Canceladas</div>
-                    <div class="mt-1 card-variation negative" id="card-canceladas-pct">0%</div>
-                </div>
+        <div class="kpi-card kpi-ticket">
+            <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-ticket-valor">R$ 0</span>
+                <span class="kpi-label">Ticket Medio</span>
             </div>
         </div>
+    </section>
 
-        <!-- Perdidas -->
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
-            <div class="dashboard-card card card-perdidas">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="card-icon"><i class="bi bi-exclamation-triangle"></i></div>
-                    </div>
-                    <div class="card-value" id="card-perdidas-valor">0</div>
-                    <div class="card-label">Perdidas</div>
-                    <div class="mt-1 card-variation negative" id="card-perdidas-pct">0%</div>
-                </div>
+
+    <!-- ====== CHARTS ROW ====== -->
+    <section class="charts-row">
+        <!-- Evolucao Mensal -->
+        <div class="chart-panel chart-large">
+            <div class="panel-header">
+                <h3><i class="bi bi-activity"></i> Evolucao Mensal</h3>
             </div>
-        </div>
-
-        <!-- Conversão -->
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
-            <div class="dashboard-card card card-conversao">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="card-icon"><i class="bi bi-graph-up-arrow"></i></div>
-                    </div>
-                    <div class="card-value" id="card-conversao-valor">0%</div>
-                    <div class="card-label">Conversão</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Ticket Médio -->
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
-            <div class="dashboard-card card card-ticket">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="card-icon"><i class="bi bi-currency-dollar"></i></div>
-                    </div>
-                    <div class="card-value" id="card-ticket-valor">R$ 0</div>
-                    <div class="card-label">Ticket Médio</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- ====== GRÁFICOS E RANKING ====== -->
-    <div class="row g-3 mb-4">
-        <!-- Evolução Mensal -->
-        <div class="col-12 col-lg-8">
-            <div class="chart-container">
-                <div class="chart-title">
-                    <i class="bi bi-graph-up me-2"></i>Evolução Mensal
-                </div>
-                <div style="height: 300px">
-                    <canvas id="chart-evolucao"></canvas>
-                </div>
+            <div class="panel-body">
+                <canvas id="chart-evolucao"></canvas>
             </div>
         </div>
 
         <!-- Funil Comercial -->
-        <div class="col-12 col-lg-4">
-            <div class="chart-container">
-                <div class="chart-title">
-                    <i class="bi bi-funnel me-2"></i>Funil Comercial
-                </div>
-                <div class="funnel-container mt-3">
-                    <div class="funnel-step step-cotacao" id="funil-cotacao">
-                        <span>Cotações: <strong class="funil-valor">0</strong></span>
+        <div class="chart-panel chart-small">
+            <div class="panel-header">
+                <h3><i class="bi bi-funnel"></i> Funil Comercial</h3>
+            </div>
+            <div class="panel-body">
+                <div class="funnel">
+                    <div class="funnel-stage funnel-cotacao" id="funil-cotacao">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Cotacoes</span>
+                        </div>
                     </div>
-                    <div class="funnel-step step-venda" id="funil-venda">
-                        <span>Vendas: <strong class="funil-valor">0</strong></span>
+                    <div class="funnel-stage funnel-venda" id="funil-venda">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Vendas</span>
+                        </div>
                     </div>
-                    <div class="funnel-step step-cancelado" id="funil-cancelado">
-                        <span>Canceladas: <strong class="funil-valor">0</strong></span>
+                    <div class="funnel-stage funnel-cancelado" id="funil-cancelado">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Canceladas</span>
+                        </div>
                     </div>
-                    <div class="funnel-step step-perdida" id="funil-perdida">
-                        <span>Perdidas: <strong class="funil-valor">0</strong></span>
+                    <div class="funnel-stage funnel-perdida" id="funil-perdida">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Perdidas</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- ====== RANKING DA EQUIPE ====== -->
-    <div class="row g-3 mb-4" id="ranking-section">
-        <div class="col-12">
-            <div class="ranking-container card">
-                <div class="card-header bg-white border-0 pt-3 px-4">
-                    <h6 class="mb-0 fw-bold">
-                        <i class="bi bi-trophy me-2 text-warning"></i>Ranking da Equipe
-                    </h6>
-                </div>
-                <div class="card-body p-0" id="ranking-list">
-                    <p class="text-muted text-center py-4">Carregando ranking...</p>
+    <!-- ====== RANKING ====== -->
+    <section class="ranking-section" id="ranking-section">
+        <div class="chart-panel">
+            <div class="panel-header">
+                <h3><i class="bi bi-trophy"></i> Ranking da Equipe</h3>
+            </div>
+            <div class="panel-body" id="ranking-list">
+                <div class="ranking-placeholder">
+                    <div class="spinner"></div>
+                    <p>Carregando ranking...</p>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
 
-    <!-- ====== PAINEL DE LOGS ====== -->
-    <div id="logs-container" style="display:none" class="mb-4">
-        <div class="card">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-terminal me-2"></i>Logs de Requisições</span>
-                <button class="btn btn-outline-light btn-sm" onclick="$('#logs-panel').empty()">Limpar</button>
+    <!-- ====== LOGS CONSOLE ====== -->
+    <section class="logs-section" id="logs-container" style="display:none">
+        <div class="chart-panel">
+            <div class="panel-header">
+                <h3><i class="bi bi-terminal"></i> Console</h3>
+                <button class="btn-ghost" onclick="$('#logs-panel').empty()">Limpar</button>
             </div>
-            <div class="logs-panel" id="logs-panel"></div>
+            <div class="logs-terminal" id="logs-panel"></div>
         </div>
-    </div>
+    </section>
 
-</div><!-- /.content -->
+</main>
 
-<!-- Loading Overlay -->
-<div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Carregando...</span>
+<!-- Loading -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Conectando ao aEasy...</p>
     </div>
 </div>
 
-<!-- Variáveis de configuração -->
+<!-- Config -->
 <input type="hidden" name="PrimaryColor" value="#5953c0" />
 <input type="hidden" name="SecondaryColor" value="#2d2973" />
 <input type="hidden" name="BaseUrl" value="/" />
 
-<!-- ====== SCRIPTS ====== -->
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="assets/js/aeasy-service.js"></script>
 <script src="assets/js/dashboard-comercial.js"></script>
-
 <script>
-    // Definir período padrão (mês atual)
-    $(document).ready(function() {
-        const inicio = moment().startOf('month').format('YYYY-MM-DD');
-        const fim = moment().format('YYYY-MM-DD');
-        $('#filtro-data-inicio').val(inicio);
-        $('#filtro-data-fim').val(fim);
-    });
-</script>
+$(document).ready(function() {
+    $('#filtro-data-inicio').val(moment().startOf('month').format('YYYY-MM-DD'));
+    $('#filtro-data-fim').val(moment().format('YYYY-MM-DD'));
 
+    // Sidebar toggle
+    $('#btn-sidebar-toggle').on('click', function() {
+        document.body.classList.toggle('sidebar-collapsed');
+    });
+
+    // More filters
+    $('#btn-more-filters').on('click', function() {
+        $('#filters-extra').slideToggle(200);
+        $(this).toggleClass('active');
+    });
+});
+</script>
 </body>
 </html>
