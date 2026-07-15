@@ -249,7 +249,16 @@ const DbSync = (function () {
     // --- Field Mappers ---
     function parseDecimal(value) {
         if (!value) return null;
-        const str = String(value).replace(/[R$\s.]/g, '').replace(',', '.');
+        const str = String(value).replace(/[R$\s]/g, '').trim();
+        if (!str || str === '-') return null;
+        // Detect format: "65.90" (already decimal) vs "15.524,00" (BR format)
+        // If has comma, it's BR format (1.234,56)
+        if (str.includes(',')) {
+            const cleaned = str.replace(/\./g, '').replace(',', '.');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? null : num;
+        }
+        // No comma: already decimal format (65.90)
         const num = parseFloat(str);
         return isNaN(num) ? null : num;
     }
