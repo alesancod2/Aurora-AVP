@@ -2,8 +2,25 @@
   "functions": {
     "api/proxy.js": {
       "maxDuration": 120
+    },
+    "api/sync.js": {
+      "maxDuration": 300
     }
   },
+  "crons": [
+    {
+      "path": "/api/sync?tipo=incremental",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/sync?tipo=consultores",
+      "schedule": "0 */1 * * *"
+    },
+    {
+      "path": "/api/sync?tipo=full",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
