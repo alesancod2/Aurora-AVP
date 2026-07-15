@@ -30,20 +30,21 @@ const AeasyService = (function () {
             Empresa: 'autovaleprevencoes',
         },
         // Proxy CORS - necessário para GitHub Pages (domínio diferente)
-        // Opções: 'none' (direto), 'allorigins', 'corsproxy', 'custom'
-        // RECOMENDADO: usar 'custom' com Cloudflare Worker (mantém sessão)
-        // Alternativa rápida: 'corsproxy' (funciona mas pode ter rate-limit)
+        // RECOMENDADO: Supabase Edge Function (mantém sessão server-side)
         corsProxy: {
             enabled: true,
-            provider: 'corsproxy', // Usar corsproxy.io (suporta POST com body)
+            provider: 'supabase', // Usar Supabase Edge Function
             providers: {
+                // Supabase Edge Function (RECOMENDADO - mantém sessão PHP)
+                // Substitua pela URL do seu projeto Supabase
+                supabase: 'https://SEU_PROJECT_ID.supabase.co/functions/v1/aeasy-proxy',
+                // Fallbacks (não mantêm sessão, mas funciona para teste)
                 corsproxy: 'https://corsproxy.io/?',
-                allorigins: 'https://api.allorigins.win/raw?url=',
                 thingproxy: 'https://thingproxy.freeboard.io/fetch/',
-                custom: '' // Coloque aqui a URL do seu Cloudflare Worker
             },
-            // Fallback: se um proxy falhar, tenta o próximo
-            fallbackOrder: ['corsproxy', 'thingproxy', 'allorigins'],
+            // Chave anônima do Supabase (necessária para invocar Edge Function)
+            supabaseAnonKey: 'SUA_ANON_KEY_AQUI',
+            fallbackOrder: ['supabase', 'corsproxy', 'thingproxy'],
         },
         cache: {
             enabled: true,
@@ -164,13 +165,102 @@ const AeasyService = (function () {
     }
 
     /**
-     * HTTP Request com suporte a proxy CORS e fallback automático
-     * NOTA: Como proxies não mantêm sessão PHP, cada request 
-     * inclui login embutido via cookie header quando necessário
+     * HTTP Request - usa Supabase Edge Function como proxy
+     * A Edge Function mantém a sessão PHP server-side
      */
     async function httpRequest(method, endpoint, data = null, headers = {}) {
-        const targetUrl = CONFIG.baseUrl + endpoint;
         const useProxy = CONFIG.corsProxy.enabled && !isLocalhost();
+        const startTime = performance.now();
+
+        // Se NÃO usa proxy (localhost), faz requisição direta
+        if (!useProxy) {
+            return await directRequest(method, endpoint, data, headers);
+        }
+
+        // Via Supabase Edge Function
+        if (CONFIG.corsProxy.provider === 'supabase') {
+            return await supabaseProxyRequest(method, endpoint, data);
+        }
+
+        // Via proxy genérico (fallback)
+        return await genericProxyRequest(method, endpoint, data, headers);
+    }
+
+    /**
+     * Requisição via Supabase Edge Function (mantém sessão!)
+     */
+    async function supabaseProxyRequest(method, endpoint, data) {
+        const proxyUrl = CONFIG.corsProxy.providers.supabase;
+        const startTime = performance.now();
+
+        const payload = {
+            action: 'request',
+            method: method,
+            endpoint: endpoint,
+            body: data ? (typeof data === 'string' ? data : new URLSearchParams(data).toString()) : '',
+        };
+
+        Logger.log('req', `${method} ${endpoint} [via Supabase]`);
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
+
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+            const elapsed = Math.round(performance.now() - startTime);
+
+            const result = await response.json();
+
+            // Tratar sessão expirada
+            if (result.error === 'SESSION_EXPIRED' || response.status === 401) {
+                Logger.log('err', `Sessão expirada - tentando re-login`);
+                _isAuthenticated = false;
+
+                // Re-login automático
+                const loginOk = await login();
+                if (loginOk) {
+                    // Retry da requisição original
+                    return await supabaseProxyRequest(method, endpoint, data);
+                }
+                throw new Error('SESSION_EXPIRED');
+            }
+
+            Logger.log('res', `${method} ${endpoint} [${result.status || 200}] (${elapsed}ms)`, {
+                records: result.data?.recordsTotal || result.data?.dados?.length || null
+            });
+
+            return {
+                ok: (result.status || 200) >= 200 && (result.status || 200) < 300,
+                status: result.status || 200,
+                data: result.data
+            };
+
+        } catch (error) {
+            const elapsed = Math.round(performance.now() - startTime);
+            if (error.name === 'AbortError') {
+                Logger.log('err', `TIMEOUT ${endpoint} (${elapsed}ms) [Supabase]`);
+                throw new Error('TIMEOUT');
+            }
+            Logger.log('err', `FALHA ${endpoint}: ${error.message} [Supabase]`);
+            throw error;
+        }
+    }
+
+    /**
+     * Requisição direta (sem proxy - para localhost)
+     */
+    async function directRequest(method, endpoint, data, headers) {
+        const url = CONFIG.baseUrl + endpoint;
         const startTime = performance.now();
 
         const defaultHeaders = {
@@ -182,44 +272,67 @@ const AeasyService = (function () {
             defaultHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
         }
 
-        // Com proxy: enviar Cookie de sessão no header se disponível
-        if (useProxy && _sessionCookie) {
-            defaultHeaders['Cookie'] = _sessionCookie;
-        }
-
         const options = {
             method,
             headers: defaultHeaders,
-            credentials: useProxy ? 'omit' : 'include',
+            credentials: 'include',
         };
 
         if (data && method === 'POST') {
-            if (typeof data === 'string') {
-                options.body = data;
-            } else {
-                options.body = new URLSearchParams(data).toString();
-            }
+            options.body = typeof data === 'string' ? data : new URLSearchParams(data).toString();
         }
 
-        // Montar URL (com ou sem proxy)
-        let url = useProxy ? buildProxiedUrl(targetUrl) : targetUrl;
+        Logger.log('req', `${method} ${endpoint} [direto]`);
 
-        Logger.log('req', `${method} ${endpoint}` + (useProxy ? ` [via ${CONFIG.corsProxy.provider}]` : ''), {
-            proxy: useProxy,
-            hasSession: !!_sessionCookie
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
+        options.signal = controller.signal;
 
-        // Tentar com proxy principal, depois fallback
-        const providers = useProxy 
-            ? [CONFIG.corsProxy.provider, ...CONFIG.corsProxy.fallbackOrder.filter(p => p !== CONFIG.corsProxy.provider)] 
-            : [null];
+        const response = await fetch(url, options);
+        clearTimeout(timeoutId);
+        const elapsed = Math.round(performance.now() - startTime);
+
+        let responseData;
+        const text = await response.text();
+        try {
+            const jsonStart = text.indexOf('{');
+            responseData = jsonStart >= 0 ? JSON.parse(text.substring(jsonStart)) : text;
+        } catch {
+            responseData = text;
+        }
+
+        Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms)`);
+        return { ok: response.ok, status: response.status, data: responseData };
+    }
+
+    /**
+     * Requisição via proxy genérico (fallback - não mantém sessão)
+     */
+    async function genericProxyRequest(method, endpoint, data, headers) {
+        const targetUrl = CONFIG.baseUrl + endpoint;
+        const startTime = performance.now();
+        const providers = CONFIG.corsProxy.fallbackOrder.filter(p => p !== 'supabase');
 
         for (const provider of providers) {
             try {
-                if (provider && useProxy) {
-                    const proxyBase = CONFIG.corsProxy.providers[provider];
-                    url = proxyBase + encodeURIComponent(targetUrl);
+                const proxyBase = CONFIG.corsProxy.providers[provider];
+                if (!proxyBase) continue;
+
+                const url = proxyBase + encodeURIComponent(targetUrl);
+
+                const defaultHeaders = {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...headers
+                };
+                if (method === 'POST') defaultHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+                if (_sessionCookie) defaultHeaders['Cookie'] = _sessionCookie;
+
+                const options = { method, headers: defaultHeaders, credentials: 'omit' };
+                if (data && method === 'POST') {
+                    options.body = typeof data === 'string' ? data : new URLSearchParams(data).toString();
                 }
+
+                Logger.log('req', `${method} ${endpoint} [via ${provider}]`);
 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
@@ -228,69 +341,22 @@ const AeasyService = (function () {
                 const response = await fetch(url, options);
                 clearTimeout(timeoutId);
 
-                const elapsed = Math.round(performance.now() - startTime);
-
-                // Capturar Set-Cookie da resposta (se proxy retornar)
-                const setCookie = response.headers.get('set-cookie');
-                if (setCookie) {
-                    // Extrair PHPSESSID
-                    const match = setCookie.match(/PHPSESSID=([^;]+)/);
-                    if (match) {
-                        _sessionCookie = 'PHPSESSID=' + match[1];
-                        Logger.log('info', `Sessão capturada: ${_sessionCookie.substring(0, 20)}...`);
-                    }
-                }
-
-                if (response.status === 302 || response.status === 301) {
-                    Logger.log('err', `Sessão expirada (redirect) - ${endpoint}`);
-                    _isAuthenticated = false;
-                    _sessionCookie = null;
-                    throw new Error('SESSION_EXPIRED');
-                }
-
-                const contentType = response.headers.get('content-type') || '';
+                const text = await response.text();
                 let responseData;
-
-                if (contentType.includes('application/json')) {
-                    responseData = await response.json();
-                } else {
-                    const text = await response.text();
-                    try {
-                        const jsonStart = text.indexOf('{');
-                        if (jsonStart >= 0) {
-                            responseData = JSON.parse(text.substring(jsonStart));
-                        } else {
-                            responseData = text;
-                        }
-                    } catch {
-                        responseData = text;
-                    }
+                try {
+                    const jsonStart = text.indexOf('{');
+                    responseData = jsonStart >= 0 ? JSON.parse(text.substring(jsonStart)) : text;
+                } catch {
+                    responseData = text;
                 }
 
-                Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms)`, {
-                    records: responseData?.recordsTotal || responseData?.dados?.length || null
-                });
-
+                const elapsed = Math.round(performance.now() - startTime);
+                Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms) via ${provider}`);
                 return { ok: response.ok, status: response.status, data: responseData };
 
             } catch (error) {
-                const elapsed = Math.round(performance.now() - startTime);
-
-                if (error.name === 'AbortError') {
-                    Logger.log('err', `TIMEOUT ${method} ${endpoint} (${elapsed}ms)`);
-                } else if (error.message === 'SESSION_EXPIRED') {
-                    throw error;
-                } else {
-                    Logger.log('err', `FALHA ${endpoint}: ${error.message} [${provider || 'direto'}]`);
-                }
-
-                // Tentar próximo provider
-                if (providers.indexOf(provider) < providers.length - 1) {
-                    Logger.log('info', `Fallback para próximo proxy...`);
-                    continue;
-                }
-
-                throw error;
+                Logger.log('err', `Falha ${provider}: ${error.message}`);
+                continue;
             }
         }
 
@@ -300,37 +366,63 @@ const AeasyService = (function () {
 
     // ============================================
     // AUTENTICAÇÃO
-    // Com proxy CORS, cookies não persistem automaticamente.
-    // Estratégia: fazer login e capturar PHPSESSID do header Set-Cookie
-    // Depois enviar Cookie: PHPSESSID=xxx em todas as requisições
+    // Via Supabase: chama action "login" na Edge Function
+    // A sessão fica armazenada server-side na Edge Function
     // ============================================
     async function login() {
         Logger.log('info', 'Iniciando login...');
 
         try {
-            // Primeiro: obter sessão (GET na página de login para pegar PHPSESSID)
-            const sessionResult = await httpRequest('GET', '/conta/login');
+            const useProxy = CONFIG.corsProxy.enabled && !isLocalhost();
 
-            // Segundo: fazer login com credenciais
-            const result = await httpRequest('POST', '/conta/login', {
-                UsuariosLogin: CONFIG.credentials.login,
-                UsuariosSenha: CONFIG.credentials.senha
-            });
+            if (useProxy && CONFIG.corsProxy.provider === 'supabase') {
+                // Login via Supabase Edge Function
+                const proxyUrl = CONFIG.corsProxy.providers.supabase;
 
-            if (result.data && result.data.mensagem && result.data.mensagem.includes('sucesso')) {
-                _isAuthenticated = true;
-                Logger.log('info', 'Login realizado com sucesso');
-                return true;
-            }
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
+                    },
+                    body: JSON.stringify({
+                        action: 'login',
+                        login: CONFIG.credentials.login,
+                        senha: CONFIG.credentials.senha,
+                    }),
+                });
 
-            // Se retornou JSON mas sem sucesso
-            if (result.data && result.data.mensagem) {
-                Logger.log('err', 'Login rejeitado: ' + result.data.mensagem);
+                const result = await response.json();
+
+                if (result.success) {
+                    _isAuthenticated = true;
+                    Logger.log('info', 'Login via Supabase realizado com sucesso');
+                    return true;
+                }
+
+                Logger.log('err', 'Login falhou via Supabase: ' + (result.error || 'desconhecido'));
+                return false;
+
+            } else {
+                // Login direto (localhost) ou via proxy genérico
+                // Passo 1: obter sessão
+                await directRequest('GET', '/conta/login', null, {});
+
+                // Passo 2: login
+                const result = await directRequest('POST', '/conta/login', {
+                    UsuariosLogin: CONFIG.credentials.login,
+                    UsuariosSenha: CONFIG.credentials.senha
+                }, {});
+
+                if (result.data?.mensagem?.includes('sucesso')) {
+                    _isAuthenticated = true;
+                    Logger.log('info', 'Login direto realizado com sucesso');
+                    return true;
+                }
+
+                Logger.log('err', 'Login direto falhou', result.data);
                 return false;
             }
-
-            Logger.log('err', 'Falha no login - resposta inesperada', result.data);
-            return false;
         } catch (error) {
             Logger.log('err', `Erro no login: ${error.message}`);
             return false;
