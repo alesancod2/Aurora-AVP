@@ -31,17 +31,19 @@ const AeasyService = (function () {
         },
         // Proxy CORS - necessário para GitHub Pages (domínio diferente)
         // Opções: 'none' (direto), 'allorigins', 'corsproxy', 'custom'
+        // RECOMENDADO: usar 'custom' com Cloudflare Worker (mantém sessão)
+        // Alternativa rápida: 'corsproxy' (funciona mas pode ter rate-limit)
         corsProxy: {
             enabled: true,
-            provider: 'allorigins', // Provedor padrão
+            provider: 'corsproxy', // Usar corsproxy.io (suporta POST com body)
             providers: {
-                allorigins: 'https://api.allorigins.win/raw?url=',
                 corsproxy: 'https://corsproxy.io/?',
-                corsanywhere: 'https://cors-anywhere.herokuapp.com/',
-                custom: '' // URL customizada
+                allorigins: 'https://api.allorigins.win/raw?url=',
+                thingproxy: 'https://thingproxy.freeboard.io/fetch/',
+                custom: '' // Coloque aqui a URL do seu Cloudflare Worker
             },
             // Fallback: se um proxy falhar, tenta o próximo
-            fallbackOrder: ['allorigins', 'corsproxy', 'corsanywhere'],
+            fallbackOrder: ['corsproxy', 'thingproxy', 'allorigins'],
         },
         cache: {
             enabled: true,
@@ -130,18 +132,26 @@ const AeasyService = (function () {
 
     // ============================================
     // HTTP CLIENT com PROXY CORS
-    // Necessário para funcionar via GitHub Pages
-    // O proxy encapsula a requisição, contornando CORS
+    // Problema: Proxies genéricos (allorigins) NÃO mantêm cookies/sessão
+    // Solução: Usar corsproxy.io que preserva headers e permite credenciais
+    //          OU usar Cloudflare Worker próprio
     // ============================================
 
     /**
-     * Monta a URL com proxy CORS se habilitado
+     * Monta a URL com proxy CORS
+     * corsproxy.io: NÃO usa encodeURIComponent, passa a URL direta
      */
     function buildProxiedUrl(targetUrl) {
         if (!CONFIG.corsProxy.enabled) return targetUrl;
         const provider = CONFIG.corsProxy.provider;
         const proxyBase = CONFIG.corsProxy.providers[provider];
         if (!proxyBase) return targetUrl;
+
+        // corsproxy.io usa formato: https://corsproxy.io/?url
+        // allorigins usa: https://api.allorigins.win/raw?url=encodedUrl
+        if (provider === 'corsproxy') {
+            return proxyBase + encodeURIComponent(targetUrl);
+        }
         return proxyBase + encodeURIComponent(targetUrl);
     }
 
@@ -155,6 +165,8 @@ const AeasyService = (function () {
 
     /**
      * HTTP Request com suporte a proxy CORS e fallback automático
+     * NOTA: Como proxies não mantêm sessão PHP, cada request 
+     * inclui login embutido via cookie header quando necessário
      */
     async function httpRequest(method, endpoint, data = null, headers = {}) {
         const targetUrl = CONFIG.baseUrl + endpoint;
@@ -170,7 +182,11 @@ const AeasyService = (function () {
             defaultHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
         }
 
-        // Se usa proxy, não pode enviar credentials (cross-origin)
+        // Com proxy: enviar Cookie de sessão no header se disponível
+        if (useProxy && _sessionCookie) {
+            defaultHeaders['Cookie'] = _sessionCookie;
+        }
+
         const options = {
             method,
             headers: defaultHeaders,
@@ -188,19 +204,15 @@ const AeasyService = (function () {
         // Montar URL (com ou sem proxy)
         let url = useProxy ? buildProxiedUrl(targetUrl) : targetUrl;
 
-        // Para GET com proxy, o body vai na URL
-        if (method === 'GET' && useProxy) {
-            // URL já contém query params, apenas encoda
-            url = buildProxiedUrl(targetUrl);
-        }
-
         Logger.log('req', `${method} ${endpoint}` + (useProxy ? ` [via ${CONFIG.corsProxy.provider}]` : ''), {
             proxy: useProxy,
-            params: data ? (typeof data === 'string' ? data.substring(0, 150) + '...' : data) : null
+            hasSession: !!_sessionCookie
         });
 
         // Tentar com proxy principal, depois fallback
-        const providers = useProxy ? [CONFIG.corsProxy.provider, ...CONFIG.corsProxy.fallbackOrder.filter(p => p !== CONFIG.corsProxy.provider)] : [null];
+        const providers = useProxy 
+            ? [CONFIG.corsProxy.provider, ...CONFIG.corsProxy.fallbackOrder.filter(p => p !== CONFIG.corsProxy.provider)] 
+            : [null];
 
         for (const provider of providers) {
             try {
@@ -218,9 +230,21 @@ const AeasyService = (function () {
 
                 const elapsed = Math.round(performance.now() - startTime);
 
+                // Capturar Set-Cookie da resposta (se proxy retornar)
+                const setCookie = response.headers.get('set-cookie');
+                if (setCookie) {
+                    // Extrair PHPSESSID
+                    const match = setCookie.match(/PHPSESSID=([^;]+)/);
+                    if (match) {
+                        _sessionCookie = 'PHPSESSID=' + match[1];
+                        Logger.log('info', `Sessão capturada: ${_sessionCookie.substring(0, 20)}...`);
+                    }
+                }
+
                 if (response.status === 302 || response.status === 301) {
-                    Logger.log('err', `Sessão expirada (redirect) - ${endpoint}`, { status: response.status });
+                    Logger.log('err', `Sessão expirada (redirect) - ${endpoint}`);
                     _isAuthenticated = false;
+                    _sessionCookie = null;
                     throw new Error('SESSION_EXPIRED');
                 }
 
@@ -232,7 +256,6 @@ const AeasyService = (function () {
                 } else {
                     const text = await response.text();
                     try {
-                        // Remover PHP warnings antes do JSON
                         const jsonStart = text.indexOf('{');
                         if (jsonStart >= 0) {
                             responseData = JSON.parse(text.substring(jsonStart));
@@ -244,9 +267,8 @@ const AeasyService = (function () {
                     }
                 }
 
-                Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms)` + (provider ? ` via ${provider}` : ''), {
-                    records: responseData?.recordsTotal || responseData?.dados?.length || null,
-                    size: typeof responseData === 'string' ? responseData.length : JSON.stringify(responseData).length
+                Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms)`, {
+                    records: responseData?.recordsTotal || responseData?.dados?.length || null
                 });
 
                 return { ok: response.ok, status: response.status, data: responseData };
@@ -255,16 +277,16 @@ const AeasyService = (function () {
                 const elapsed = Math.round(performance.now() - startTime);
 
                 if (error.name === 'AbortError') {
-                    Logger.log('err', `TIMEOUT ${method} ${endpoint} (${elapsed}ms)` + (provider ? ` via ${provider}` : ''));
+                    Logger.log('err', `TIMEOUT ${method} ${endpoint} (${elapsed}ms)`);
                 } else if (error.message === 'SESSION_EXPIRED') {
                     throw error;
                 } else {
-                    Logger.log('err', `FALHA ${method} ${endpoint}: ${error.message}` + (provider ? ` via ${provider}` : ''));
+                    Logger.log('err', `FALHA ${endpoint}: ${error.message} [${provider || 'direto'}]`);
                 }
 
-                // Se há mais providers para tentar, continua
+                // Tentar próximo provider
                 if (providers.indexOf(provider) < providers.length - 1) {
-                    Logger.log('info', `Tentando próximo proxy...`);
+                    Logger.log('info', `Fallback para próximo proxy...`);
                     continue;
                 }
 
@@ -278,11 +300,18 @@ const AeasyService = (function () {
 
     // ============================================
     // AUTENTICAÇÃO
+    // Com proxy CORS, cookies não persistem automaticamente.
+    // Estratégia: fazer login e capturar PHPSESSID do header Set-Cookie
+    // Depois enviar Cookie: PHPSESSID=xxx em todas as requisições
     // ============================================
     async function login() {
         Logger.log('info', 'Iniciando login...');
 
         try {
+            // Primeiro: obter sessão (GET na página de login para pegar PHPSESSID)
+            const sessionResult = await httpRequest('GET', '/conta/login');
+
+            // Segundo: fazer login com credenciais
             const result = await httpRequest('POST', '/conta/login', {
                 UsuariosLogin: CONFIG.credentials.login,
                 UsuariosSenha: CONFIG.credentials.senha
@@ -294,7 +323,13 @@ const AeasyService = (function () {
                 return true;
             }
 
-            Logger.log('err', 'Falha no login', result.data);
+            // Se retornou JSON mas sem sucesso
+            if (result.data && result.data.mensagem) {
+                Logger.log('err', 'Login rejeitado: ' + result.data.mensagem);
+                return false;
+            }
+
+            Logger.log('err', 'Falha no login - resposta inesperada', result.data);
             return false;
         } catch (error) {
             Logger.log('err', `Erro no login: ${error.message}`);
