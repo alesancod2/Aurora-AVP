@@ -1077,3 +1077,230 @@ body {
     display: inline-block;
     animation: spin 1s linear infinite;
 }
+
+
+
+/* ---- RANKING: Equipe Expandível ---- */
+.ranking-item {
+    position: relative;
+}
+
+.ranking-item.expanded {
+    background: var(--brand-glow);
+    border-left: 3px solid var(--brand-light);
+}
+
+.ranking-item.expanded .ranking-expand-icon {
+    transform: rotate(180deg);
+}
+
+.ranking-expand-icon {
+    font-size: 0.6rem;
+    opacity: 0.4;
+    transition: transform 0.2s;
+    margin-left: 4px;
+}
+
+.ranking-info {
+    cursor: pointer;
+}
+
+.ranking-info:hover .ranking-name {
+    color: var(--brand-light);
+}
+
+.ranking-equipe-detail {
+    padding: 0 20px;
+    border-left: 3px solid var(--brand-light);
+    margin-left: 16px;
+    background: rgba(89, 83, 192, 0.03);
+}
+
+.equipe-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.equipe-empty {
+    padding: 12px 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.equipe-header-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 8px;
+    font-size: 0.75rem;
+    color: var(--brand-light);
+    font-weight: 600;
+}
+
+.equipe-count {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.equipe-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 12px;
+}
+
+.equipe-member {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.equipe-member:hover {
+    background: var(--brand-glow);
+}
+
+.equipe-member-pos {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.equipe-member-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.equipe-member-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.equipe-member-meta {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+
+/* ---- RANKING: Gestores Ocultos ---- */
+.btn-hide-gestor {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    font-size: 0.75rem;
+}
+
+.ranking-item:hover .btn-hide-gestor {
+    opacity: 0.6;
+}
+
+.btn-hide-gestor:hover {
+    opacity: 1 !important;
+    color: var(--danger);
+    background: rgba(248, 113, 113, 0.1);
+}
+
+.ranking-hidden-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    background: rgba(251, 191, 36, 0.06);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+    color: var(--warning);
+}
+
+.ranking-hidden-bar i {
+    margin-right: 4px;
+}
+
+.btn-ranking-manage {
+    background: none;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: var(--warning);
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-ranking-manage:hover {
+    background: rgba(251, 191, 36, 0.1);
+}
+
+.ranking-ocultos-panel {
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.ocultos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ocultos-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.ocultos-item:last-child {
+    border-bottom: none;
+}
+
+.btn-show-gestor {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+}
+
+.btn-show-gestor:hover {
+    border-color: var(--success);
+    color: var(--success);
+}

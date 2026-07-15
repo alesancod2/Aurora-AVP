@@ -321,7 +321,7 @@ const DashboardComercial = (function () {
     }
 
     // ============================================
-    // RENDER RANKING
+    // RENDER RANKING (com equipe expandível + gestores ocultos)
     // ============================================
     function renderRanking(ranking) {
         const $container = $('#ranking-list');
@@ -332,22 +332,131 @@ const DashboardComercial = (function () {
             return;
         }
 
-        ranking.slice(0, 10).forEach((item, index) => {
-            const posClass = index < 3 ? `pos-${index + 1}` : 'pos-other';
+        // Filtrar gestores ocultos
+        const visibleRanking = typeof GestoresOcultos !== 'undefined'
+            ? GestoresOcultos.filtrar(ranking, 'id')
+            : ranking;
+
+        // Barra de ocultos
+        if (typeof GestoresOcultos !== 'undefined' && GestoresOcultos.getCount() > 0) {
+            $container.append(`
+                <div class="ranking-hidden-bar">
+                    <span><i class="bi bi-eye-slash"></i> ${GestoresOcultos.getCount()} gestor(es) oculto(s)</span>
+                    <button class="btn-ranking-manage" onclick="DashboardComercial.toggleOcultosPanel()">Gerenciar</button>
+                </div>
+            `);
+        }
+
+        // Painel de gestores ocultos (inicialmente escondido)
+        $container.append('<div id="ranking-ocultos-panel" class="ranking-ocultos-panel" style="display:none"></div>');
+
+        visibleRanking.slice(0, 10).forEach((item, index) => {
+            const posClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : 'default';
             const html = `
-                <div class="ranking-item">
-                    <div class="ranking-position ${posClass}">${index + 1}</div>
-                    <div class="ranking-info">
-                        <div class="ranking-name">${item.nome}</div>
+                <div class="ranking-item" data-gestor-id="${item.id}" data-gestor-nome="${item.nome}">
+                    <div class="ranking-pos ${posClass}">${index + 1}</div>
+                    <div class="ranking-info" onclick="DashboardComercial.expandEquipe('${item.id}', '${item.nome.replace(/'/g, "\\'")}')">
+                        <div class="ranking-name">${item.nome} <i class="bi bi-chevron-down ranking-expand-icon"></i></div>
                         <div class="ranking-stats">
-                            ${item.vendas} vendas &bull; ${item.conversao}% conversão
+                            ${item.vendas} vendas &bull; ${item.conversao}% conversão &bull; ${item.cotacoes} cotações
                         </div>
                     </div>
                     <div class="ranking-value">${formatMoney(item.valor)}</div>
+                    <button class="btn-hide-gestor" onclick="DashboardComercial.ocultarGestor('${item.id}', '${item.nome.replace(/'/g, "\\'")}')" title="Ocultar gestor">
+                        <i class="bi bi-eye-slash"></i>
+                    </button>
                 </div>
+                <div class="ranking-equipe-detail" id="equipe-${item.id}" style="display:none"></div>
             `;
             $container.append(html);
         });
+    }
+
+    // --- Expandir equipe de um gestor ---
+    async function expandEquipe(gestorId, gestorNome) {
+        const $detail = $(`#equipe-${gestorId}`);
+        const isOpen = $detail.is(':visible');
+
+        // Toggle: fechar se já estiver aberto
+        if (isOpen) {
+            $detail.slideUp(200);
+            $(`.ranking-item[data-gestor-id="${gestorId}"]`).removeClass('expanded');
+            return;
+        }
+
+        // Fechar outros abertos
+        $('.ranking-equipe-detail').slideUp(200);
+        $('.ranking-item').removeClass('expanded');
+
+        // Marcar como aberto
+        $(`.ranking-item[data-gestor-id="${gestorId}"]`).addClass('expanded');
+        $detail.html('<div class="equipe-loading"><div class="spinner"></div> Carregando equipe...</div>').slideDown(200);
+
+        try {
+            const equipe = await AeasyService.getEquipeGestor(gestorId);
+            if (!equipe || !equipe.equipe || equipe.equipe.length === 0) {
+                $detail.html('<div class="equipe-empty">Nenhum vendedor vinculado</div>');
+                return;
+            }
+
+            let html = `<div class="equipe-header-info">
+                <span><i class="bi bi-people"></i> Equipe de ${gestorNome}</span>
+                <span class="equipe-count">${equipe.equipe.length} vendedores</span>
+            </div>`;
+            html += '<div class="equipe-list">';
+
+            equipe.equipe.sort((a, b) => a.nome.localeCompare(b.nome)).forEach((v, i) => {
+                html += `<div class="equipe-member">
+                    <span class="equipe-member-pos">${i + 1}</span>
+                    <div class="equipe-member-info">
+                        <span class="equipe-member-name">${v.nome}</span>
+                        <span class="equipe-member-meta">${v.centroCusto || ''}</span>
+                    </div>
+                </div>`;
+            });
+
+            html += '</div>';
+            $detail.html(html);
+        } catch (e) {
+            $detail.html(`<div class="equipe-empty">Erro ao carregar: ${e.message}</div>`);
+        }
+    }
+
+    // --- Ocultar gestor ---
+    function ocultarGestor(gestorId, gestorNome) {
+        if (typeof GestoresOcultos !== 'undefined') {
+            GestoresOcultos.ocultar(gestorId, gestorNome);
+            carregarDashboard(); // Re-render
+        }
+    }
+
+    // --- Toggle painel de ocultos ---
+    function toggleOcultosPanel() {
+        const $panel = $('#ranking-ocultos-panel');
+        if ($panel.is(':visible')) {
+            $panel.slideUp(200);
+            return;
+        }
+
+        const ocultos = typeof GestoresOcultos !== 'undefined' ? GestoresOcultos.getOcultos() : [];
+        let html = '<div class="ocultos-list">';
+        ocultos.forEach(g => {
+            html += `<div class="ocultos-item">
+                <span>${g.gestor_nome}</span>
+                <button onclick="DashboardComercial.mostrarGestor('${g.gestor_id}')" class="btn-show-gestor">
+                    <i class="bi bi-eye"></i> Mostrar
+                </button>
+            </div>`;
+        });
+        html += '</div>';
+        $panel.html(html).slideDown(200);
+    }
+
+    function mostrarGestor(gestorId) {
+        if (typeof GestoresOcultos !== 'undefined') {
+            GestoresOcultos.mostrar(gestorId);
+            carregarDashboard();
+        }
     }
 
 
@@ -485,6 +594,10 @@ const DashboardComercial = (function () {
         init,
         carregarDashboard,
         carregarGestores,
+        expandEquipe,
+        ocultarGestor,
+        mostrarGestor,
+        toggleOcultosPanel,
     };
 
 })();
