@@ -29,15 +29,15 @@ const AeasyService = (function () {
             Nome: 'Alesanco dos Santos Ferreira',
             Empresa: 'autovaleprevencoes',
         },
-        // Proxy CORS - Netlify Serverless Function (mantém sessão server-side)
+        // Proxy CORS - Supabase Edge Function
         corsProxy: {
             enabled: true,
-            provider: 'netlify',
+            provider: 'supabase',
             providers: {
-                netlify: 'https://aurora-avp.netlify.app/api/proxy',
+                supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
             },
             supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
-            fallbackOrder: ['netlify'],
+            fallbackOrder: ['supabase'],
         },
         cache: {
             enabled: true,
