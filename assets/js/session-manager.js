@@ -138,11 +138,10 @@ const SessionManager = (function () {
 
     // --- Start periodic checks ---
     function startChecks() {
-        stopChecks();
-        _checkTimer = setInterval(async () => {
-            await verify();
-            checkInactivity();
-        }, CONFIG.checkInterval);
+        // DISABLED: Session verification requires Supabase Auth login flow.
+        // The Aurora AVP dashboard uses aEasy auth via Edge Function (no Supabase Auth).
+        // Re-enable when user authentication is implemented.
+        return;
     }
 
     function stopChecks() {

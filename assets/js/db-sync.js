@@ -222,9 +222,11 @@ const DbSync = (function () {
     // --- Upsert to Supabase DB ---
     async function upsertToSupabase(table, records) {
         let inserted = 0;
+        const conflictCol = table === 'consultores' ? 'consultores_id' : 'vendas_id';
+
         for (let i = 0; i < records.length; i += CONFIG.upsertChunkSize) {
             const chunk = records.slice(i, i + CONFIG.upsertChunkSize);
-            const resp = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}`, {
+            const resp = await fetch(`${CONFIG.supabaseUrl}/rest/v1/${table}?on_conflict=${conflictCol}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
