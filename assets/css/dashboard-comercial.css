@@ -1,0 +1,297 @@
+/* ============================================
+   Dashboard Comercial - Auto Vale Prevenções
+   ============================================ */
+
+/* Cards de indicadores */
+.dashboard-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card .card-body {
+    padding: 20px;
+}
+
+.dashboard-card .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.dashboard-card .card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1a1a2e;
+}
+
+.dashboard-card .card-label {
+    font-size: 0.82rem;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-card .card-variation {
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.card-variation.positive {
+    color: #0f7b3f;
+    background: #e6f9ef;
+}
+
+.card-variation.negative {
+    color: #d32f2f;
+    background: #fde8e8;
+}
+
+.card-variation.neutral {
+    color: #666;
+    background: #f0f0f0;
+}
+
+/* Card cores específicas */
+.card-cotacoes .card-icon { background: #e8f0fe; color: #1a73e8; }
+.card-vendas .card-icon { background: #e6f9ef; color: #0f7b3f; }
+.card-canceladas .card-icon { background: #fde8e8; color: #d32f2f; }
+.card-perdidas .card-icon { background: #fff3e0; color: #e65100; }
+.card-conversao .card-icon { background: #f3e5f5; color: #7b1fa2; }
+.card-ticket .card-icon { background: #e0f7fa; color: #00838f; }
+
+/* Ranking */
+.ranking-container {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+.ranking-item:hover {
+    background: #f8f9ff;
+}
+
+.ranking-position {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.ranking-position.pos-1 { background: #ffd700; color: #5d4e00; }
+.ranking-position.pos-2 { background: #c0c0c0; color: #333; }
+.ranking-position.pos-3 { background: #cd7f32; color: #fff; }
+.ranking-position.pos-other { background: #f0f0f0; color: #666; }
+
+.ranking-info {
+    flex: 1;
+    margin-left: 12px;
+}
+
+.ranking-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1a1a2e;
+}
+
+.ranking-stats {
+    font-size: 0.78rem;
+    color: #6c757d;
+}
+
+.ranking-value {
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary);
+}
+
+/* Filtros do Dashboard */
+.dashboard-filters {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 20px;
+}
+
+.dashboard-filters label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+}
+
+.dashboard-filters .form-control,
+.dashboard-filters .form-select {
+    font-size: 0.85rem;
+    border-radius: 8px;
+}
+
+/* Gráficos */
+.chart-container {
+    position: relative;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    padding: 20px;
+    background: #fff;
+}
+
+.chart-container .chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 16px;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.online { background: #e6f9ef; color: #0f7b3f; }
+.status-badge.offline { background: #f0f0f0; color: #666; }
+
+/* Loading skeleton */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 6px;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+    height: 100px;
+}
+
+.skeleton-text {
+    height: 14px;
+    margin-bottom: 8px;
+}
+
+.skeleton-chart {
+    height: 250px;
+}
+
+/* Logs panel */
+.logs-panel {
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    background: #1a1a2e;
+    color: #a0e77d;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.log-entry {
+    margin-bottom: 4px;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.log-entry .log-time {
+    color: #6c757d;
+}
+
+.log-entry .log-type {
+    font-weight: 700;
+}
+
+.log-entry .log-type.req { color: #64b5f6; }
+.log-entry .log-type.res { color: #81c784; }
+.log-entry .log-type.err { color: #ef5350; }
+.log-entry .log-type.info { color: #ffb74d; }
+
+/* Funil comercial */
+.funnel-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.funnel-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.funnel-step:hover {
+    transform: scale(1.02);
+}
+
+.funnel-step.step-cotacao { background: #1a73e8; width: 100%; }
+.funnel-step.step-venda { background: #0f7b3f; width: 80%; }
+.funnel-step.step-cancelado { background: #d32f2f; width: 50%; }
+.funnel-step.step-perdida { background: #e65100; width: 35%; }
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .dashboard-card .card-value {
+        font-size: 1.4rem;
+    }
+
+    .dashboard-filters {
+        padding: 12px;
+    }
+
+    .ranking-item {
+        padding: 10px 12px;
+    }
+}
