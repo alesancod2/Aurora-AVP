@@ -693,6 +693,16 @@ const AeasyService = (function () {
         const cached = Cache.get(cacheKey);
         if (cached) return cached;
 
+        // Try Supabase cache (cross-device, survives page reload beyond localStorage)
+        if (typeof SupabaseCache !== 'undefined') {
+            const sbCached = await SupabaseCache.get(endpoint, { filters, maxRecords });
+            if (sbCached) {
+                Logger.log('info', `Cache Supabase HIT: ${endpoint} (${sbCached.total} registros, ${sbCached.age}s atrás)`);
+                Cache.set(cacheKey, sbCached.data); // Also populate localStorage
+                return sbCached.data;
+            }
+        }
+
         await ensureAuthenticated();
 
         let allData = [];
@@ -735,6 +745,11 @@ const AeasyService = (function () {
 
         const resultado = { data: allData, total: totalRecords, requests: requestCount };
         Cache.set(cacheKey, resultado);
+
+        // Also save to Supabase cache (non-blocking, cross-device)
+        if (typeof SupabaseCache !== 'undefined') {
+            SupabaseCache.set(endpoint, { filters, maxRecords }, resultado).catch(() => {});
+        }
 
         Logger.log('info', `✓ ${endpoint} completo: ${allData.length}/${totalRecords} registros em ${requestCount} requisições`, {
             total: totalRecords,
