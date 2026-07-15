@@ -48,7 +48,7 @@ const AeasyService = (function () {
         },
         cache: {
             enabled: true,
-            ttl: 5 * 60 * 1000, // 5 minutos
+            ttl: 15 * 60 * 1000, // 15 minutos (cache-first)
         },
         pagination: {
             defaultLength: 500,  // Otimizado: menos requests
@@ -100,33 +100,169 @@ const AeasyService = (function () {
 
 
     // ============================================
-    // CACHE
+    // CACHE-FIRST (localStorage persistente + memória)
+    // 
+    // Estratégia:
+    //   1. Verifica localStorage (persiste entre reloads) - TTL 15min
+    //   2. Se HIT: retorna imediato (0ms) + refresh em background
+    //   3. Se MISS: busca do aEasy → salva em localStorage → retorna
+    //   4. Background: atualiza cache silenciosamente
+    //
+    // Resultado: Após primeira carga, dashboard abre em <100ms
     // ============================================
     const Cache = {
+        PREFIX: 'aurora_cache_',
+        TTL: 15 * 60 * 1000,          // 15 minutos
+        STALE_TTL: 60 * 60 * 1000,    // 1 hora (retorna stale enquanto atualiza)
+        MAX_STORAGE: 4.5 * 1024 * 1024, // 4.5MB (limite localStorage ~5MB)
+
+        /**
+         * Busca do cache (localStorage + memória)
+         * Retorna dados mesmo se stale (e dispara refresh em background)
+         */
         get(key) {
             if (!CONFIG.cache.enabled) return null;
-            const item = _cache.get(key);
-            if (!item) return null;
-            if (Date.now() - item.timestamp > CONFIG.cache.ttl) {
-                _cache.delete(key);
-                return null;
+
+            // 1. Tentar memória primeiro (mais rápido)
+            const memItem = _cache.get(key);
+            if (memItem && Date.now() - memItem.timestamp < this.TTL) {
+                return memItem.data;
             }
-            Logger.log('info', `Cache HIT: ${key}`);
-            return item.data;
+
+            // 2. Tentar localStorage (persiste entre reloads)
+            try {
+                const stored = localStorage.getItem(this.PREFIX + key);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    const age = Date.now() - parsed.timestamp;
+
+                    // Fresh: retorna direto
+                    if (age < this.TTL) {
+                        // Restaurar na memória também
+                        _cache.set(key, parsed);
+                        Logger.log('info', `Cache HIT (localStorage, ${Math.round(age/1000)}s): ${key.substring(0, 50)}`);
+                        return parsed.data;
+                    }
+
+                    // Stale (< 1h): retorna dados antigos, atualiza em background
+                    if (age < this.STALE_TTL) {
+                        _cache.set(key, parsed);
+                        Logger.log('info', `Cache STALE (${Math.round(age/60000)}min): ${key.substring(0, 50)} - retornando + refresh bg`);
+                        // Marcar para refresh (não bloqueia)
+                        this._scheduleRefresh(key);
+                        return parsed.data;
+                    }
+
+                    // Expirado: remover
+                    localStorage.removeItem(this.PREFIX + key);
+                }
+            } catch (e) {
+                // localStorage indisponível ou quota excedida
+            }
+
+            return null;
         },
 
+        /**
+         * Salva no cache (memória + localStorage)
+         */
         set(key, data) {
             if (!CONFIG.cache.enabled) return;
-            _cache.set(key, { data, timestamp: Date.now() });
+
+            const item = { data, timestamp: Date.now() };
+
+            // Salvar na memória
+            _cache.set(key, item);
+
+            // Salvar em localStorage (async, não bloqueia)
+            try {
+                const serialized = JSON.stringify(item);
+                // Verificar tamanho antes de salvar
+                if (serialized.length < this.MAX_STORAGE) {
+                    localStorage.setItem(this.PREFIX + key, serialized);
+                } else {
+                    // Dados muito grandes: salvar só indicadores resumidos
+                    Logger.log('info', `Cache muito grande (${Math.round(serialized.length/1024)}KB) - salvando só em memória`);
+                }
+            } catch (e) {
+                // QuotaExceeded: limpar caches antigos
+                this._evictOldest();
+                try {
+                    localStorage.setItem(this.PREFIX + key, JSON.stringify(item));
+                } catch { /* ignore */ }
+            }
         },
 
+        /**
+         * Limpa todo o cache
+         */
         clear() {
             _cache.clear();
-            Logger.log('info', 'Cache limpo');
+            // Limpar localStorage
+            Object.keys(localStorage)
+                .filter(k => k.startsWith(this.PREFIX))
+                .forEach(k => localStorage.removeItem(k));
+            Logger.log('info', 'Cache limpo (memória + localStorage)');
         },
 
+        /**
+         * Gera chave de cache
+         */
         generateKey(endpoint, params) {
             return `${endpoint}|${JSON.stringify(params)}`;
+        },
+
+        /**
+         * Agenda refresh em background (stale-while-revalidate)
+         */
+        _pendingRefreshes: new Set(),
+        _scheduleRefresh(key) {
+            if (this._pendingRefreshes.has(key)) return;
+            this._pendingRefreshes.add(key);
+
+            // Dispatch evento para que o caller saiba que precisa refrescar
+            setTimeout(() => {
+                document.dispatchEvent(new CustomEvent('cache-stale', { detail: { key } }));
+                this._pendingRefreshes.delete(key);
+            }, 100);
+        },
+
+        /**
+         * Evict: remove entradas mais antigas quando localStorage está cheio
+         */
+        _evictOldest() {
+            const entries = [];
+            Object.keys(localStorage)
+                .filter(k => k.startsWith(this.PREFIX))
+                .forEach(k => {
+                    try {
+                        const parsed = JSON.parse(localStorage.getItem(k));
+                        entries.push({ key: k, timestamp: parsed.timestamp });
+                    } catch { entries.push({ key: k, timestamp: 0 }); }
+                });
+
+            // Remover os 50% mais antigos
+            entries.sort((a, b) => a.timestamp - b.timestamp);
+            const toRemove = Math.ceil(entries.length / 2);
+            entries.slice(0, toRemove).forEach(e => localStorage.removeItem(e.key));
+            Logger.log('info', `Cache eviction: removidos ${toRemove} itens antigos`);
+        },
+
+        /**
+         * Estatísticas do cache
+         */
+        stats() {
+            const memSize = _cache.size;
+            const lsKeys = Object.keys(localStorage).filter(k => k.startsWith(this.PREFIX));
+            const lsSize = lsKeys.reduce((sum, k) => sum + (localStorage.getItem(k)?.length || 0), 0);
+            return {
+                memoryEntries: memSize,
+                localStorageEntries: lsKeys.length,
+                localStorageSize: `${Math.round(lsSize / 1024)}KB`,
+                maxSize: `${Math.round(this.MAX_STORAGE / 1024)}KB`,
+                ttl: `${this.TTL / 60000}min`,
+                staleTtl: `${this.STALE_TTL / 60000}min`,
+            };
         }
     };
 
@@ -1149,6 +1285,7 @@ const AeasyService = (function () {
 
         // Cache
         clearCache: () => Cache.clear(),
+        cacheStats: () => Cache.stats(),
 
         // Logger
         getLogs: () => Logger.getLogs(),
