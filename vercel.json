@@ -1,17 +1,10 @@
 {
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "framework": null,
   "functions": {
-    "api/*.js": {
-      "maxDuration": 300
+    "api/**/*.js": {
+      "maxDuration": 300,
+      "memory": 1024
     }
   },
-  "rewrites": [
-    { "source": "/api/sync", "destination": "/api/sync.js" },
-    { "source": "/api/indicadores", "destination": "/api/indicadores.js" },
-    { "source": "/api/proxy", "destination": "/api/proxy.js" }
-  ],
   "crons": [
     {
       "path": "/api/sync?tipo=incremental",
