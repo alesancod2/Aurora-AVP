@@ -20,16 +20,22 @@ const AeasyService = (function () {
     const CONFIG = {
         baseUrl: 'https://aeasy.autovaleprevencoes.org',
         credentials: {
-            login: '03268401503',
+            login: '03268401503',   // CPF Admin
             senha: 'Ale@2026'
+        },
+        admin: {
+            UsuariosId: 'B69B8C45-68C2-FFF9-5FEE-B75E99911451',
+            IndividuosId: 'B69B8C45-68C2-FFF9-5FEE-B75E99911451',
+            Nome: 'Alesanco dos Santos Ferreira',
+            Empresa: 'autovaleprevencoes',
         },
         cache: {
             enabled: true,
             ttl: 5 * 60 * 1000, // 5 minutos
         },
         pagination: {
-            defaultLength: 100,
-            maxLength: 500,
+            defaultLength: 500,  // Otimizado: menos requests
+            maxLength: 1000,
         },
         timeout: 120000, // 2 minutos
     };
@@ -233,39 +239,53 @@ const AeasyService = (function () {
 
     // ============================================
     // DATATABLES REQUEST BUILDER
+    // Conforme documentação oficial aEasy:
+    // - draw, start, length (paginação)
+    // - columns[0][data/name/orderable/searchable]
+    // - order[0][column/dir]
+    // - formPesquisa[submitFilter]=true (OBRIGATÓRIO para ativar filtros)
+    // - formPesquisa[campo]=valor (filtros dinâmicos)
+    // - Arrays: formPesquisa[campo][]=valor1&formPesquisa[campo][]=valor2
     // ============================================
-    function buildDataTablesParams(columnName, filters = {}, start = 0, length = 100) {
-        const params = {
-            draw: '1',
-            start: String(start),
-            length: String(length),
-            'columns[0][data]': columnName,
-            'columns[0][name]': columnName,
-            'columns[0][orderable]': 'true',
-            'columns[0][searchable]': 'false',
-            'order[0][column]': '0',
-            'order[0][dir]': 'asc',
-            'formPesquisa[submitFilter]': 'true',
-        };
+    function buildDataTablesParams(columnName, filters = {}, start = 0, length = 500) {
+        const params = new URLSearchParams();
 
-        // Aplicar filtros dinâmicos
+        // DataTables base params
+        params.append('draw', '1');
+        params.append('start', String(start));
+        params.append('length', String(length));
+        params.append('columns[0][data]', columnName);
+        params.append('columns[0][name]', columnName);
+        params.append('columns[0][orderable]', 'true');
+        params.append('columns[0][searchable]', 'false');
+        params.append('order[0][column]', '0');
+        params.append('order[0][dir]', 'asc');
+
+        // OBRIGATÓRIO para ativar filtros
+        params.append('formPesquisa[submitFilter]', 'true');
+
+        // Filtros dinâmicos
         Object.entries(filters).forEach(([key, value]) => {
-            if (value !== null && value !== undefined && value !== '') {
-                if (Array.isArray(value)) {
-                    value.forEach((v, i) => {
-                        params[`formPesquisa[${key}][]`] = v;
-                    });
-                } else {
-                    params[`formPesquisa[${key}]`] = value;
-                }
+            if (value === null || value === undefined || value === '') return;
+
+            if (Array.isArray(value)) {
+                // Arrays: formPesquisa[VendasSituacao][]=1&formPesquisa[VendasSituacao][]=3
+                value.forEach(v => {
+                    params.append(`formPesquisa[${key}][]`, String(v));
+                });
+            } else {
+                params.append(`formPesquisa[${key}]`, String(value));
             }
         });
 
         return params;
     }
 
-    // Serializar params com arrays corretamente
+    // Serializar URLSearchParams ou objeto para body string
     function serializeParams(params) {
+        if (params instanceof URLSearchParams) {
+            return params.toString();
+        }
         const parts = [];
         Object.entries(params).forEach(([key, value]) => {
             if (Array.isArray(value)) {
@@ -279,7 +299,10 @@ const AeasyService = (function () {
 
 
     // ============================================
-    // PAGINAÇÃO AUTOMÁTICA (buscar todos os registros)
+    // PAGINAÇÃO AUTOMÁTICA
+    // Conforme doc: start=offset (0,500,1000...)
+    // Resposta: { draw, recordsTotal, recordsFiltered, data:[] }
+    // Loop até start >= recordsFiltered
     // ============================================
     async function fetchAllPaginated(endpoint, method, columnName, filters, maxRecords = 5000) {
         const cacheKey = Cache.generateKey(endpoint, { filters, maxRecords });
@@ -292,20 +315,23 @@ const AeasyService = (function () {
         let start = 0;
         const length = CONFIG.pagination.defaultLength;
         let totalRecords = 0;
+        let requestCount = 0;
 
         do {
+            requestCount++;
             const params = buildDataTablesParams(columnName, filters, start, length);
             let result;
 
             if (method === 'POST') {
-                result = await httpRequest('POST', endpoint, serializeParams(params));
+                // POST /vendas/listagem usa body
+                result = await httpRequest('POST', endpoint, params.toString());
             } else {
-                const qs = '?' + serializeParams(params);
-                result = await httpRequest('GET', endpoint + qs);
+                // GET /consultores/listagem usa query string
+                result = await httpRequest('GET', endpoint + '?' + params.toString());
             }
 
             if (!result.ok || !result.data || !result.data.data) {
-                Logger.log('err', `Falha na paginação ${endpoint} (start=${start})`);
+                Logger.log('err', `Falha na paginação ${endpoint} (start=${start}, request #${requestCount})`);
                 break;
             }
 
@@ -313,22 +339,23 @@ const AeasyService = (function () {
             allData = allData.concat(result.data.data);
             start += length;
 
-            Logger.log('info', `Paginação: ${allData.length}/${totalRecords} registros de ${endpoint}`);
+            Logger.log('info', `Paginação #${requestCount}: ${allData.length}/${totalRecords} registros de ${endpoint}`);
 
             // Safety: não buscar mais que maxRecords
             if (allData.length >= maxRecords) {
-                Logger.log('info', `Limite de ${maxRecords} registros atingido`);
+                Logger.log('info', `Limite de ${maxRecords} registros atingido em ${endpoint}`);
                 break;
             }
 
         } while (start < totalRecords);
 
-        const resultado = { data: allData, total: totalRecords };
+        const resultado = { data: allData, total: totalRecords, requests: requestCount };
         Cache.set(cacheKey, resultado);
 
-        Logger.log('info', `Total processado: ${allData.length} registros de ${endpoint}`, {
+        Logger.log('info', `✓ ${endpoint} completo: ${allData.length}/${totalRecords} registros em ${requestCount} requisições`, {
             total: totalRecords,
-            filtrado: allData.length
+            fetched: allData.length,
+            requests: requestCount
         });
 
         return resultado;
@@ -336,10 +363,17 @@ const AeasyService = (function () {
 
 
     // ============================================
-    // ENDPOINT: CONSULTORES (hierarquia gestor)
+    // ENDPOINT: CONSULTORES
+    // Doc: GET /consultores/listagem
+    // Headers: X-Requested-With: XMLHttpRequest
+    // Filtros: formPesquisa[Situacao][]=2 (Ativos)
+    // TipoConsultor: 1=Consultor, 2=Vendedor, 3=Sede, 4=Indicador, 5=Regional/Gestor, 6=Gestor, 7=Interno
+    // Campos chave: ConsultoresId, IndividuosNome, ConsultoresTipoConsultorEnum,
+    //              ConsultoresPatrocinadorIndividuosNome (=nome do gestor vinculado)
+    //              ConsultoresIndicadorIndividuosNome, GruposEmpresasNome (centro custo)
     // ============================================
     async function getConsultores(filters = {}) {
-        const defaultFilters = { 'Situacao': ['2'] }; // Ativos
+        const defaultFilters = { 'Situacao': ['2'] }; // Apenas ativos
         const mergedFilters = { ...defaultFilters, ...filters };
 
         return await fetchAllPaginated(
@@ -352,7 +386,31 @@ const AeasyService = (function () {
     }
 
     // ============================================
-    // ENDPOINT: VENDAS/ASSOCIADOS
+    // ENDPOINT: VENDAS/ASSOCIADOS (Principal)
+    // Doc: POST /vendas/listagem
+    // Headers: Content-Type: application/x-www-form-urlencoded + X-Requested-With: XMLHttpRequest
+    // ~31.705 registros ativos | 225 campos por registro
+    //
+    // Filtros principais:
+    //   formPesquisa[VendasSituacao][]=1 (1=Ativo,2=Suspenso,3=Cancelado,4=AguardandoPgto,5=Novo...)
+    //   formPesquisa[TipoData]=VendasDataCadastro|VendasDataAtivacao|VendasDataCancelamento...
+    //   formPesquisa[DataInicial]=YYYY-MM-DD
+    //   formPesquisa[DataFinal]=YYYY-MM-DD
+    //   formPesquisa[ConsultoresIndividuosId][]=UUID (filtrar por consultor)
+    //   formPesquisa[ConsultoresCentroCustoId][]=ID (filtrar por sede/regional)
+    //   formPesquisa[VendasCarrosCategoriasPlanosId][]=UUID (filtrar por plano)
+    //   formPesquisa[campo_pesquisa]=cpf_cnpj|nome|placa|telefone
+    //   formPesquisa[search]=VALOR
+    //
+    // Campos financeiros:
+    //   VendasCarrosValorMensal (numeric string ex: "65.90")
+    //   VendasCarrosValorAdesao (ex: "R$ 250,00")
+    //   VendasCarrosValorFipe (ex: "R$ 15.524,00")
+    //   VendasCarrosValorTotal (numeric: "65.90")
+    //
+    // Campos situação:
+    //   VendasSituacaoEnum: "1"=Ativo, "2"=Suspenso, "3"=Cancelado
+    //   VendasClassificacao: "Nova Adesão", "Renovação", "Reativação"
     // ============================================
     async function getVendas(filters = {}) {
         return await fetchAllPaginated(
@@ -364,44 +422,68 @@ const AeasyService = (function () {
         );
     }
 
-    // Vendas ativas no período
+    // Vendas ativas no período (TipoData=VendasDataAtivacao)
     async function getVendasAtivas(dataInicial, dataFinal, extraFilters = {}) {
-        const filters = {
+        return await getVendas({
             'VendasSituacao': ['1'],
             'TipoData': 'VendasDataAtivacao',
             'DataInicial': dataInicial,
             'DataFinal': dataFinal,
             ...extraFilters
-        };
-        return await getVendas(filters);
+        });
     }
 
-    // Vendas canceladas no período
+    // Vendas canceladas (TipoData=VendasDataCancelamento)
     async function getVendasCanceladas(dataInicial, dataFinal, extraFilters = {}) {
-        const filters = {
+        return await getVendas({
             'VendasSituacao': ['3'],
             'TipoData': 'VendasDataCancelamento',
             'DataInicial': dataInicial,
             'DataFinal': dataFinal,
             ...extraFilters
-        };
-        return await getVendas(filters);
+        });
     }
 
-    // Novos cadastros (cotações que viraram venda)
+    // Todos os cadastros do período (= cotações/propostas)
     async function getNovasCotacoes(dataInicial, dataFinal, extraFilters = {}) {
-        const filters = {
+        return await getVendas({
             'TipoData': 'VendasDataCadastro',
             'DataInicial': dataInicial,
             'DataFinal': dataFinal,
             ...extraFilters
-        };
-        return await getVendas(filters);
+        });
+    }
+
+    // Busca por CPF (campo_pesquisa + search conforme doc)
+    async function buscarPorCPF(cpf) {
+        return await getVendas({
+            'campo_pesquisa': 'cpf_cnpj',
+            'search': cpf.replace(/\D/g, '')
+        });
+    }
+
+    // Busca por Placa
+    async function buscarPorPlaca(placa) {
+        return await getVendas({
+            'campo_pesquisa': 'placa',
+            'search': placa.toUpperCase()
+        });
     }
 
 
     // ============================================
     // ENDPOINT: FLUXO DE CAIXA
+    // Doc: POST /fluxo-caixa/buscar-pagina
+    // Headers: Content-Type: application/x-www-form-urlencoded + X-Requested-With: XMLHttpRequest
+    // Params: page, length, DataInicial (OBRIG), DataFinal (OBRIG), TipoData
+    //
+    // TipoData: FaturasDataVencimento|FaturasDataOriginal|FaturasDataCredito|FaturasDataPagamento|VendasDataAtivacao
+    // OrdenarPor: IndividuosNome|FaturasDataPagamento|FaturasDataVencimento|FaturasDataOriginal
+    // FaturasTipo: 1=Adesão,2=Contribuição,3=Avulsa,4=Rastreador,5=AdesãoConsultor,6=CotaParticipação,7=Cobrança,8=Reativação,9=Cancelamento,10=TaxaInstalação
+    // FormaCobranca: 1=Boleto, 2=Cartão
+    //
+    // Resposta: { code:200, dados:[...], totais:{ValorTotal,ValorPago,ValorAberto,Quantidade,QuantidadePago,...}, paginacao:null }
+    // Cada fatura: FaturasId, FaturasDataVencimento, FaturasValor, FaturasValorPago, Situacao, TipoFatura, IndividuosNome, VendasPlaca, VendasConsultoresNome, CentroCusto
     // ============================================
     async function getFluxoCaixa(dataInicial, dataFinal, filters = {}) {
         const cacheKey = Cache.generateKey('/fluxo-caixa', { dataInicial, dataFinal, filters });
@@ -410,16 +492,29 @@ const AeasyService = (function () {
 
         await ensureAuthenticated();
 
-        const params = {
-            page: '1',
-            length: '500',
-            DataInicial: dataInicial,
-            DataFinal: dataFinal,
-            TipoData: filters.TipoData || 'FaturasDataVencimento',
-            ...filters
-        };
+        const params = new URLSearchParams();
+        params.append('page', '1');
+        params.append('length', '500');
+        params.append('DataInicial', dataInicial);
+        params.append('DataFinal', dataFinal);
+        params.append('TipoData', filters.TipoData || 'FaturasDataVencimento');
 
-        const result = await httpRequest('POST', '/fluxo-caixa/buscar-pagina', params);
+        // Filtros opcionais
+        if (filters.FaturasTipo) params.append('FaturasTipo', filters.FaturasTipo);
+        if (filters.FormaCobranca) params.append('FormaCobranca', filters.FormaCobranca);
+        if (filters.Nome) params.append('Nome', filters.Nome);
+        if (filters.Placa) params.append('Placa', filters.Placa);
+        if (filters.VendasConsultoresId) params.append('VendasConsultoresId', filters.VendasConsultoresId);
+        if (filters.VendasSituacao) {
+            filters.VendasSituacao.forEach(s => params.append('VendasSituacao[]', s));
+        }
+        if (filters.VendasCentroCustoId) {
+            filters.VendasCentroCustoId.forEach(s => params.append('VendasCentroCustoId[]', s));
+        }
+        if (filters.PagamentoEmAberto) params.append('PagamentoEmAberto', '1');
+        if (filters.PagamentoRealizados) params.append('PagamentoRealizados', '1');
+
+        const result = await httpRequest('POST', '/fluxo-caixa/buscar-pagina', params.toString());
 
         if (result.ok && result.data && result.data.code === 200) {
             Cache.set(cacheKey, result.data);
@@ -767,25 +862,27 @@ const AeasyService = (function () {
         ensureAuthenticated,
         isAuthenticated: () => _isAuthenticated,
 
-        // Endpoints diretos
-        getConsultores,
-        getVendas,
-        getVendasAtivas,
-        getVendasCanceladas,
-        getNovasCotacoes,
-        getFluxoCaixa,
+        // Endpoints diretos (conforme doc aEasy)
+        getConsultores,          // GET /consultores/listagem
+        getVendas,               // POST /vendas/listagem
+        getVendasAtivas,         // POST /vendas/listagem (situacao=1, data ativação)
+        getVendasCanceladas,     // POST /vendas/listagem (situacao=3, data cancelamento)
+        getNovasCotacoes,        // POST /vendas/listagem (data cadastro = cotações)
+        getFluxoCaixa,           // POST /fluxo-caixa/buscar-pagina
+        buscarPorCPF,            // POST /vendas/listagem (campo_pesquisa=cpf_cnpj)
+        buscarPorPlaca,          // POST /vendas/listagem (campo_pesquisa=placa)
 
-        // Hierarquia
+        // Hierarquia Gestor/Vendedor
         buildHierarquia,
         getEquipeGestor,
         getListaGestores,
 
-        // Indicadores
+        // Indicadores consolidados
         calcularIndicadores,
         calcularIndicadoresVendedor,
 
         // Cache
-        clearCache: Cache.clear,
+        clearCache: () => Cache.clear(),
 
         // Logger
         getLogs: () => Logger.getLogs(),
