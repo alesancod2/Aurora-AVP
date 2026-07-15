@@ -36,14 +36,13 @@ const AeasyService = (function () {
             provider: 'supabase', // Usar Supabase Edge Function
             providers: {
                 // Supabase Edge Function (RECOMENDADO - mantém sessão PHP)
-                // Substitua pela URL do seu projeto Supabase
-                supabase: 'https://SEU_PROJECT_ID.supabase.co/functions/v1/aeasy-proxy',
+                supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-proxy',
                 // Fallbacks (não mantêm sessão, mas funciona para teste)
                 corsproxy: 'https://corsproxy.io/?',
                 thingproxy: 'https://thingproxy.freeboard.io/fetch/',
             },
             // Chave anônima do Supabase (necessária para invocar Edge Function)
-            supabaseAnonKey: 'SUA_ANON_KEY_AQUI',
+            supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
             fallbackOrder: ['supabase', 'corsproxy', 'thingproxy'],
         },
         cache: {
