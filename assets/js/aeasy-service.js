@@ -36,7 +36,7 @@ const AeasyService = (function () {
             provider: 'supabase', // Usar Supabase Edge Function
             providers: {
                 // Supabase Edge Function (RECOMENDADO - mantém sessão PHP)
-                supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-proxy',
+                supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
                 // Fallbacks (não mantêm sessão, mas funciona para teste)
                 corsproxy: 'https://corsproxy.io/?',
                 thingproxy: 'https://thingproxy.freeboard.io/fetch/',
