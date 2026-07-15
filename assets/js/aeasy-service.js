@@ -913,16 +913,27 @@ const AeasyService = (function () {
 
         Logger.log('info', `Equipe: ${idsEquipe.length} membros (1 gestor + ${equipeData.equipe.length} vendedores)`);
 
-        // 2. Buscar todos os cadastros/cotações do período (por consultor)
+        // 2. Buscar todos os cadastros/cotações do período
+        // NOTA: O aEasy não suporta arrays grandes em ConsultoresIndividuosId
+        // Estratégia: buscar sem filtro de consultor e filtrar client-side
         const filters = {
             'TipoData': 'VendasDataCadastro',
             'DataInicial': dataInicial,
             'DataFinal': dataFinal,
-            'ConsultoresIndividuosId': idsEquipe,
             ...extraFilters
         };
 
-        const { data: todosRegistros } = await getVendas(filters);
+        // Se há filtro de regional/centro de custo, usar para reduzir volume
+        if (equipeData.gestor.centroCusto) {
+            // Não adicionar ConsultoresIndividuosId - filtrar client-side
+        }
+
+        const { data: allRegistros } = await getVendas(filters);
+
+        // 3. Filtrar client-side: apenas registros dos membros da equipe
+        const todosRegistros = allRegistros.filter(r => idsEquipe.includes(r.VendasConsultoresId));
+
+        Logger.log('info', `Filtro equipe: ${todosRegistros.length} de ${allRegistros.length} registros pertencem à equipe de ${idsEquipe.length} membros`);
 
         // 3. Separar por situação
         const cotacoes = todosRegistros; // Todos os cadastros = cotações
