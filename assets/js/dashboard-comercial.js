@@ -21,22 +21,49 @@ const DashboardComercial = (function () {
     let _currentFilters = {};
 
     // ============================================
-    // INICIALIZAÇÃO
+    // INICIALIZAÇÃO (Otimizada - não bloqueia UI)
     // ============================================
     async function init() {
-        renderLoading(true);
         setupEventListeners();
         setupLogPanel();
 
+        // Remove overlay imediatamente - mostra skeleton nos cards
+        renderLoading(false);
+        renderCardsSkeleton();
+
         try {
-            await AeasyService.login();
-            await carregarGestores();
+            // Login + gestores em paralelo
+            const [loginOk] = await Promise.all([
+                AeasyService.login(),
+                carregarGestores().catch(() => {}) // Não bloqueia se gestores falhar
+            ]);
+
+            if (!loginOk) {
+                showError('Falha na conexão com aEasy. Tentando novamente...');
+                // Retry uma vez
+                await AeasyService.login();
+            }
+
+            // Agora carrega o dashboard
             await carregarDashboard();
         } catch (error) {
-            showError('Erro ao inicializar dashboard: ' + error.message);
-        } finally {
+            showError('Erro ao inicializar: ' + error.message);
             renderLoading(false);
         }
+    }
+
+    function renderCardsSkeleton() {
+        // Mostra valores zerados enquanto carrega (não bloqueia)
+        $('#card-cotacoes-valor').text('—');
+        $('#card-vendas-valor').text('—');
+        $('#card-vendas-total').text('—');
+        $('#card-canceladas-valor').text('—');
+        $('#card-canceladas-pct').text('—');
+        $('#card-perdidas-valor').text('—');
+        $('#card-perdidas-pct').text('—');
+        $('#card-conversao-valor').text('—');
+        $('#card-ticket-valor').text('—');
+        $('#ultima-atualizacao').text('Carregando...');
     }
 
 
@@ -174,18 +201,17 @@ const DashboardComercial = (function () {
         const gestorId = _currentGestorId || $('#filtro-gestor').val();
         const vendedorId = _currentFilters.vendedorId;
 
-        renderLoading(true);
+        // Mostra indicador leve (não overlay bloqueante)
+        $('#ultima-atualizacao').html('<i class="bi bi-arrow-repeat spin-icon"></i> Atualizando...');
 
         try {
             let dados;
 
             if (vendedorId) {
-                // Modo vendedor individual
                 dados = await AeasyService.calcularIndicadoresVendedor(vendedorId, dataInicial, dataFinal, _currentFilters);
                 renderCardsVendedor(dados);
                 $('#ranking-section').hide();
             } else if (gestorId) {
-                // Modo gestor + equipe
                 dados = await AeasyService.calcularIndicadores(gestorId, dataInicial, dataFinal, _currentFilters);
                 renderCards(dados.indicadores);
                 renderRanking(dados.ranking);
@@ -193,7 +219,6 @@ const DashboardComercial = (function () {
                 renderFunil(dados.indicadores);
                 $('#ranking-section').show();
             } else {
-                // Sem gestor selecionado: pegar visão geral
                 dados = await carregarVisaoGeral(dataInicial, dataFinal);
                 renderCards(dados.indicadores);
                 renderRanking(dados.ranking);
@@ -205,8 +230,7 @@ const DashboardComercial = (function () {
             renderUltimaAtualizacao();
         } catch (error) {
             showError('Erro ao carregar dados: ' + error.message);
-        } finally {
-            renderLoading(false);
+            $('#ultima-atualizacao').text('Erro ao carregar');
         }
     }
 
@@ -431,9 +455,6 @@ const DashboardComercial = (function () {
     // UTILITÁRIOS UI
     // ============================================
     function renderLoading(show) {
-        if (show) {
-            $('.dashboard-card .card-value').html('<div class="skeleton skeleton-text" style="width:60%;height:24px"></div>');
-        }
         $('#loading-overlay').toggle(show);
     }
 

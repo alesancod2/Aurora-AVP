@@ -1069,3 +1069,11 @@ body {
     background: var(--danger);
     color: #fff;
 }
+
+
+
+/* ---- SPIN ICON (loading indicator in topbar) ---- */
+.spin-icon {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
