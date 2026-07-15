@@ -22,7 +22,10 @@ const CONFIG = {
   aeasyBase: 'https://aeasy.autovaleprevencoes.org',
   supabaseUrl: 'https://zjacembodtjrkynfmtxf.supabase.co',
   supabaseServiceKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDExNzc1MSwiZXhwIjoyMDk5NjkzNzUxfQ.4nIV41kQHEFAwCV2VjROZcm20BnySmZ7FVlAMJAFvr4',
-  credentials: { login: '03268401503', senha: 'Ale@2026' },
+  credentials: {
+    login: process.env.AEASY_LOGIN || '',
+    senha: process.env.AEASY_SENHA || ''
+  },
   batchSize: 500,
   upsertChunkSize: 200,
   delayBetweenBatches: 1000, // 1s entre lotes (evita rate limit)

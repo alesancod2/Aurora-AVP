@@ -19,13 +19,10 @@ const AeasyService = (function () {
     // ============================================
     const CONFIG = {
         baseUrl: 'https://aeasy.autovaleprevencoes.org',
-        credentials: {
-            login: '03268401503',   // CPF Admin
-            senha: 'Ale@2026'
-        },
+        // Credenciais gerenciadas server-side (Edge Function aeasy-prox)
+        // O frontend NÃO precisa conhecer login/senha
         admin: {
             UsuariosId: 'B69B8C45-68C2-FFF9-5FEE-B75E99911451',
-            IndividuosId: 'B69B8C45-68C2-FFF9-5FEE-B75E99911451',
             Nome: 'Alesanco dos Santos Ferreira',
             Empresa: 'autovaleprevencoes',
         },
@@ -520,8 +517,7 @@ const AeasyService = (function () {
                     },
                     body: JSON.stringify({
                         action: 'login',
-                        login: CONFIG.credentials.login,
-                        senha: CONFIG.credentials.senha,
+                        // Credenciais gerenciadas server-side pela Edge Function
                     }),
                 });
 
@@ -549,8 +545,8 @@ const AeasyService = (function () {
 
                 // Passo 2: login
                 const result = await directRequest('POST', '/conta/login', {
-                    UsuariosLogin: CONFIG.credentials.login,
-                    UsuariosSenha: CONFIG.credentials.senha
+                    UsuariosLogin: '',
+                    UsuariosSenha: ''
                 }, {});
 
                 if (result.data?.mensagem?.includes('sucesso')) {
@@ -595,7 +591,7 @@ const AeasyService = (function () {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: `UsuariosLogin=${encodeURIComponent(CONFIG.credentials.login)}&UsuariosSenha=${encodeURIComponent(CONFIG.credentials.senha)}`,
+                body: `UsuariosLogin=&UsuariosSenha=`,
             });
 
             const text = await response.text();
