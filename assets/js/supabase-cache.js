@@ -96,29 +96,37 @@ const SupabaseCache = (function () {
         const expiresAt = new Date(Date.now() + ttl).toISOString();
         const total = Array.isArray(data) ? data.length : (data?.total || 0);
 
-        // 1. Save to Supabase (non-blocking)
-        const record = {
-            filtro_hash: hash,
-            tipo_relatorio: tipo,
-            data_inicial: params.DataInicial || params.dataInicial || null,
-            data_final: params.DataFinal || params.dataFinal || null,
-            gestor_id: params.gestorId || null,
-            regional: params.regional || null,
-            dados: data,
-            total_registros: total,
-            expires_at: expiresAt,
-            created_by: options.userId || 'anonymous'
-        };
+        // Skip Supabase cache for large datasets (>500 records = too big for JSONB)
+        const dataSize = JSON.stringify(data).length;
+        const MAX_SUPABASE_CACHE_SIZE = 500000; // 500KB limit
 
-        fetch(`${CONFIG.supabaseUrl}/rest/v1/${CONFIG.table}`, {
-            method: 'POST',
-            headers: { ...headers(), 'Prefer': 'resolution=merge-duplicates' },
-            body: JSON.stringify(record)
-        }).then(() => {
-            console.log(`[Cache] Saved to Supabase: ${tipo} (${hash}), ${total} records, TTL ${Math.round(ttl/60000)}min`);
-        }).catch(e => {
-            console.warn('[Cache] Supabase write failed:', e.message);
-        });
+        if (dataSize < MAX_SUPABASE_CACHE_SIZE) {
+            // 1. Save to Supabase (non-blocking)
+            const record = {
+                filtro_hash: hash,
+                tipo_relatorio: tipo,
+                data_inicial: params.DataInicial || params.dataInicial || null,
+                data_final: params.DataFinal || params.dataFinal || null,
+                gestor_id: params.gestorId || null,
+                regional: params.regional || null,
+                dados: data,
+                total_registros: total,
+                expires_at: expiresAt,
+                created_by: options.userId || 'anonymous'
+            };
+
+            fetch(`${CONFIG.supabaseUrl}/rest/v1/${CONFIG.table}`, {
+                method: 'POST',
+                headers: { ...headers(), 'Prefer': 'resolution=merge-duplicates' },
+                body: JSON.stringify(record)
+            }).then(() => {
+                console.log(`[Cache] Saved to Supabase: ${tipo} (${hash}), ${total} records, TTL ${Math.round(ttl/60000)}min`);
+            }).catch(e => {
+                console.warn('[Cache] Supabase write failed:', e.message);
+            });
+        } else {
+            console.log(`[Cache] Skip Supabase (data too large: ${Math.round(dataSize/1024)}KB > 500KB). Using localStorage only.`);
+        }
 
         // 2. Save to localStorage (synchronous fallback)
         try {
