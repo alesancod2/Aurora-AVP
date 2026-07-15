@@ -81,6 +81,10 @@
             </div>
         </div>
         <div class="topbar-right">
+            <button class="topbar-btn btn-sync-db" id="btn-sync-db" title="Atualizar Banco de Dados">
+                <i class="bi bi-database-gear"></i>
+                <span class="btn-sync-label">Atualizar DB</span>
+            </button>
             <button class="topbar-btn" id="btn-limpar-cache" title="Atualizar dados">
                 <i class="bi bi-arrow-clockwise"></i>
             </button>
@@ -339,6 +343,67 @@
     </div>
 </div>
 
+<!-- Modal Sync DB -->
+<div class="modal-overlay" id="modal-sync-db" style="display:none">
+    <div class="modal-sync">
+        <div class="modal-sync-header">
+            <h3><i class="bi bi-database-gear"></i> Atualizar Banco de Dados</h3>
+            <button class="btn-close-modal" id="btn-close-sync-modal">&times;</button>
+        </div>
+        <div class="modal-sync-body">
+            <p class="modal-sync-desc">Importar dados do aEasy para o Supabase PostgreSQL em lotes.</p>
+
+            <div class="sync-options">
+                <div class="sync-option">
+                    <label>Alvo</label>
+                    <select id="sync-target" class="filter-select">
+                        <option value="all">Tudo (Consultores + Vendas)</option>
+                        <option value="consultores">Apenas Consultores (~5.9k)</option>
+                        <option value="vendas">Apenas Vendas (~31k)</option>
+                    </select>
+                </div>
+                <div class="sync-option">
+                    <label>Lotes por execucao</label>
+                    <select id="sync-max-batches" class="filter-select">
+                        <option value="5">5 lotes (rapido)</option>
+                        <option value="10" selected>10 lotes (padrao)</option>
+                        <option value="20">20 lotes (mais dados)</option>
+                        <option value="50">50 lotes (maximo)</option>
+                    </select>
+                </div>
+                <div class="sync-option">
+                    <label>Tamanho do lote</label>
+                    <select id="sync-batch-size" class="filter-select">
+                        <option value="200">200 registros</option>
+                        <option value="500" selected>500 registros (padrao)</option>
+                        <option value="1000">1000 registros (rapido)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="sync-progress" id="sync-progress" style="display:none">
+                <div class="sync-progress-bar-container">
+                    <div class="sync-progress-bar" id="sync-progress-bar"></div>
+                </div>
+                <div class="sync-progress-text" id="sync-progress-text">Iniciando...</div>
+                <div class="sync-log" id="sync-log"></div>
+            </div>
+
+            <!-- Result -->
+            <div class="sync-result" id="sync-result" style="display:none"></div>
+        </div>
+        <div class="modal-sync-footer">
+            <button class="btn-sync-start" id="btn-sync-start">
+                <i class="bi bi-play-fill"></i> Iniciar Importacao
+            </button>
+            <button class="btn-sync-cancel" id="btn-sync-cancel" style="display:none">
+                <i class="bi bi-stop-fill"></i> Parar
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Config -->
 <input type="hidden" name="PrimaryColor" value="#5953c0" />
 <input type="hidden" name="SecondaryColor" value="#2d2973" />
@@ -351,6 +416,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="assets/js/aeasy-service.js"></script>
 <script src="assets/js/dashboard-comercial.js"></script>
+<script src="assets/js/db-sync.js"></script>
 <script>
 $(document).ready(function() {
     $('#filtro-data-inicio').val(moment().startOf('month').format('YYYY-MM-DD'));
