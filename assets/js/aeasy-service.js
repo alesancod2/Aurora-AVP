@@ -29,6 +29,20 @@ const AeasyService = (function () {
             Nome: 'Alesanco dos Santos Ferreira',
             Empresa: 'autovaleprevencoes',
         },
+        // Proxy CORS - necessário para GitHub Pages (domínio diferente)
+        // Opções: 'none' (direto), 'allorigins', 'corsproxy', 'custom'
+        corsProxy: {
+            enabled: true,
+            provider: 'allorigins', // Provedor padrão
+            providers: {
+                allorigins: 'https://api.allorigins.win/raw?url=',
+                corsproxy: 'https://corsproxy.io/?',
+                corsanywhere: 'https://cors-anywhere.herokuapp.com/',
+                custom: '' // URL customizada
+            },
+            // Fallback: se um proxy falhar, tenta o próximo
+            fallbackOrder: ['allorigins', 'corsproxy', 'corsanywhere'],
+        },
         cache: {
             enabled: true,
             ttl: 5 * 60 * 1000, // 5 minutos
@@ -115,10 +129,36 @@ const AeasyService = (function () {
 
 
     // ============================================
-    // HTTP CLIENT (usa proxy CORS ou direto)
+    // HTTP CLIENT com PROXY CORS
+    // Necessário para funcionar via GitHub Pages
+    // O proxy encapsula a requisição, contornando CORS
     // ============================================
+
+    /**
+     * Monta a URL com proxy CORS se habilitado
+     */
+    function buildProxiedUrl(targetUrl) {
+        if (!CONFIG.corsProxy.enabled) return targetUrl;
+        const provider = CONFIG.corsProxy.provider;
+        const proxyBase = CONFIG.corsProxy.providers[provider];
+        if (!proxyBase) return targetUrl;
+        return proxyBase + encodeURIComponent(targetUrl);
+    }
+
+    /**
+     * Detecta se está rodando em localhost (não precisa de proxy)
+     */
+    function isLocalhost() {
+        const host = window.location.hostname;
+        return host === 'localhost' || host === '127.0.0.1' || host === '';
+    }
+
+    /**
+     * HTTP Request com suporte a proxy CORS e fallback automático
+     */
     async function httpRequest(method, endpoint, data = null, headers = {}) {
-        const url = CONFIG.baseUrl + endpoint;
+        const targetUrl = CONFIG.baseUrl + endpoint;
+        const useProxy = CONFIG.corsProxy.enabled && !isLocalhost();
         const startTime = performance.now();
 
         const defaultHeaders = {
@@ -130,10 +170,11 @@ const AeasyService = (function () {
             defaultHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
         }
 
+        // Se usa proxy, não pode enviar credentials (cross-origin)
         const options = {
             method,
             headers: defaultHeaders,
-            credentials: 'include',
+            credentials: useProxy ? 'omit' : 'include',
         };
 
         if (data && method === 'POST') {
@@ -144,62 +185,94 @@ const AeasyService = (function () {
             }
         }
 
-        Logger.log('req', `${method} ${endpoint}`, {
-            params: data ? (typeof data === 'string' ? data.substring(0, 200) : data) : null
+        // Montar URL (com ou sem proxy)
+        let url = useProxy ? buildProxiedUrl(targetUrl) : targetUrl;
+
+        // Para GET com proxy, o body vai na URL
+        if (method === 'GET' && useProxy) {
+            // URL já contém query params, apenas encoda
+            url = buildProxiedUrl(targetUrl);
+        }
+
+        Logger.log('req', `${method} ${endpoint}` + (useProxy ? ` [via ${CONFIG.corsProxy.provider}]` : ''), {
+            proxy: useProxy,
+            params: data ? (typeof data === 'string' ? data.substring(0, 150) + '...' : data) : null
         });
 
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
-            options.signal = controller.signal;
+        // Tentar com proxy principal, depois fallback
+        const providers = useProxy ? [CONFIG.corsProxy.provider, ...CONFIG.corsProxy.fallbackOrder.filter(p => p !== CONFIG.corsProxy.provider)] : [null];
 
-            const response = await fetch(url, options);
-            clearTimeout(timeoutId);
+        for (const provider of providers) {
+            try {
+                if (provider && useProxy) {
+                    const proxyBase = CONFIG.corsProxy.providers[provider];
+                    url = proxyBase + encodeURIComponent(targetUrl);
+                }
 
-            const elapsed = Math.round(performance.now() - startTime);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
+                options.signal = controller.signal;
 
-            if (response.redirected || response.status === 302) {
-                Logger.log('err', `Sessão expirada (redirect) - ${endpoint}`, { status: response.status });
-                _isAuthenticated = false;
-                throw new Error('SESSION_EXPIRED');
-            }
+                const response = await fetch(url, options);
+                clearTimeout(timeoutId);
 
-            const contentType = response.headers.get('content-type') || '';
-            let responseData;
+                const elapsed = Math.round(performance.now() - startTime);
 
-            if (contentType.includes('application/json')) {
-                responseData = await response.json();
-            } else {
-                const text = await response.text();
-                // Tentar parsear JSON mesmo se content-type não for json
-                try {
-                    // Remover PHP warnings antes do JSON
-                    const jsonStart = text.indexOf('{');
-                    if (jsonStart >= 0) {
-                        responseData = JSON.parse(text.substring(jsonStart));
-                    } else {
+                if (response.status === 302 || response.status === 301) {
+                    Logger.log('err', `Sessão expirada (redirect) - ${endpoint}`, { status: response.status });
+                    _isAuthenticated = false;
+                    throw new Error('SESSION_EXPIRED');
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                let responseData;
+
+                if (contentType.includes('application/json')) {
+                    responseData = await response.json();
+                } else {
+                    const text = await response.text();
+                    try {
+                        // Remover PHP warnings antes do JSON
+                        const jsonStart = text.indexOf('{');
+                        if (jsonStart >= 0) {
+                            responseData = JSON.parse(text.substring(jsonStart));
+                        } else {
+                            responseData = text;
+                        }
+                    } catch {
                         responseData = text;
                     }
-                } catch {
-                    responseData = text;
                 }
-            }
 
-            Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms)`, {
-                records: responseData?.recordsTotal || responseData?.dados?.length || null,
-                size: JSON.stringify(responseData).length
-            });
+                Logger.log('res', `${method} ${endpoint} [${response.status}] (${elapsed}ms)` + (provider ? ` via ${provider}` : ''), {
+                    records: responseData?.recordsTotal || responseData?.dados?.length || null,
+                    size: typeof responseData === 'string' ? responseData.length : JSON.stringify(responseData).length
+                });
 
-            return { ok: response.ok, status: response.status, data: responseData };
-        } catch (error) {
-            const elapsed = Math.round(performance.now() - startTime);
-            if (error.name === 'AbortError') {
-                Logger.log('err', `TIMEOUT ${method} ${endpoint} (${elapsed}ms)`);
-                throw new Error('TIMEOUT');
+                return { ok: response.ok, status: response.status, data: responseData };
+
+            } catch (error) {
+                const elapsed = Math.round(performance.now() - startTime);
+
+                if (error.name === 'AbortError') {
+                    Logger.log('err', `TIMEOUT ${method} ${endpoint} (${elapsed}ms)` + (provider ? ` via ${provider}` : ''));
+                } else if (error.message === 'SESSION_EXPIRED') {
+                    throw error;
+                } else {
+                    Logger.log('err', `FALHA ${method} ${endpoint}: ${error.message}` + (provider ? ` via ${provider}` : ''));
+                }
+
+                // Se há mais providers para tentar, continua
+                if (providers.indexOf(provider) < providers.length - 1) {
+                    Logger.log('info', `Tentando próximo proxy...`);
+                    continue;
+                }
+
+                throw error;
             }
-            Logger.log('err', `FALHA ${method} ${endpoint}: ${error.message}`, { elapsed });
-            throw error;
         }
+
+        throw new Error('ALL_PROXIES_FAILED');
     }
 
 
