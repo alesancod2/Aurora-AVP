@@ -29,22 +29,18 @@ const AeasyService = (function () {
             Nome: 'Alesanco dos Santos Ferreira',
             Empresa: 'autovaleprevencoes',
         },
-        // Proxy CORS - necessário para GitHub Pages (domínio diferente)
-        // RECOMENDADO: Vercel Serverless (api/proxy.js) - deploy automático via GitHub
+        // Proxy CORS - Vercel API proxy para aEasy (session server-side)
+        // A Supabase REST API é usada diretamente para leitura do cache DB
         corsProxy: {
             enabled: true,
-            provider: 'vercel', // Vercel Serverless Function
+            provider: 'vercel', // Proxy para aEasy (login + requests)
             providers: {
-                // Vercel - deploy automático ao conectar repo GitHub
-                // URL após deploy: https://aurora-avp.vercel.app/api/proxy
                 vercel: 'https://aurora-avp.vercel.app/api/proxy',
-                // Proxy PHP (se tiver hospedagem PHP disponível)
-                php: 'https://aeasy.autovaleprevencoes.org/api-proxy.php',
-                // Supabase Edge Function (quando gateway normalizar)
-                supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
             },
+            // Supabase REST API (leitura direta do banco - sem proxy)
+            supabaseRestUrl: 'https://zjacembodtjrkynfmtxf.supabase.co/rest/v1',
             supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
-            fallbackOrder: ['vercel', 'php', 'supabase'],
+            fallbackOrder: ['vercel'],
         },
         cache: {
             enabled: true,
