@@ -695,11 +695,15 @@ const AeasyService = (function () {
 
         // Try Supabase cache (cross-device, survives page reload beyond localStorage)
         if (typeof SupabaseCache !== 'undefined') {
-            const sbCached = await SupabaseCache.get(endpoint, { filters, maxRecords });
-            if (sbCached) {
-                Logger.log('info', `Cache Supabase HIT: ${endpoint} (${sbCached.total} registros, ${sbCached.age}s atrás)`);
-                Cache.set(cacheKey, sbCached.data); // Also populate localStorage
-                return sbCached.data;
+            try {
+                const sbCached = await SupabaseCache.get(endpoint, { filters, maxRecords });
+                if (sbCached && sbCached.data && sbCached.data.data) {
+                    Logger.log('info', `Cache Supabase HIT: ${endpoint} (${sbCached.total} registros, ${sbCached.age}s atrás)`);
+                    Cache.set(cacheKey, sbCached.data);
+                    return sbCached.data;
+                }
+            } catch (e) {
+                Logger.log('err', `Cache Supabase falhou (non-blocking): ${e.message}`);
             }
         }
 
