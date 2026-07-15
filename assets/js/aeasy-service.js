@@ -209,6 +209,7 @@ const AeasyService = (function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'apikey': CONFIG.corsProxy.supabaseAnonKey,
                     'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
                 },
                 body: JSON.stringify(payload),
@@ -382,6 +383,7 @@ const AeasyService = (function () {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'apikey': CONFIG.corsProxy.supabaseAnonKey,
                         'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
                     },
                     body: JSON.stringify({
@@ -397,6 +399,13 @@ const AeasyService = (function () {
                     _isAuthenticated = true;
                     Logger.log('info', 'Login via Supabase realizado com sucesso');
                     return true;
+                }
+
+                // Se Supabase retornou erro de credenciais do gateway (não da função)
+                if (result.code === 'INVALID_CREDENTIALS' || result.message === 'Invalid credentials') {
+                    Logger.log('err', 'Supabase gateway rejeitou - possível problema temporário. Tentando fallback...');
+                    // Fallback: tentar proxy genérico
+                    return await loginViaFallback();
                 }
 
                 Logger.log('err', 'Login falhou via Supabase: ' + (result.error || 'desconhecido'));
@@ -432,6 +441,51 @@ const AeasyService = (function () {
         if (!_isAuthenticated) {
             const success = await login();
             if (!success) throw new Error('AUTH_FAILED');
+        }
+    }
+
+    /**
+     * Fallback login: tenta via proxy genérico quando Supabase está indisponível
+     */
+    async function loginViaFallback() {
+        Logger.log('info', 'Tentando login via proxy genérico (fallback)...');
+
+        try {
+            // Usar thingproxy ou corsproxy como fallback
+            const proxyBase = CONFIG.corsProxy.providers.thingproxy || CONFIG.corsProxy.providers.corsproxy;
+            if (!proxyBase) return false;
+
+            const targetUrl = CONFIG.baseUrl + '/conta/login';
+            const url = proxyBase + encodeURIComponent(targetUrl);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: `UsuariosLogin=${encodeURIComponent(CONFIG.credentials.login)}&UsuariosSenha=${encodeURIComponent(CONFIG.credentials.senha)}`,
+            });
+
+            const text = await response.text();
+            try {
+                const data = JSON.parse(text);
+                if (data.mensagem && data.mensagem.includes('sucesso')) {
+                    _isAuthenticated = true;
+                    // Mudar provider para fallback para as próximas requests
+                    CONFIG.corsProxy.provider = 'thingproxy';
+                    Logger.log('info', 'Login via fallback (thingproxy) realizado com sucesso');
+                    return true;
+                }
+            } catch {
+                // Resposta não é JSON
+            }
+
+            Logger.log('err', 'Login via fallback também falhou');
+            return false;
+        } catch (error) {
+            Logger.log('err', `Fallback login error: ${error.message}`);
+            return false;
         }
     }
 
