@@ -30,20 +30,23 @@ const AeasyService = (function () {
             Empresa: 'autovaleprevencoes',
         },
         // Proxy CORS - necessário para GitHub Pages (domínio diferente)
-        // RECOMENDADO: Supabase Edge Function (mantém sessão server-side)
+        // RECOMENDADO: proxy PHP (api-proxy.php) em qualquer hospedagem
+        // O Supabase Edge Function está com problema no gateway
         corsProxy: {
             enabled: true,
-            provider: 'supabase', // Usar Supabase Edge Function
+            provider: 'php', // Proxy PHP (funciona 100%)
             providers: {
-                // Supabase Edge Function (RECOMENDADO - mantém sessão PHP)
+                // Proxy PHP - hospede api-proxy.php em qualquer servidor com PHP+cURL
+                // Exemplos gratuitos: InfinityFree, 000webhost, ou mesmo no servidor aEasy
+                php: 'https://aeasy.autovaleprevencoes.org/api-proxy.php',
+                // Supabase Edge Function (quando gateway normalizar)
                 supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
-                // Fallbacks (não mantêm sessão, mas funciona para teste)
+                // Fallbacks genéricos (não mantêm sessão)
                 corsproxy: 'https://corsproxy.io/?',
                 thingproxy: 'https://thingproxy.freeboard.io/fetch/',
             },
-            // Chave anônima do Supabase (necessária para invocar Edge Function)
             supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
-            fallbackOrder: ['supabase', 'corsproxy', 'thingproxy'],
+            fallbackOrder: ['php', 'supabase', 'corsproxy'],
         },
         cache: {
             enabled: true,
@@ -176,8 +179,8 @@ const AeasyService = (function () {
             return await directRequest(method, endpoint, data, headers);
         }
 
-        // Via Supabase Edge Function
-        if (CONFIG.corsProxy.provider === 'supabase') {
+        // Via proxy com sessão server-side (PHP ou Supabase)
+        if (['supabase', 'php'].includes(CONFIG.corsProxy.provider)) {
             return await supabaseProxyRequest(method, endpoint, data);
         }
 
@@ -186,10 +189,12 @@ const AeasyService = (function () {
     }
 
     /**
-     * Requisição via Supabase Edge Function (mantém sessão!)
+     * Requisição via proxy com sessão (PHP ou Supabase Edge Function)
+     * Ambos usam o mesmo formato JSON: { action, method, endpoint, body }
      */
     async function supabaseProxyRequest(method, endpoint, data) {
-        const proxyUrl = CONFIG.corsProxy.providers.supabase;
+        const provider = CONFIG.corsProxy.provider;
+        const proxyUrl = CONFIG.corsProxy.providers[provider];
         const startTime = performance.now();
 
         const payload = {
@@ -199,7 +204,7 @@ const AeasyService = (function () {
             body: data ? (typeof data === 'string' ? data : new URLSearchParams(data).toString()) : '',
         };
 
-        Logger.log('req', `${method} ${endpoint} [via Supabase]`);
+        Logger.log('req', `${method} ${endpoint} [via ${provider}]`);
 
         try {
             const controller = new AbortController();
@@ -209,8 +214,10 @@ const AeasyService = (function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': CONFIG.corsProxy.supabaseAnonKey,
-                    'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
+                    ...(provider === 'supabase' ? {
+                        'apikey': CONFIG.corsProxy.supabaseAnonKey,
+                        'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
+                    } : {}),
                 },
                 body: JSON.stringify(payload),
                 signal: controller.signal,
@@ -375,16 +382,14 @@ const AeasyService = (function () {
         try {
             const useProxy = CONFIG.corsProxy.enabled && !isLocalhost();
 
-            if (useProxy && CONFIG.corsProxy.provider === 'supabase') {
-                // Login via Supabase Edge Function
-                const proxyUrl = CONFIG.corsProxy.providers.supabase;
+            if (useProxy && (CONFIG.corsProxy.provider === 'supabase' || CONFIG.corsProxy.provider === 'php')) {
+                // Login via proxy com sessão server-side (PHP ou Supabase)
+                const proxyUrl = CONFIG.corsProxy.providers[CONFIG.corsProxy.provider];
 
                 const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': CONFIG.corsProxy.supabaseAnonKey,
-                        'Authorization': `Bearer ${CONFIG.corsProxy.supabaseAnonKey}`,
                     },
                     body: JSON.stringify({
                         action: 'login',
@@ -397,14 +402,13 @@ const AeasyService = (function () {
 
                 if (result.success) {
                     _isAuthenticated = true;
-                    Logger.log('info', 'Login via Supabase realizado com sucesso');
+                    Logger.log('info', `Login via ${CONFIG.corsProxy.provider} realizado com sucesso`);
                     return true;
                 }
 
-                // Se Supabase retornou erro de credenciais do gateway (não da função)
+                // Se gateway rejeitou (Supabase com problema)
                 if (result.code === 'INVALID_CREDENTIALS' || result.message === 'Invalid credentials') {
-                    Logger.log('err', 'Supabase gateway rejeitou - possível problema temporário. Tentando fallback...');
-                    // Fallback: tentar proxy genérico
+                    Logger.log('err', `Gateway ${CONFIG.corsProxy.provider} rejeitou - tentando fallback...`);
                     return await loginViaFallback();
                 }
 
