@@ -61,8 +61,9 @@ Deno.serve(async (req: Request) => {
 // Autentica no aEasy e mantém sessão server-side
 // ============================================
 async function handleLogin(body: Record<string, string>): Promise<Response> {
-  const login = body.login || "03268401503";
-  const senha = body.senha || "Ale@2026";
+  // Credenciais via Supabase Secrets (env vars) com fallback
+  const login = body.login || Deno.env.get("AEASY_LOGIN") || "03268401503";
+  const senha = body.senha || Deno.env.get("AEASY_SENHA") || "Ale@2026";
 
   // 1. Obter sessão
   const s = await fetch(`${AEASY_BASE}/conta/login`, { method: "GET", redirect: "manual" });
