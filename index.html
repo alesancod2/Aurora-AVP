@@ -1,398 +1,341 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="TOKEN_CSRF_AQUI">
-
-    <title>Aurora AVP - Associados</title>
+    <meta name="csrf-token" content="">
+    <title>Aurora AVP - Dashboard Comercial</title>
 
     <link id="favicon" rel="shortcut icon"
-        href="https://imagens.autovaleprevencoes.org/Favicon.png"
-        type="image/png" />
+        href="https://imagens.autovaleprevencoes.org/Favicon.png" type="image/png" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Bootstrap + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
-    <!-- CSS Local -->
-    <link href="assets/css/custom.css" rel="stylesheet">
-
-    <!-- Fallback: se Bootstrap nao carregar do CDN -->
-    <style>
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    </style>
+    <!-- Dashboard CSS -->
+    <link href="assets/css/dashboard-comercial.css" rel="stylesheet">
 </head>
-
 <body>
 
-
-<!-- ====== HEADER ====== -->
-<header>
-    <div class="header-top">
-        <div class="logo">
-            <div class="welcome">
-                <img height="50"
-                    src="https://imagens.autovaleprevencoes.org/Logomarca.png"
-                    alt="Auto Vale Prevencoes" />
-            </div>
-        </div>
-
-        <div class="user-info">
-            <div class="details">
-                <div class="notificacoes">
-                    <div class="avatar position-relative" title="Pesquisar (Ctrl+K)"
-                        style="cursor: pointer"
-                        id="btn-pesquisa-spotlight"
-                        data-bs-toggle="modal" data-bs-target="#modal-pesquisa-geral">
-                        <i class="bi bi-search"></i>
-                    </div>
-
-                    <div class="avatar position-relative" style="cursor: pointer"
-                        title="Notificacoes Sistemas">
-                        <i class="bi bi-bell"></i>
-                    </div>
-
-                    <div class="avatar position-relative" style="cursor: pointer">
-                        <i class="bi bi-lightbulb"></i>
-                    </div>
-                </div>
-
-                <div class="info">
-                    <div class="name">Alesanco dos Santos Ferreira</div>
-                    <div class="d-flex gap-2">
-                        <div class="time-logout">WebMaster</div>
-                        <div class="time-logout">
-                            <span id="session">00:00:00</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <div class="btn-group">
-                        <button type="button"
-                            class="btn btn-outline-secondary btn-sm"
-                            data-bs-toggle="dropdown"
-                            aria-expanded="false">
-                            <i class="bi bi-gear"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#" id="AlterarSenhaModal">
-                                <i class="bi bi-key-fill me-2"></i> Alterar Senha</a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/conta/sair">
-                                <i class="bi bi-box-arrow-right me-2"></i> Sair</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <img src="https://imagens.autovaleprevencoes.org/Logomarca.png" alt="Auto Vale" class="sidebar-logo">
+        <span class="sidebar-brand-text">Aurora</span>
     </div>
 
-    <!-- ====== NAV ====== -->
-    <nav class="header-nav">
-        <ul class="menu">
-            <li class="item-menu"><a href="/indicadores">Indicadores</a></li>
-            <li class="item-menu"><a href="dashboard-comercial.html">Dashboard</a></li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Cadastros</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/vendas">Associados</a></li>
-                    <li class="item-submenu"><a href="/consultores">Consultores</a></li>
-                    <li class="item-submenu"><a href="/colaboradores">Usuarios</a></li>
-                    <li class="item-submenu"><a href="/fornecedores">Fornecedores</a></li>
-                </ul>
-            </li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Eventos</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/eventos">Eventos</a></li>
-                    <li class="item-submenu"><a href="/carros-reserva">Carros Reserva</a></li>
-                </ul>
-            </li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Financeiro</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/fluxo-caixa">Fluxo de Caixa</a></li>
-                    <li class="item-submenu"><a href="/receitas">Receitas</a></li>
-                    <li class="item-submenu"><a href="/lancamentos-contas">Despesas</a></li>
-                </ul>
-            </li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>CRM</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/leads">Leads</a></li>
-                    <li class="item-submenu"><a href="/cotacoes">Cotacoes</a></li>
-                    <li class="item-submenu"><a href="/campanhas">Campanhas</a></li>
-                </ul>
-            </li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Gestao</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/vendas">Associados</a></li>
-                    <li class="item-submenu"><a href="/ouvidoria">Ouvidoria</a></li>
-                    <li class="item-submenu"><a href="/renovacao-contratos">Renovacao</a></li>
-                </ul>
-            </li>
-            <li class="item-menu"><a href="/vistoria">Vistorias</a></li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Monitoramento</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/rastreadores">Rastreadores</a></li>
-                    <li class="item-submenu"><a href="/monitoramento">Monitoramento</a></li>
-                </ul>
-            </li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Config</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/configuracoes">Sistema</a></li>
-                    <li class="item-submenu"><a href="/personalizacao">Personalizacao</a></li>
-                </ul>
-            </li>
-        </ul>
+    <nav class="sidebar-nav">
+        <a href="index.html" class="sidebar-link">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Painel</span>
+        </a>
+        <a href="#" class="sidebar-link active">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>Comercial</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-people"></i>
+            <span>Equipe</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-wallet2"></i>
+            <span>Financeiro</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-bullseye"></i>
+            <span>Metas</span>
+        </a>
     </nav>
-</header>
 
-
-<!-- ====== MODAL PESQUISA SPOTLIGHT ====== -->
-<div class="modal fade" id="modal-pesquisa-geral" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                <button type="button" class="tipo-pesquisa-pill active" data-tipo="vendas" data-placeholder="Pesquisa pelo Nome">Associado</button>
-                <button type="button" class="tipo-pesquisa-pill" data-tipo="eventos" data-placeholder="Pesquisa pelo Nome ou Protocolo">Evento</button>
-                <button type="button" class="tipo-pesquisa-pill" data-tipo="vistoria" data-placeholder="Pesquisa por Associado ou Placa">Vistoria</button>
-                <button type="button" class="tipo-pesquisa-pill" data-tipo="consultores" data-placeholder="Pesquisa pelo Nome">Consultor</button>
-                <button type="button" class="tipo-pesquisa-pill" data-tipo="fornecedores" data-placeholder="Pesquisa pelo Nome">Fornecedor</button>
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="sidebar-user-avatar">AF</div>
+            <div class="sidebar-user-info">
+                <span class="sidebar-user-name">Alesanco</span>
+                <span class="sidebar-user-role">Admin</span>
             </div>
-
-            <form id="form-pesquisa-geral" method="get" action="/vendas">
-                <input type="hidden" id="tipo-pesquisa" name="tipo-pesquisa" value="vendas" />
-                <div class="d-flex align-items-center gap-2">
-                    <select id="campo-pesquisa" name="campo_pesquisa">
-                        <option value="nome" selected>Nome</option>
-                        <option value="cpf_cnpj">CPF/CNPJ</option>
-                        <option value="placa">Placa</option>
-                        <option value="chassi">Chassi</option>
-                        <option value="telefone">Telefone</option>
-                    </select>
-
-                    <input type="search" id="pesquisa-geral" name="pesquisa_geral"
-                        placeholder="Pesquisa pelo Nome" autocomplete="off" />
-
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
+</aside>
 
 
-<!-- ====== CONTEUDO PRINCIPAL ====== -->
-<div class="content-page">
-    <div class="header-page">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 d-flex align-items-center gap-1">
-                <li class="breadcrumb-item text-white fw-lighter">Home</li>
-                <li class="breadcrumb-item text-white fs-3 fw-bolder active" aria-current="page">Associados</li>
-            </ol>
-        </nav>
-    </div>
-</div>
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main-content">
 
-<div class="content">
-    <!-- Filtro Simples -->
-    <form method="get" id="form-simple-filter" class="mb-3" action="/vendas">
-        <div class="input-group">
-            <a href="/cotacoes/veiculo" class="btn btn-primary">
-                <i class="bi bi-plus"></i> Adicionar
-            </a>
-            <input class="form-control" name="search" id="search"
-                placeholder="Pesquise pelo Nome, Placa ou CPF/CNPJ do Associado" />
-            <button type="submit" class="btn btn-info">
-                <i class="bi bi-search"></i> Pesquisar
+    <!-- Top Bar -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="btn-sidebar-toggle">
+                <i class="bi bi-list"></i>
             </button>
-            <button type="button" class="btn btn-primary" id="btn-toggle-filters">
-                <i class="bi bi-filter"></i> Mais Filtros
+            <div class="topbar-title">
+                <h1>Dashboard Comercial</h1>
+                <p id="ultima-atualizacao">Carregando dados...</p>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="topbar-btn" id="btn-limpar-cache" title="Atualizar dados">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="topbar-btn" id="btn-toggle-logs" title="Console">
+                <i class="bi bi-terminal"></i>
             </button>
         </div>
-    </form>
+    </header>
 
+    <!-- Alertas -->
+    <div id="alerts-container"></div>
 
-    <!-- Filtros Avancados -->
-    <div class="card card-body mb-3" id="form-more-filters" style="display: none;">
-        <form method="post" id="form-more-filter">
-            <div class="row align-items-end g-2">
-                <div class="col-12 col-sm-6 col-md-3">
-                    <label for="TipoData" class="form-label form-label-sm">Tipo Data</label>
-                    <select class="form-select form-select-sm" name="TipoData" id="TipoData">
-                        <option value="VendasDataCadastro">Data de Cadastro</option>
-                        <option value="VendasDataCancelamento">Data de Cancelamento</option>
-                        <option value="VendasDataPagamento">Data do Contrato</option>
-                        <option value="VendasDataAtivacao">Data de Ativacao</option>
-                        <option value="VendasDataReativacao">Data de Reativacao</option>
-                        <option value="VendasDataSuspensao">Data Suspensao</option>
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <label for="DataInicial" class="form-label form-label-sm">Data Inicial</label>
-                    <input type="date" class="form-control form-control-sm" name="DataInicial" id="DataInicial" />
-                </div>
-                <div class="col-6 col-md-2">
-                    <label for="DataFinal" class="form-label form-label-sm">Data Final</label>
-                    <input type="date" class="form-control form-control-sm" name="DataFinal" id="DataFinal" />
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                    <label for="VendasSituacao" class="form-label form-label-sm">Situacao</label>
-                    <select class="form-select form-select-sm" name="VendasSituacao[]" id="VendasSituacao" multiple>
+    <!-- ====== FILTROS ====== -->
+    <section class="filters-section">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label>Periodo</label>
+                <select class="filter-select" id="filtro-periodo-rapido">
+                    <option value="mes" selected>Este Mes</option>
+                    <option value="hoje">Hoje</option>
+                    <option value="semana">Esta Semana</option>
+                    <option value="trimestre">Trimestre</option>
+                    <option value="ano">Este Ano</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>De</label>
+                <input type="date" class="filter-input" id="filtro-data-inicio" />
+            </div>
+            <div class="filter-group">
+                <label>Ate</label>
+                <input type="date" class="filter-input" id="filtro-data-fim" />
+            </div>
+            <div class="filter-group">
+                <label>Gestor</label>
+                <select class="filter-select" id="filtro-gestor">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Vendedor</label>
+                <select class="filter-select" id="filtro-vendedor">
+                    <option value="">Equipe</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Regional</label>
+                <select class="filter-select" id="filtro-regional">
+                    <option value="">Todas</option>
+                    <option value="Empresa">01 - AutoVale</option>
+                    <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
+                    <option value="Juazeiro">03 - Juazeiro</option>
+                    <option value="Bomfim">04 - Sr. Bomfim</option>
+                    <option value="Itabuna">05 - Itabuna</option>
+                    <option value="JNorte">06 - J. Norte</option>
+                    <option value="Maceio">07 - Maceio</option>
+                    <option value="Salgueiro">08 - Salgueiro</option>
+                    <option value="Arapiraca1">09 - Arapiraca</option>
+                    <option value="SMiguelCampos">10 - S.M. Campos</option>
+                    <option value="C2D9F83C-E5ED-10FC-C44F-F97B974C84F2">11 - Carpina</option>
+                    <option value="DFA87AB6-49FF-B6C0-C971-BB9FDBF343EC">12 - Serra Talhada</option>
+                    <option value="4808A9B4-1D5E-1D95-ECE6-D09FA4F5316F">13 - Propria</option>
+                    <option value="C076FFB2-A1FF-DA78-D2C2-B8049B1C8F91">14 - Horizonte</option>
+                    <option value="746E6EAC-32E8-455C-7230-BC41043D89B0">15 - Feira Santana</option>
+                    <option value="CF7C65F2-833C-F6E6-D726-426982B1453C">16 - Recife</option>
+                </select>
+            </div>
+            <div class="filter-group filter-actions">
+                <button class="btn-filter" id="btn-filtrar">
+                    <i class="bi bi-search"></i> Filtrar
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros extras (colapsavel) -->
+        <div class="filters-extra" id="filters-extra" style="display:none">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select class="filter-select" id="filtro-status">
+                        <option value="">Todos</option>
                         <option value="1">Ativo</option>
                         <option value="2">Suspenso</option>
                         <option value="3">Cancelado</option>
-                        <option value="4">Aguardando Pagamento</option>
                         <option value="5">Novo</option>
-                        <option value="6">Aguardando Vistoria</option>
-                        <option value="13">Pre-Cancelamento</option>
                     </select>
                 </div>
-                <div class="col-12 col-sm-6 col-md-2">
-                    <label for="ConsultoresCentroCustoId" class="form-label form-label-sm">Regional</label>
-                    <select class="form-select form-select-sm" name="ConsultoresCentroCustoId[]" id="ConsultoresCentroCustoId" multiple>
-                        <option value="Empresa">01 - AutoVale</option>
-                        <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
-                        <option value="Juazeiro">03 - Juazeiro</option>
-                        <option value="Bomfim">04 - Sr. Bomfim</option>
-                        <option value="Itabuna">05 - Itabuna</option>
-                        <option value="JNorte">06 - J. Norte</option>
-                        <option value="Maceio">07 - Maceio</option>
-                        <option value="Salgueiro">08 - Salgueiro</option>
+                <div class="filter-group">
+                    <label>Produto</label>
+                    <select class="filter-select" id="filtro-produto">
+                        <option value="">Todos</option>
+                        <option value="1">Protecao Veicular</option>
+                        <option value="5">Rastreamento</option>
                     </select>
-                </div>
-            </div>
-
-            <div class="row align-items-end g-2 mt-1">
-                <div class="col-12 col-sm-6 col-md-3">
-                    <label for="FormaPagamento" class="form-label form-label-sm">Forma Pagamento</label>
-                    <select class="form-select form-select-sm" name="FormaPagamento" id="FormaPagamento">
-                        <option value="">- Todos -</option>
-                        <option value="1">Boleto</option>
-                        <option value="2">Cartao de Credito</option>
-                    </select>
-                </div>
-                <div class="col-12 col-sm-6 col-md-3">
-                    <label for="VendasCarrosCategoriasPlanosId" class="form-label form-label-sm">Plano</label>
-                    <select class="form-select form-select-sm" name="VendasCarrosCategoriasPlanosId[]" id="VendasCarrosCategoriasPlanosId" multiple>
-                        <option value="1341acfb-93a2-11ee-98aa-0244bdb3ddcc">Basico</option>
-                        <option value="1341b209-93a2-11ee-98aa-0244bdb3ddcc">VIP</option>
-                        <option value="1341b058-93a2-11ee-98aa-0244bdb3ddcc">TOP</option>
-                        <option value="AA4433F7-F47F-E7D4-545C-759305B53719">Start</option>
-                        <option value="EF60577E-8A33-77FC-F1B4-505419E5C581">Premium</option>
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <label for="VendasCarrosPlaca" class="form-label form-label-sm">Placa</label>
-                    <input type="text" class="form-control form-control-sm" name="VendasCarrosPlaca" id="VendasCarrosPlaca" />
-                </div>
-                <div class="col-6 col-md-2">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-search"></i> Pesquisar
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-
-
-    <!-- ====== TABELA DATATABLE ====== -->
-    <div class="card card-body">
-        <table id="table-vendas" class="table table-bordered table-striped table-sm" style="width:100%">
-            <thead>
-                <tr>
-                    <th>Associado</th>
-                    <th>Situacao</th>
-                    <th>Placa</th>
-                    <th>Telefone</th>
-                    <th>Consultor</th>
-                    <th>Data Contrato</th>
-                    <th>Data Ativacao</th>
-                    <th>Plano</th>
-                    <th>Valor</th>
-                    <th>Forma Pgto</th>
-                    <th>Regional</th>
-                    <th>Acoes</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div><!-- /.content -->
-
-
-<!-- ====== MODAL ALTERAR SENHA ====== -->
-<div class="modal fade" id="modal-alterar-senha" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title">Alterar Senha</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" action="/conta/alterar-senha">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="SenhaModal" class="form-label">Nova Senha</label>
-                        <input type="password" class="form-control form-control-sm" name="Acesso[Senha]" id="SenhaModal" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="ConfirmarSenhaModal" class="form-label">Confirmar</label>
-                        <input type="password" class="form-control form-control-sm" name="Acesso[ConfirmarSenha]" id="ConfirmarSenhaModal" required />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Alterar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ====== MODAL LOADING ====== -->
-<div class="modal fade" id="modal-load" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content bg-transparent border-0 shadow-none">
-            <div class="modal-body d-flex justify-content-center align-items-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Carregando...</span>
                 </div>
             </div>
         </div>
+
+        <button class="btn-more-filters" id="btn-more-filters">
+            <i class="bi bi-sliders"></i> Mais filtros
+        </button>
+    </section>
+
+
+    <!-- ====== KPI CARDS ====== -->
+    <section class="kpi-grid">
+        <div class="kpi-card kpi-cotacoes">
+            <div class="kpi-icon"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-cotacoes-valor">0</span>
+                <span class="kpi-label">Cotacoes</span>
+            </div>
+            <div class="kpi-trend" id="card-cotacoes-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-vendas">
+            <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-vendas-valor">0</span>
+                <span class="kpi-label">Vendas</span>
+                <span class="kpi-sub" id="card-vendas-total">R$ 0,00</span>
+            </div>
+            <div class="kpi-trend positive" id="card-vendas-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-canceladas">
+            <div class="kpi-icon"><i class="bi bi-x-circle"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-canceladas-valor">0</span>
+                <span class="kpi-label">Canceladas</span>
+                <span class="kpi-sub negative" id="card-canceladas-pct">0%</span>
+            </div>
+            <div class="kpi-trend negative" id="card-canceladas-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-perdidas">
+            <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-perdidas-valor">0</span>
+                <span class="kpi-label">Perdidas</span>
+                <span class="kpi-sub negative" id="card-perdidas-pct">0%</span>
+            </div>
+            <div class="kpi-trend negative" id="card-perdidas-trend"></div>
+        </div>
+
+        <div class="kpi-card kpi-conversao">
+            <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-conversao-valor">0%</span>
+                <span class="kpi-label">Conversao</span>
+            </div>
+            <div class="kpi-ring">
+                <svg viewBox="0 0 36 36">
+                    <path class="kpi-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path class="kpi-ring-fill" id="ring-conversao" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="kpi-card kpi-ticket">
+            <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value" id="card-ticket-valor">R$ 0</span>
+                <span class="kpi-label">Ticket Medio</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ====== CHARTS ROW ====== -->
+    <section class="charts-row">
+        <!-- Evolucao Mensal -->
+        <div class="chart-panel chart-large">
+            <div class="panel-header">
+                <h3><i class="bi bi-activity"></i> Evolucao Mensal</h3>
+            </div>
+            <div class="panel-body">
+                <canvas id="chart-evolucao"></canvas>
+            </div>
+        </div>
+
+        <!-- Funil Comercial -->
+        <div class="chart-panel chart-small">
+            <div class="panel-header">
+                <h3><i class="bi bi-funnel"></i> Funil Comercial</h3>
+            </div>
+            <div class="panel-body">
+                <div class="funnel">
+                    <div class="funnel-stage funnel-cotacao" id="funil-cotacao">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Cotacoes</span>
+                        </div>
+                    </div>
+                    <div class="funnel-stage funnel-venda" id="funil-venda">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Vendas</span>
+                        </div>
+                    </div>
+                    <div class="funnel-stage funnel-cancelado" id="funil-cancelado">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Canceladas</span>
+                        </div>
+                    </div>
+                    <div class="funnel-stage funnel-perdida" id="funil-perdida">
+                        <div class="funnel-bar"></div>
+                        <div class="funnel-info">
+                            <span class="funnel-count funil-valor">0</span>
+                            <span class="funnel-name">Perdidas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== RANKING ====== -->
+    <section class="ranking-section" id="ranking-section">
+        <div class="chart-panel">
+            <div class="panel-header">
+                <h3><i class="bi bi-trophy"></i> Ranking da Equipe</h3>
+            </div>
+            <div class="panel-body" id="ranking-list">
+                <div class="ranking-placeholder">
+                    <div class="spinner"></div>
+                    <p>Carregando ranking...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ====== LOGS CONSOLE ====== -->
+    <section class="logs-section" id="logs-container" style="display:none">
+        <div class="chart-panel">
+            <div class="panel-header">
+                <h3><i class="bi bi-terminal"></i> Console</h3>
+                <button class="btn-ghost" onclick="$('#logs-panel').empty()">Limpar</button>
+            </div>
+            <div class="logs-terminal" id="logs-panel"></div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Conectando ao aEasy...</p>
     </div>
 </div>
 
@@ -401,16 +344,29 @@
 <input type="hidden" name="SecondaryColor" value="#2d2973" />
 <input type="hidden" name="BaseUrl" value="/" />
 
-<!-- ====== SCRIPTS ====== -->
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="assets/js/app.js"></script>
-<script src="assets/js/datatable-vendas.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/js/aeasy-service.js"></script>
+<script src="assets/js/dashboard-comercial.js"></script>
+<script>
+$(document).ready(function() {
+    $('#filtro-data-inicio').val(moment().startOf('month').format('YYYY-MM-DD'));
+    $('#filtro-data-fim').val(moment().format('YYYY-MM-DD'));
 
+    // Sidebar toggle
+    $('#btn-sidebar-toggle').on('click', function() {
+        document.body.classList.toggle('sidebar-collapsed');
+    });
+
+    // More filters
+    $('#btn-more-filters').on('click', function() {
+        $('#filters-extra').slideToggle(200);
+        $(this).toggleClass('active');
+    });
+});
+</script>
 </body>
 </html>
