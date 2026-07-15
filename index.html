@@ -7,19 +7,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="TOKEN_CSRF_AQUI">
 
-    <title>Auto Vale Prevencoes - Associados</title>
+    <title>Aurora AVP - Associados</title>
 
     <link id="favicon" rel="shortcut icon"
         href="https://imagens.autovaleprevencoes.org/Favicon.png"
         type="image/png" />
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- CSS Local -->
     <link href="assets/css/custom.css" rel="stylesheet">
+
+    <!-- Fallback: se Bootstrap nao carregar do CDN -->
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
 </head>
 
 <body>
@@ -44,25 +56,17 @@
                         id="btn-pesquisa-spotlight"
                         data-bs-toggle="modal" data-bs-target="#modal-pesquisa-geral">
                         <i class="bi bi-search"></i>
-                        <span id="badge-novo-pesquisa" class="badge-novo-pesquisa" style="display:none;">NOVO</span>
                     </div>
 
                     <div class="avatar position-relative" style="cursor: pointer"
-                        onclick="window.location.href = '/notificacoes-geradas';"
                         title="Notificacoes Sistemas">
-                        <span class="position-absolute top-1 start-0 translate-middle badge rounded-pill bg-danger"
-                            id="notificacoes" style="display: none">0</span>
                         <i class="bi bi-bell"></i>
                     </div>
 
-                    <div class="avatar position-relative" style="cursor: pointer"
-                        onclick="window.location.href = '/atualizacoes-sistemas';">
-                        <span class="position-absolute top-1 start-100 translate-middle badge rounded-pill bg-danger"
-                            id="notificacoes-atualizacoes" style="display: none">0</span>
+                    <div class="avatar position-relative" style="cursor: pointer">
                         <i class="bi bi-lightbulb"></i>
                     </div>
                 </div>
-
 
                 <div class="info">
                     <div class="name">Alesanco dos Santos Ferreira</div>
@@ -77,29 +81,18 @@
                 <div class="actions">
                     <div class="btn-group">
                         <button type="button"
-                            class="btn btn-outline-light btn-settings"
+                            class="btn btn-outline-secondary btn-sm"
                             data-bs-toggle="dropdown"
-                            aria-expanded="false"
-                            style="border: 2px solid #dcdcdc;">
+                            aria-expanded="false">
                             <i class="bi bi-gear"></i>
                         </button>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a class="dropdown-item" target="_blank"
-                                    href="https://anydesk.com/pt" rel="noopener noreferrer">
-                                    <i class="bi bi-cast me-3"></i> Acesso Remoto
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="#" id="AlterarSenhaModal">
-                                    <i class="bi bi-key-fill me-3"></i> Alterar Senha
-                                </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" id="AlterarSenhaModal">
+                                <i class="bi bi-key-fill me-2"></i> Alterar Senha</a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="/conta/sair">
-                                    <i class="bi bi-box-arrow-right me-3"></i> Sair
-                                </a>
+                            <li><a class="dropdown-item" href="/conta/sair">
+                                <i class="bi bi-box-arrow-right me-2"></i> Sair</a>
                             </li>
                         </ul>
                     </div>
@@ -108,30 +101,11 @@
         </div>
     </div>
 
-
     <!-- ====== NAV ====== -->
     <nav class="header-nav">
         <ul class="menu">
             <li class="item-menu"><a href="/indicadores">Indicadores</a></li>
-            <li class="item-menu"><a href="/">Dashboard</a></li>
-            <li class="item-menu">
-                <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Assistencias</span><i class="bi bi-caret-down-fill px-1"></i>
-                </a>
-                <ul class="submenu">
-                    <li class="item-submenu"><a href="/assistencias/listar-assistencias">Assistencias</a></li>
-                    <li class="item-submenu"><a href="/assistencia-situacoes">Assistencia Situacoes</a></li>
-                    <li class="item-submenu">
-                        <a href="javascript:void(0)" class="item-link-submenu">
-                            <span>Relatorios Assistencia</span><i class="bi bi-caret-right-fill px-1"></i>
-                        </a>
-                        <ul class="submenu">
-                            <li class="item-submenu"><a href="/assistencias">Assistencias em Aberto</a></li>
-                            <li class="item-submenu"><a href="/assistencias/listar-assistencias-nao-pagas">Assistencias Nao Pagas</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </li>
+            <li class="item-menu"><a href="dashboard-comercial.html">Dashboard</a></li>
             <li class="item-menu">
                 <a href="javascript:void(0)" class="item-link-submenu">
                     <span>Cadastros</span><i class="bi bi-caret-down-fill px-1"></i>
@@ -141,11 +115,8 @@
                     <li class="item-submenu"><a href="/consultores">Consultores</a></li>
                     <li class="item-submenu"><a href="/colaboradores">Usuarios</a></li>
                     <li class="item-submenu"><a href="/fornecedores">Fornecedores</a></li>
-                    <li class="item-submenu"><a href="/vistoriadores">Vistoriadores</a></li>
                 </ul>
             </li>
-
-
             <li class="item-menu">
                 <a href="javascript:void(0)" class="item-link-submenu">
                     <span>Eventos</span><i class="bi bi-caret-down-fill px-1"></i>
@@ -160,8 +131,7 @@
                     <span>Financeiro</span><i class="bi bi-caret-down-fill px-1"></i>
                 </a>
                 <ul class="submenu">
-                    <li class="item-submenu"><a href="/faturas-parcelamento">Faturas Parcelamento</a></li>
-                    <li class="item-submenu"><a href="/contas-bancarias">Contas Bancarias</a></li>
+                    <li class="item-submenu"><a href="/fluxo-caixa">Fluxo de Caixa</a></li>
                     <li class="item-submenu"><a href="/receitas">Receitas</a></li>
                     <li class="item-submenu"><a href="/lancamentos-contas">Despesas</a></li>
                 </ul>
@@ -183,34 +153,26 @@
                 <ul class="submenu">
                     <li class="item-submenu"><a href="/vendas">Associados</a></li>
                     <li class="item-submenu"><a href="/ouvidoria">Ouvidoria</a></li>
-                    <li class="item-submenu"><a href="/renovacao-contratos">Renovacao de Contrato</a></li>
+                    <li class="item-submenu"><a href="/renovacao-contratos">Renovacao</a></li>
                 </ul>
             </li>
-
-
-            <li class="item-menu">
-                <a href="/vistoria" class="item-link-submenu">
-                    <span>Vistorias</span>
-                </a>
-            </li>
+            <li class="item-menu"><a href="/vistoria">Vistorias</a></li>
             <li class="item-menu">
                 <a href="javascript:void(0)" class="item-link-submenu">
                     <span>Monitoramento</span><i class="bi bi-caret-down-fill px-1"></i>
                 </a>
                 <ul class="submenu">
-                    <li class="item-submenu"><a href="/agenda">Agenda Instalacao</a></li>
                     <li class="item-submenu"><a href="/rastreadores">Rastreadores</a></li>
                     <li class="item-submenu"><a href="/monitoramento">Monitoramento</a></li>
                 </ul>
             </li>
             <li class="item-menu">
                 <a href="javascript:void(0)" class="item-link-submenu">
-                    <span>Configuracoes</span><i class="bi bi-caret-down-fill px-1"></i>
+                    <span>Config</span><i class="bi bi-caret-down-fill px-1"></i>
                 </a>
                 <ul class="submenu">
                     <li class="item-submenu"><a href="/configuracoes">Sistema</a></li>
                     <li class="item-submenu"><a href="/personalizacao">Personalizacao</a></li>
-                    <li class="item-submenu"><a href="/documentos">Documentos</a></li>
                 </ul>
             </li>
         </ul>
@@ -223,51 +185,31 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="d-flex flex-wrap gap-2 mb-3">
-                <button type="button" class="tipo-pesquisa-pill active"
-                    data-tipo="vendas"
-                    data-placeholder="Pesquisa pelo Nome">Associado</button>
-                <button type="button" class="tipo-pesquisa-pill"
-                    data-tipo="eventos"
-                    data-placeholder="Pesquisa pelo Nome ou Protocolo">Evento</button>
-                <button type="button" class="tipo-pesquisa-pill"
-                    data-tipo="assistencias/listar-assistencias"
-                    data-placeholder="Pesquisa pelo Nome ou Protocolo">Assistencia</button>
-                <button type="button" class="tipo-pesquisa-pill"
-                    data-tipo="vistoria"
-                    data-placeholder="Pesquisa por Associado ou Placa">Vistoria</button>
-                <button type="button" class="tipo-pesquisa-pill"
-                    data-tipo="consultores"
-                    data-placeholder="Pesquisa pelo Nome">Consultor</button>
-                <button type="button" class="tipo-pesquisa-pill"
-                    data-tipo="fornecedores"
-                    data-placeholder="Pesquisa pelo Nome">Fornecedor</button>
+                <button type="button" class="tipo-pesquisa-pill active" data-tipo="vendas" data-placeholder="Pesquisa pelo Nome">Associado</button>
+                <button type="button" class="tipo-pesquisa-pill" data-tipo="eventos" data-placeholder="Pesquisa pelo Nome ou Protocolo">Evento</button>
+                <button type="button" class="tipo-pesquisa-pill" data-tipo="vistoria" data-placeholder="Pesquisa por Associado ou Placa">Vistoria</button>
+                <button type="button" class="tipo-pesquisa-pill" data-tipo="consultores" data-placeholder="Pesquisa pelo Nome">Consultor</button>
+                <button type="button" class="tipo-pesquisa-pill" data-tipo="fornecedores" data-placeholder="Pesquisa pelo Nome">Fornecedor</button>
             </div>
 
             <form id="form-pesquisa-geral" method="get" action="/vendas">
                 <input type="hidden" id="tipo-pesquisa" name="tipo-pesquisa" value="vendas" />
-
                 <div class="d-flex align-items-center gap-2">
-                    <select id="campo-pesquisa" name="campo_pesquisa" aria-label="Campo de pesquisa">
+                    <select id="campo-pesquisa" name="campo_pesquisa">
                         <option value="nome" selected>Nome</option>
                         <option value="cpf_cnpj">CPF/CNPJ</option>
                         <option value="placa">Placa</option>
                         <option value="chassi">Chassi</option>
-                        <option value="renavam">Renavam</option>
-                        <option value="rastreador">Rastreador</option>
                         <option value="telefone">Telefone</option>
-                        <option value="cep">CEP</option>
                     </select>
 
                     <input type="search" id="pesquisa-geral" name="pesquisa_geral"
-                        placeholder="Pesquisa pelo Nome"
-                        autocomplete="off" value="" />
+                        placeholder="Pesquisa pelo Nome" autocomplete="off" />
 
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 flex-shrink-0">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
                         <i class="bi bi-search"></i>
                     </button>
                 </div>
-                <input type="hidden" id="pesquisa-hidden-ddd" name="ClientesIndividuosContatosDdd">
-                <input type="hidden" id="pesquisa-hidden-telefone" name="ClientesIndividuosContatosTelefone">
             </form>
         </div>
     </div>
@@ -277,7 +219,7 @@
 <!-- ====== CONTEUDO PRINCIPAL ====== -->
 <div class="content-page">
     <div class="header-page">
-        <nav aria-label="breadcrumb" style="background-color: transparent">
+        <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0 d-flex align-items-center gap-1">
                 <li class="breadcrumb-item text-white fw-lighter">Home</li>
                 <li class="breadcrumb-item text-white fs-3 fw-bolder active" aria-current="page">Associados</li>
@@ -286,22 +228,18 @@
     </div>
 </div>
 
-<div class="content" style="min-height: 100%">
+<div class="content">
     <!-- Filtro Simples -->
     <form method="get" id="form-simple-filter" class="mb-3" action="/vendas">
         <div class="input-group">
             <a href="/cotacoes/veiculo" class="btn btn-primary">
                 <i class="bi bi-plus"></i> Adicionar
             </a>
-
             <input class="form-control" name="search" id="search"
-                placeholder="Pesquise pelo Nome, Placa ou CPF/CNPJ do Associado"
-                value="" />
-
+                placeholder="Pesquise pelo Nome, Placa ou CPF/CNPJ do Associado" />
             <button type="submit" class="btn btn-info">
                 <i class="bi bi-search"></i> Pesquisar
             </button>
-
             <button type="button" class="btn btn-primary" id="btn-toggle-filters">
                 <i class="bi bi-filter"></i> Mais Filtros
             </button>
@@ -311,982 +249,166 @@
 
     <!-- Filtros Avancados -->
     <div class="card card-body mb-3" id="form-more-filters" style="display: none;">
-        <form method="post" id="form-more-filter" action="/vendas/filtrar">
-            <!-- CSRF Token -->
-            <input type="hidden" name="_token" id="_token" value="TOKEN_CSRF_AQUI" />
-
-            <input type="hidden" name="LinkRelatorioPDF" value="/vendas/exportar-relatorio-pdf" />
-            <input type="hidden" name="LinkRelatorioCompletoAssociados" value="/vendas/exportar-relatorio-completo-associados" />
-            <input type="hidden" name="LinkRelatorioSimplificadoAssociados" value="/vendas/exportar-relatorio-simplificado-associados" />
-
-            <div class="row align-items-end">
-
-                <!-- Tipo Data + Data Inicial -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="TipoData">Tipo Data</label>
-                            <select class="form-control form-control-sm" name="TipoData" id="TipoData">
-                                <option value="VendasDataCadastro">Data de Cadastro</option>
-                                <option value="VendasDataCancelamento">Data de Cancelamento</option>
-                                <option value="VendasDataPagamento">Data do Contrato</option>
-                                <option value="VendasDataAtivacao">Data de Ativacao</option>
-                                <option value="VendasDataReativacao">Data de Reativacao</option>
-                                <option value="VendasDataUltimoFaturaCarne">Data de Ultima Fatura Carne</option>
-                                <option value="VendasDataImpressaoCarne">Data de Impressao Carne</option>
-                                <option value="VendasDataSuspensao">Data Suspensao</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="DataInicial">Data Inicial</label>
-                            <input type="date" class="form-control form-control-sm" name="DataInicial" id="DataInicial" />
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Data Final + Situacao -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="DataFinal">Data Final</label>
-                            <input type="date" class="form-control form-control-sm" name="DataFinal" id="DataFinal" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasSituacao">Situacao</label>
-                            <select class="form-control form-control-sm" name="VendasSituacao[]" id="VendasSituacao" multiple>
-                                <option value="4">Aguardando Pagamento</option>
-                                <option value="6">Aguardando Vistoria</option>
-                                <option value="9">Analise de Comite</option>
-                                <option value="1">Ativo</option>
-                                <option value="3">Cancelado</option>
-                                <option value="17">Juridico</option>
-                                <option value="14">Migrado</option>
-                                <option value="5">Novo</option>
-                                <option value="13">Pre-Cancelamento</option>
-                                <option value="11">Reativacao</option>
-                                <option value="10">Revistoria</option>
-                                <option value="12">Roubo/Furto</option>
-                                <option value="2">Suspenso</option>
-                                <option value="7">Vistoria Agendada</option>
-                                <option value="8">Vistoria Negada</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Motivo Cancelamento + Associado -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="MotivosSituacao">Motivo Cancelamento</label>
-                            <select class="form-control form-control-sm" name="MotivosSituacao[]" id="MotivosSituacao" multiple>
-                                <option value="E5556C81-EC51-112F-32F8-816383254D0B">Avarias Severas</option>
-                                <option value="92D3E3FA-130B-5718-25F5-DD157759491E">Cadastro Teste</option>
-                                <option value="F7A8C75A-33CD-454B-B331-B8D62CF36A71">Cancelado Pre-Adesao</option>
-                                <option value="CancelamentoAdesao">Cancelamento Adesao</option>
-                                <option value="NaoRenovado">Contrato Nao Renovado</option>
-                                <option value="88933A61-F642-5AE1-0F2B-2838501376FE">Desistencias</option>
-                                <option value="D0E0779E-C39C-0C78-C056-FF326269FA8F">Dificuldade Financeira</option>
-                                <option value="4507CE3C-6892-7126-F666-FF724F85507A">Erro Lancamento</option>
-                                <option value="BCD795BF-C4C2-0094-DC90-605D97BE26D9">Inadimplencia</option>
-                                <option value="automatico">Inadimplencia (Automatico)</option>
-                                <option value="9689A5F4-9734-A70A-6EBF-437C655EA31B">Insatisfacao</option>
-                                <option value="Migracao">Migracao Associacao</option>
-                                <option value="QuitacaoBoletoAvulso">Quitacao Boleto</option>
-                                <option value="6EDE1EA2-27BA-CF81-2AAF-C0EC4567854F">Ressarcimento</option>
-                                <option value="D176C990-B25C-582B-AD92-3B6595E7750C">SBL Interno</option>
-                                <option value="044B1AFC-707D-F9CA-CF8C-9B5D8CA648D6">Troca Do Veiculo</option>
-                                <option value="B5326095-378D-AA1C-86F8-0311E98BD835">Venda Do Veiculo</option>
-                                <option value="126128BE-2D28-A8CD-F010-970952DF1B3E">Vistoria Nao Aprovada</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasClientesId">Associado</label>
-                            <select class="form-control form-control-sm clientes-autocomplete"
-                                name="VendasClientesId" id="VendasClientesId"></select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Dia Vencimento + Fidelidade -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasVencimento">Dia de Vencimento</label>
-                            <select class="form-control form-control-sm" name="VendasVencimento[]" id="VendasVencimento" multiple>
-                                <option value="5">5</option>
-                                <option value="10">10</option>
-                                <option value="15">15</option>
-                                <option value="20">20</option>
-                                <option value="25">25</option>
-                                <option value="30">30</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="Fidelidade">Possui Fidelidade</label>
-                            <select class="form-control form-control-sm" name="Fidelidade" id="Fidelidade">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Estado + Cidade -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="IndividuosEnderecosEstadosId">Estado</label>
-                            <select class="form-control form-control-sm estados-autocomplete"
-                                name="IndividuosEnderecosEstadosId" id="IndividuosEnderecosEstadosId"></select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="IndividuosEnderecosCidadesId">Cidade</label>
-                            <select class="form-control form-control-sm cidades-autocomplete"
-                                name="IndividuosEnderecosCidadesId" id="IndividuosEnderecosCidadesId"></select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Endereco -->
-                <div class="col-12 col-sm-3">
-                    <label for="IndividuosEnderecosLogradouro">Endereco</label>
-                    <input type="text" class="form-control form-control-sm"
-                        name="IndividuosEnderecosLogradouro" id="IndividuosEnderecosLogradouro"
-                        placeholder="Endereco" />
-                </div>
-
-                <!-- Bairro -->
-                <div class="col-12 col-sm-3">
-                    <label for="IndividuosEnderecosBairro">Bairro</label>
-                    <input type="text" class="form-control form-control-sm"
-                        name="IndividuosEnderecosBairro" id="IndividuosEnderecosBairro"
-                        placeholder="Bairro" />
-                </div>
-
-
-                <!-- Placa + Placa Implemento -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosPlaca">Placa</label>
-                            <input type="text" class="form-control form-control-sm placa"
-                                name="VendasCarrosPlaca" id="VendasCarrosPlaca" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosPlacaImplemento">Placa Implemento</label>
-                            <input type="text" class="form-control form-control-sm placa"
-                                name="VendasCarrosPlacaImplemento" id="VendasCarrosPlacaImplemento" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Categorias Carros (apenas ativas) -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12">
-                            <label for="VendasCategoriasCarros">Categorias Carros</label>
-                            <select class="form-control form-control-sm" name="VendasCategoriasCarros[]"
-                                id="VendasCategoriasCarros" multiple>
-                                <option value="56">Agregado Carreta</option>
-                                <option value="66">Atividade Remunerada (motocicleta - Avelloz | Shineray | Bajaj)</option>
-                                <option value="50">Atividade Remunerada (motocicleta - Honda)</option>
-                                <option value="51">Atividade Remunerada (motocicleta - Yamaha)</option>
-                                <option value="18">Atividade Remunerada (suv | caminhonete | utilitario)</option>
-                                <option value="17">Atividade Remunerada (veiculo leve)</option>
-                                <option value="29">Automovel Premium</option>
-                                <option value="40">Automovel Start</option>
-                                <option value="76">Eletrico | Hibrido</option>
-                                <option value="12">ELITE 125 | FLUO 125 | NEO</option>
-                                <option value="49">Motocicletas - Avelloz | Shineray | Bajaj</option>
-                                <option value="45">Motocicletas - Honda</option>
-                                <option value="48">Motocicletas - Yamaha</option>
-                                <option value="28">Motocicletas Especiais</option>
-                                <option value="16">Passeio - Importado</option>
-                                <option value="1">Passeio - Nacional</option>
-                                <option value="10">PCX 150 | NMAX 160 | ADV 150</option>
-                                <option value="11">PCX 160 | XMAX 250 | ADV 160</option>
-                                <option value="3">SUV | Caminhonete | Utilitario</option>
-                                <option value="24">SUV | Caminhonete | Utilitario - Importado</option>
-                                <option value="63">Truck Leve (ate 14t)</option>
-                                <option value="61">Truck Pesado (a partir de 14t)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Modelo + Planos -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosModelosId">Modelo</label>
-                            <select class="form-control form-control-sm select2"
-                                name="VendasCarrosModelosId" id="VendasCarrosModelosId">
-                                <option value="">- Selecione -</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosCategoriasPlanosId">Planos</label>
-                            <select multiple class="form-control form-control-sm"
-                                name="VendasCarrosCategoriasPlanosId[]" id="VendasCarrosCategoriasPlanosId">
-                                <option value="4688130B-EAF8-2F75-1BC8-F95DEF15B15A">Agregado</option>
-                                <option value="1341acfb-93a2-11ee-98aa-0244bdb3ddcc">Basico</option>
-                                <option value="E98BFBF4-466C-29AA-312A-CEC2E905819D">Basico Truck</option>
-                                <option value="EA8DF053-0685-8C94-7ADD-9D133CA7AA04">Comodato</option>
-                                <option value="7859ADE8-45D0-845C-A908-6EDCEC597664">Frota Publica</option>
-                                <option value="480208CD-E318-36DA-224D-03929FAD6AC5">Plano Automovel Eletrico</option>
-                                <option value="124B3EAF-2422-4EEF-36F4-2F994D827DB0">Plano Automovel Hibrido</option>
-                                <option value="EF60577E-8A33-77FC-F1B4-505419E5C581">Premium</option>
-                                <option value="B86C7BC6-8F62-D96F-6B38-05CE0BDFBED1">Rastreador Comodato</option>
-                                <option value="AA4433F7-F47F-E7D4-545C-759305B53719">Start</option>
-                                <option value="1341b058-93a2-11ee-98aa-0244bdb3ddcc">TOP</option>
-                                <option value="C695DF0A-54E4-9C3F-B391-EDE11CB231EA">Top Truck</option>
-                                <option value="1341cd94-93a2-11ee-98aa-0244bdb3ddcc">Truck</option>
-                                <option value="1341b209-93a2-11ee-98aa-0244bdb3ddcc">VIP</option>
-                                <option value="EB11A116-C44A-6838-F6A8-4770CFE875BB">Vip Truck</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Evento Aberto + Aniversariante -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="PossuiEvento">Possui Evento Aberto</label>
-                            <select class="form-control form-control-sm" name="PossuiEvento" id="PossuiEvento">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="DataNascimento">Aniversariante do Mes</label>
-                            <select class="form-control form-control-sm" name="DataNascimento" id="DataNascimento">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Janeiro</option>
-                                <option value="2">Fevereiro</option>
-                                <option value="3">Marco</option>
-                                <option value="4">Abril</option>
-                                <option value="5">Maio</option>
-                                <option value="6">Junho</option>
-                                <option value="7">Julho</option>
-                                <option value="8">Agosto</option>
-                                <option value="9">Setembro</option>
-                                <option value="10">Outubro</option>
-                                <option value="11">Novembro</option>
-                                <option value="12">Dezembro</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Dias Atraso + Tipo Faturas Pagas (CORRIGIDO: valores consistentes) -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasDiasAtraso">Dias de Atraso</label>
-                            <input type="number" class="form-control form-control-sm"
-                                name="VendasDiasAtraso" id="VendasDiasAtraso"
-                                placeholder="Dias de atraso" min="0" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="TipoVendasFaturasPagas">Tipo Faturas Pagas</label>
-                            <select class="form-control form-control-sm" name="TipoVendasFaturasPagas" id="TipoVendasFaturasPagas">
-                                <option value="=">Igual a</option>
-                                <option value=">">Maior que</option>
-                                <option value=">=">Maior ou igual a</option>
-                                <option value="<">Menor que</option>
-                                <option value="<=">Menor ou igual a</option>
-                                <option value="!=">Diferente de</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Faturas Pagas + Veiculo Zero -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="FaturasPagas">Faturas Pagas</label>
-                            <input type="number" class="form-control form-control-sm"
-                                name="FaturasPagas" id="FaturasPagas"
-                                placeholder="Qtde. faturas" min="0" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VeiculoZero">Veiculo Zero</label>
-                            <select class="form-control form-control-sm" name="VeiculoZero" id="VeiculoZero">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Valor Fipe -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="ValorFipeInicio">Valor Fipe Inicio</label>
-                            <input type="text" class="form-control form-control-sm mask-money"
-                                name="ValorFipeInicio" id="ValorFipeInicio"
-                                placeholder="Valor inicial" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="ValorFipeFinal">Valor Fipe Fim</label>
-                            <input type="text" class="form-control form-control-sm mask-money"
-                                name="ValorFipeFinal" id="ValorFipeFinal"
-                                placeholder="Valor final" />
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Forma Pagamento + Classificacao -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="FormaPagamento">Forma Pagamento</label>
-                            <select class="form-control form-control-sm" name="FormaPagamento" id="FormaPagamento">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Boleto</option>
-                                <option value="2">Cartao de Credito</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasClassificacao">Classificacao</label>
-                            <select class="form-control form-control-sm" name="VendasClassificacao" id="VendasClassificacao">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Nova Adesao</option>
-                                <option value="2">Renovacao</option>
-                                <option value="3">Reativacao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Consultor -->
-                <div class="col-12 col-sm-3">
-                    <label for="ConsultoresIndividuosId">Consultor</label>
-                    <select class="form-control form-control-sm consultores-autocomplete"
-                        name="ConsultoresIndividuosId[]" id="ConsultoresIndividuosId" multiple></select>
-                </div>
-
-                <!-- Possui Rastreador -->
-                <div class="col-12 col-sm-3">
-                    <label for="PossuiRastreador">Possui Rastreador / Tag</label>
-                    <select class="form-control form-control-sm" name="PossuiRastreador" id="PossuiRastreador">
-                        <option value="">- Selecione -</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Nao</option>
+        <form method="post" id="form-more-filter">
+            <div class="row align-items-end g-2">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="TipoData" class="form-label form-label-sm">Tipo Data</label>
+                    <select class="form-select form-select-sm" name="TipoData" id="TipoData">
+                        <option value="VendasDataCadastro">Data de Cadastro</option>
+                        <option value="VendasDataCancelamento">Data de Cancelamento</option>
+                        <option value="VendasDataPagamento">Data do Contrato</option>
+                        <option value="VendasDataAtivacao">Data de Ativacao</option>
+                        <option value="VendasDataReativacao">Data de Reativacao</option>
+                        <option value="VendasDataSuspensao">Data Suspensao</option>
                     </select>
                 </div>
-
-                <!-- Centro de Custo -->
-                <div class="col-12 col-sm-3">
-                    <label for="ConsultoresCentroCustoId">Centro de Custo</label>
-                    <select class="form-control form-control-sm" name="ConsultoresCentroCustoId[]"
-                        id="ConsultoresCentroCustoId" multiple>
-                        <option value="Empresa">01 - AutoVale Clube de Beneficios</option>
-                        <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina - Pe</option>
-                        <option value="Juazeiro">03 - Juazeiro - Ba</option>
-                        <option value="Bomfim">04 - Sr. Bomfim - Ba</option>
-                        <option value="Itabuna">05 - Itabuna - Ba</option>
-                        <option value="JNorte">06 - J. Norte - Ce</option>
-                        <option value="Maceio">07 - Maceio - Al</option>
-                        <option value="Salgueiro">08 - Salgueiro - Pe</option>
-                        <option value="Arapiraca1">09 - Arapiraca - Al</option>
-                        <option value="SMiguelCampos">10 - S. Miguel Campos - Al</option>
-                        <option value="C2D9F83C-E5ED-10FC-C44F-F97B974C84F2">11 - Carpina - Pe</option>
-                        <option value="DFA87AB6-49FF-B6C0-C971-BB9FDBF343EC">12 - Serra Talhada - Pe</option>
-                        <option value="4808A9B4-1D5E-1D95-ECE6-D09FA4F5316F">13 - Propria - Se</option>
-                        <option value="C076FFB2-A1FF-DA78-D2C2-B8049B1C8F91">14 - Horizonte - Ce</option>
-                        <option value="746E6EAC-32E8-455C-7230-BC41043D89B0">15 - Feira de Santana - Ba</option>
-                        <option value="CF7C65F2-833C-F6E6-D726-426982B1453C">16 - Recife - Pe</option>
-                        <option value="AA67330C-53E7-2B5B-1271-78E26734792E">17 - Meep Pagamentos</option>
+                <div class="col-6 col-md-2">
+                    <label for="DataInicial" class="form-label form-label-sm">Data Inicial</label>
+                    <input type="date" class="form-control form-control-sm" name="DataInicial" id="DataInicial" />
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="DataFinal" class="form-label form-label-sm">Data Final</label>
+                    <input type="date" class="form-control form-control-sm" name="DataFinal" id="DataFinal" />
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="VendasSituacao" class="form-label form-label-sm">Situacao</label>
+                    <select class="form-select form-select-sm" name="VendasSituacao[]" id="VendasSituacao" multiple>
+                        <option value="1">Ativo</option>
+                        <option value="2">Suspenso</option>
+                        <option value="3">Cancelado</option>
+                        <option value="4">Aguardando Pagamento</option>
+                        <option value="5">Novo</option>
+                        <option value="6">Aguardando Vistoria</option>
+                        <option value="13">Pre-Cancelamento</option>
                     </select>
                 </div>
-
-
-                <!-- Equip. Obrigatorio -->
-                <div class="col-12 col-sm-3">
-                    <label for="VendasCarrosRastreadorObrigatorio">Equipamento Obrigatorio</label>
-                    <select class="form-control form-control-sm" name="VendasCarrosRastreadorObrigatorio"
-                        id="VendasCarrosRastreadorObrigatorio">
-                        <option value="">- Selecione -</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Nao</option>
+                <div class="col-12 col-sm-6 col-md-2">
+                    <label for="ConsultoresCentroCustoId" class="form-label form-label-sm">Regional</label>
+                    <select class="form-select form-select-sm" name="ConsultoresCentroCustoId[]" id="ConsultoresCentroCustoId" multiple>
+                        <option value="Empresa">01 - AutoVale</option>
+                        <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
+                        <option value="Juazeiro">03 - Juazeiro</option>
+                        <option value="Bomfim">04 - Sr. Bomfim</option>
+                        <option value="Itabuna">05 - Itabuna</option>
+                        <option value="JNorte">06 - J. Norte</option>
+                        <option value="Maceio">07 - Maceio</option>
+                        <option value="Salgueiro">08 - Salgueiro</option>
                     </select>
                 </div>
-
-                <!-- Carne Emitido + Possui Carne -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="CarneEmitido">Carne Emitido</label>
-                            <select class="form-control form-control-sm" name="CarneEmitido" id="CarneEmitido">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="PossuiCarne">Possui Carne</label>
-                            <select class="form-control form-control-sm" name="PossuiCarne" id="PossuiCarne">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Indicadores + Tipo Suspensao -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="ConsultoresIndicadoresConsultoresNome">Indicadores</label>
-                            <input class="form-control form-control-sm"
-                                name="ConsultoresIndicadoresConsultoresNome"
-                                id="ConsultoresIndicadoresConsultoresNome" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasTipoSuspensao">Tipo Suspensao</label>
-                            <select class="form-control form-control-sm" name="VendasTipoSuspensao" id="VendasTipoSuspensao">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Debito</option>
-                                <option value="2">Solicitada</option>
-                                <option value="3">Pendente de Vistoria</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Possui Desconto + Origem Migracao -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosValorDescontoConsultor">Possui Desconto</label>
-                            <select class="form-control form-control-sm" name="VendasCarrosValorDescontoConsultor"
-                                id="VendasCarrosValorDescontoConsultor">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosOrigemMigracao">Origem da Migracao</label>
-                            <select class="form-control form-control-sm" name="VendasCarrosOrigemMigracao"
-                                id="VendasCarrosOrigemMigracao">
-                                <option value="">- Selecione -</option>
-                                <option value="SM">Sem Migracao</option>
-                                <option value="1">SGA</option>
-                                <option value="2">SIPROV</option>
-                                <option value="3">DWITCH</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Funcionarios Colaboradores (via AJAX - CORRIGIDO) -->
-                <div class="col-12 col-sm-3">
-                    <label for="VendasFuncionariosConsultoresId">Funcionarios Colaboradores</label>
-                    <select class="form-control form-control-sm colaboradores-autocomplete"
-                        name="VendasFuncionariosConsultoresId" id="VendasFuncionariosConsultoresId">
-                        <option value="">- Selecione -</option>
-                    </select>
-                </div>
-
-                <!-- Portabilidade + Multiplas Placas -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosPortabilidade">Origem de Portabilidade</label>
-                            <select class="form-control form-control-sm" name="VendasCarrosPortabilidade"
-                                id="VendasCarrosPortabilidade">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="AssociadosMaisPlacas">Multiplas Placas</label>
-                            <select class="form-control form-control-sm" name="AssociadosMaisPlacas"
-                                id="AssociadosMaisPlacas">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Chassi + Plotagem -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="CarrosChassi">Chassi</label>
-                            <input type="text" class="form-control form-control-sm"
-                                name="CarrosChassi" id="CarrosChassi" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="VendasCarrosPlotagem">Plotagem</label>
-                            <select class="form-control form-control-sm" name="VendasCarrosPlotagem"
-                                id="VendasCarrosPlotagem">
-                                <option value="">- Todos -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mes/Ano sem Fatura + Tipo Fatura -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="FaturaNaoGeradaMesAno">Mes/Ano sem Fatura</label>
-                            <input type="text" class="form-control form-control-sm mes-ano"
-                                name="FaturaNaoGeradaMesAno" id="FaturaNaoGeradaMesAno"
-                                placeholder="MM/AAAA" />
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="FaturaNaoGeradaTipo">Tipo Fatura</label>
-                            <select class="form-control form-control-sm" name="FaturaNaoGeradaTipo"
-                                id="FaturaNaoGeradaTipo">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Adesao</option>
-                                <option value="5">Adesao Consultor</option>
-                                <option value="3">Avulsa</option>
-                                <option value="9">Cancelamento</option>
-                                <option value="7">Cobranca</option>
-                                <option value="2">Contribuicao</option>
-                                <option value="6">Cota de Participacao</option>
-                                <option value="4">Rastreador</option>
-                                <option value="8">Reativacao</option>
-                                <option value="10">Taxa Instalacao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Dados Extra -->
-                <div class="col-12 col-sm-3">
-                    <label for="DadosExtra">Dados Extra</label>
-                    <select class="form-control form-control-sm" name="DadosExtra" id="DadosExtra">
-                        <option value="">- Selecione -</option>
-                        <option value="92FFE3D3-46A4-AB06-8B10-5A3F4DA94BA5">Atividade Remunerada</option>
-                        <option value="3971E46A-07CE-23AC-18A4-783B30DF35E2">Caminhao Guincho</option>
-                        <option value="8EC2A532-0021-3740-A70F-47D755EAE124">Rastreador Terceiro</option>
-                    </select>
-                </div>
-
-                <!-- Termo Adesao Assinado -->
-                <div class="col-12 col-sm-3">
-                    <label for="TermoAdesaoAssinado">Termo Adesao Assinado</label>
-                    <select class="form-control form-control-sm" name="TermoAdesaoAssinado" id="TermoAdesaoAssinado">
-                        <option value="">- Selecione -</option>
-                        <option value="SIM">Sim</option>
-                        <option value="NAO">Nao</option>
-                    </select>
-                </div>
-
-                <!-- Auxilio Profissional -->
-                <div class="col-12 col-sm-3">
-                    <label for="AuxilioProfissional">Auxilio Profissional</label>
-                    <select class="form-control form-control-sm" name="AuxilioProfissional" id="AuxilioProfissional">
-                        <option value="">- Selecione -</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Nao</option>
-                    </select>
-                </div>
-
-                <!-- Chassi Remarcado -->
-                <div class="col-12 col-sm-3">
-                    <label for="VendasCarrosChassiRemarcado">Chassi Remarcado</label>
-                    <select class="form-control form-control-sm" name="VendasCarrosChassiRemarcado"
-                        id="VendasCarrosChassiRemarcado">
-                        <option value="">- Todos -</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Nao</option>
-                    </select>
-                </div>
-
-                <!-- Leilao -->
-                <div class="col-12 col-sm-3">
-                    <label for="VendasCarrosLeilao">Leilao</label>
-                    <select class="form-control form-control-sm" name="VendasCarrosLeilao" id="VendasCarrosLeilao">
-                        <option value="">- Todos -</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Nao</option>
-                    </select>
-                </div>
-
-                <!-- Media Monta -->
-                <div class="col-12 col-sm-3">
-                    <label for="VendasCarrosMediaMonta">Media Monta</label>
-                    <select class="form-control form-control-sm" name="VendasCarrosMediaMonta" id="VendasCarrosMediaMonta">
-                        <option value="">- Todos -</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Nao</option>
-                    </select>
-                </div>
-
-
-                <!-- Motivo Depreciacao -->
-                <div class="col-12 col-sm-3">
-                    <label for="VendasCarrosMotivosDeprecacaoId">Motivo Depreciacao</label>
-                    <select class="form-control form-control-sm" name="VendasCarrosMotivosDeprecacaoId"
-                        id="VendasCarrosMotivosDeprecacaoId">
-                        <option value="">- Todos -</option>
-                        <option value="C78652BE-937A-9C02-DADE-6D4F7B15833A">Motor Remarcado</option>
-                        <option value="68E8558B-882E-DF6B-151B-F81DACAC429E">Protecao Parcial de Bens</option>
-                        <option value="A2AA57A9-6F5E-EC1A-7315-E4C291C7215B">Recuperado de Sinistro</option>
-                        <option value="F8CFD799-6B27-F70F-1EE7-C7A9105A7900">Taxi</option>
-                        <option value="BEC98C09-CFD5-F8CE-FA0F-618ED58D83F0">Veiculo Avariado</option>
-                        <option value="109D43EE-E34A-E408-EE1C-66934D6A7B80">Veiculo Rebaixado</option>
-                    </select>
-                </div>
-
-                <!-- Equipe -->
-                <div class="col-12 col-sm-3">
-                    <label for="EquipesId">Equipe</label>
-                    <select class="form-control form-control-sm consultores-autocomplete"
-                        name="EquipesId" id="EquipesId"></select>
-                </div>
-
-                <!-- Retornar Lider -->
-                <div class="col-12 col-sm-3">
-                    <label for="RetornarLiderComEquipe">Retornar Lider
-                        <span class="bi bi-info-circle" data-bs-toggle="tooltip"
-                            title="Este filtro depende da selecao no campo Equipe."
-                            style="cursor: pointer;"></span>
-                    </label>
-                    <select class="form-control form-control-sm" id="RetornarLiderComEquipe"
-                        name="RetornarLiderComEquipe">
-                        <option value="">- Selecione -</option>
-                        <option value="SIM">Equipe completa</option>
-                        <option value="NAO">Equipe sem lideres</option>
-                        <option value="ATE_NIVEL_1">Equipe ate lider primeiro nivel</option>
-                    </select>
-                </div>
-
-                <!-- Produto + Contabiliza Meta -->
-                <div class="col-12 col-sm-3">
-                    <div class="row">
-                        <div class="col-12 col-sm-6">
-                            <label for="ProdutosId">Produto</label>
-                            <select class="form-control form-control-sm" name="ProdutosId" id="ProdutosId">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Protecao Veicular</option>
-                                <option value="5">Rastreamento</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label for="ContabilizaParaMeta">Contabiliza Meta</label>
-                            <select class="form-control form-control-sm" name="ContabilizaParaMeta" id="ContabilizaParaMeta">
-                                <option value="">- Selecione -</option>
-                                <option value="1">Sim</option>
-                                <option value="0">Nao</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
-            <button type="submit" class="btn btn-primary mt-2">
-                <i class="bi bi-search"></i> Pesquisar
-            </button>
+            <div class="row align-items-end g-2 mt-1">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="FormaPagamento" class="form-label form-label-sm">Forma Pagamento</label>
+                    <select class="form-select form-select-sm" name="FormaPagamento" id="FormaPagamento">
+                        <option value="">- Todos -</option>
+                        <option value="1">Boleto</option>
+                        <option value="2">Cartao de Credito</option>
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="VendasCarrosCategoriasPlanosId" class="form-label form-label-sm">Plano</label>
+                    <select class="form-select form-select-sm" name="VendasCarrosCategoriasPlanosId[]" id="VendasCarrosCategoriasPlanosId" multiple>
+                        <option value="1341acfb-93a2-11ee-98aa-0244bdb3ddcc">Basico</option>
+                        <option value="1341b209-93a2-11ee-98aa-0244bdb3ddcc">VIP</option>
+                        <option value="1341b058-93a2-11ee-98aa-0244bdb3ddcc">TOP</option>
+                        <option value="AA4433F7-F47F-E7D4-545C-759305B53719">Start</option>
+                        <option value="EF60577E-8A33-77FC-F1B4-505419E5C581">Premium</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="VendasCarrosPlaca" class="form-label form-label-sm">Placa</label>
+                    <input type="text" class="form-control form-control-sm" name="VendasCarrosPlaca" id="VendasCarrosPlaca" />
+                </div>
+                <div class="col-6 col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search"></i> Pesquisar
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
 
 
     <!-- ====== TABELA DATATABLE ====== -->
     <div class="card card-body">
-        <table id="table-vendas" class="table table-bordered table-striped table-sm">
+        <table id="table-vendas" class="table table-bordered table-striped table-sm" style="width:100%">
             <thead>
                 <tr>
                     <th>Associado</th>
                     <th>Situacao</th>
                     <th>Placa</th>
-                    <th>Placa Implemento</th>
-                    <th>Placa Implemento 2</th>
-                    <th>Placa Implemento 3</th>
-                    <th>Chassi</th>
                     <th>Telefone</th>
-                    <th>Data do Contrato</th>
-                    <th>Data do Cadastro</th>
-                    <th>Data do Cancelamento</th>
-                    <th>Data de Fidelidade</th>
-                    <th>Data de Suspensao</th>
-                    <th>Data de Ativacao</th>
-                    <th>Data da Emissao Carne</th>
-                    <th>Data Impressao Carne</th>
-                    <th>Possui Carne</th>
-                    <th>Dia do Vencimento</th>
-                    <th>Data de Nascimento</th>
-                    <th>Sexo</th>
-                    <th>Tipo Suspensao</th>
-                    <th>Motivo Situacao</th>
-                    <th>Possui Rastreador / Tag</th>
-                    <th>Numero Rastreador / Tag</th>
-                    <th>Equip. Obrigatorio</th>
-                    <th>Plotagem</th>
                     <th>Consultor</th>
-                    <th>Indicador</th>
-                    <th>Endereco</th>
-                    <th>Bairro</th>
-                    <th>Complemento</th>
-                    <th>Estado</th>
-                    <th>Cidade</th>
-                    <th>Forma Emissao Adesao</th>
-                    <th>Planos</th>
-                    <th class="text-end">Valor Contribuicao</th>
-                    <th class="text-end">Valor Fipe</th>
-                    <th class="text-end">Valor Implementos</th>
-                    <th class="text-end">Valor Adesao</th>
-                    <th>Categorias Carros</th>
-                    <th class="text-end">Valor Implemento 1</th>
-                    <th class="text-end">Valor Implemento 2</th>
-                    <th class="text-end">Valor Implemento 3</th>
-                    <th class="text-end">Valor Protegido</th>
-                    <th>Desconto</th>
-                    <th>Modelo</th>
-                    <th>Possui Evento Aberto?</th>
-                    <th>Dias Atraso</th>
-                    <th>Qtde. Faturas Pagas</th>
-                    <th>Forma Pagamento</th>
-                    <th>Classificacao</th>
-                    <th>Origem Migracao</th>
-                    <th>Colaboradores</th>
-                    <th>Associacao de Origem</th>
-                    <th>Centro de Custo</th>
-                    <th>Aux. Profissional</th>
-                    <th>Responsavel pela Ativacao</th>
-                    <th>Produto</th>
-                    <th>Contabiliza Para Meta</th>
-                    <th>Chassi Remarcado</th>
-                    <th>Leilao</th>
-                    <th>Media Monta</th>
-                    <th>Motivo Depreciacao</th>
+                    <th>Data Contrato</th>
+                    <th>Data Ativacao</th>
+                    <th>Plano</th>
+                    <th>Valor</th>
+                    <th>Forma Pgto</th>
+                    <th>Regional</th>
                     <th>Acoes</th>
                 </tr>
             </thead>
             <tbody></tbody>
-            <tfoot>
-                <tr>
-                    <th>Totais</th>
-                    <th colspan="34"></th>
-                    <th class="text-end" id="total-contribuicao"></th>
-                    <th class="text-end" id="total-fipe"></th>
-                    <th class="text-end" id="total-implementos"></th>
-                    <th class="text-end" id="total-adesao"></th>
-                    <th></th>
-                    <th class="text-end" id="total-impl1"></th>
-                    <th class="text-end" id="total-impl2"></th>
-                    <th class="text-end" id="total-impl3"></th>
-                    <th class="text-end" id="total-protegido"></th>
-                    <th colspan="25"></th>
-                </tr>
-            </tfoot>
         </table>
     </div>
-
-
-    <!-- ====== MODAL ENVIAR CONTRATO ====== -->
-    <form method="post" action="/vendas/envio-dados-empresa-integracao"
-        class="modal fade" id="modal-envio-dados-integracao"
-        tabindex="-1" aria-hidden="true">
-        <input type="hidden" name="_token" value="TOKEN_CSRF_AQUI" />
-        <input type="hidden" id="modal-VendasId" name="VendasId" />
-        <input type="hidden" id="modal-VendasCarrosId" name="VendasCarrosId" />
-        <input type="hidden" id="modal-TipoTermo" name="TipoTermo" />
-        <input type="hidden" id="modal-GerarNovoContrato" name="GerarNovoContrato" value="false" />
-
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Enviar Contrato</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-sm-12 col-md-6 form-group">
-                            <label for="modal-Cliente">Cliente</label>
-                            <input type="text" class="form-control form-control-sm"
-                                id="modal-Cliente" name="Cliente" readonly />
-                        </div>
-                        <div class="col-sm-12 col-md-6 form-group">
-                            <label for="modal-Placa">Placa</label>
-                            <input class="form-control form-control-sm"
-                                id="modal-Placa" name="Placa" readonly />
-                        </div>
-                        <div class="col-sm-2 form-group">
-                            <label for="modal-Ddd">DDD</label>
-                            <input class="form-control form-control-sm"
-                                name="Ddd" id="modal-Ddd" readonly />
-                        </div>
-                        <div class="col-sm-4 form-group">
-                            <label for="modal-Telefone">Telefone</label>
-                            <input class="form-control form-control-sm"
-                                name="Telefone" id="modal-Telefone" readonly />
-                        </div>
-                        <div class="col-sm-12 col-md-6 form-group">
-                            <label for="modal-Modelo">Modelo</label>
-                            <input class="form-control form-control-sm"
-                                id="modal-Modelo" name="Modelo" readonly />
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x"></i> Fechar
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save2"></i> Enviar Contrato
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-
-    <!-- ====== MODAL REMOVER ====== -->
-    <div class="modal fade" id="modal-remover" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title">Remover Cadastro</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">Voce deseja remover o cadastro <strong><span id="modal-remover-cadastro"></span></strong>?</p>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                        <i class="bi bi-x"></i> Fechar
-                    </button>
-                    <button type="button" id="confirmar-remover-cadastro" class="btn btn-primary btn-sm">
-                        <i class="bi bi-trash"></i> Remover
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ====== MODAL ALTERAR SENHA ====== -->
-    <form method="post" id="modal-alterar-senha" class="modal fade" tabindex="-1" aria-hidden="true"
-        action="/conta/alterar-senha">
-        <input type="hidden" name="_token" value="TOKEN_CSRF_AQUI" />
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title">Alterar Senha</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-sm-12 form-group">
-                            <label for="SenhaModal">Senha <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="password" class="form-control form-control-sm"
-                                    name="Acesso[Senha]" id="SenhaModal"
-                                    autocomplete="new-password" required />
-                                <button class="btn btn-sm btn-primary btn-password" type="button"
-                                    id="visualizar-senha-modal" aria-label="Mostrar senha">
-                                    <i class="bi bi-eye-fill" id="icon-senha-modal"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-sm-12 form-group">
-                            <label for="ConfirmarSenhaModal">Confirmar Senha <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="password" class="form-control form-control-sm"
-                                    name="Acesso[ConfirmarSenha]" id="ConfirmarSenhaModal"
-                                    autocomplete="new-password" required />
-                                <button class="btn btn-sm btn-primary btn-password" type="button"
-                                    id="visualizar-senha-confirmar-modal" aria-label="Mostrar senha">
-                                    <i class="bi bi-eye-fill" id="icon-senha-confirmar-modal"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                        <i class="bi bi-x"></i> Fechar
-                    </button>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-save"></i> Alterar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-
-    <!-- ====== MODAL LOADING ====== -->
-    <div class="modal fade" id="modal-load" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content bg-transparent border-0 shadow-none">
-                <div class="modal-body d-flex justify-content-center align-items-center">
-                    <div class="spinner-border text-white" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ====== MODAL NOTIFICACAO ====== -->
-    <div class="modal fade" id="modal-notificacao-geral" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Confirmacao</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body">
-                    <p id="modal-notificacao-texto" class="m-0 p-0"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x me-2"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" id="confirma-notificacao">
-                        <i class="bi bi-check me-2"></i> Confirmar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div><!-- /.content -->
 
-<!-- Variaveis de configuracao (sem dados sensiveis) -->
+
+<!-- ====== MODAL ALTERAR SENHA ====== -->
+<div class="modal fade" id="modal-alterar-senha" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Alterar Senha</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/conta/alterar-senha">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="SenhaModal" class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control form-control-sm" name="Acesso[Senha]" id="SenhaModal" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="ConfirmarSenhaModal" class="form-label">Confirmar</label>
+                        <input type="password" class="form-control form-control-sm" name="Acesso[ConfirmarSenha]" id="ConfirmarSenhaModal" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Alterar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MODAL LOADING ====== -->
+<div class="modal fade" id="modal-load" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div class="modal-body d-flex justify-content-center align-items-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Config -->
 <input type="hidden" name="PrimaryColor" value="#5953c0" />
 <input type="hidden" name="SecondaryColor" value="#2d2973" />
 <input type="hidden" name="BaseUrl" value="/" />
 
 <!-- ====== SCRIPTS ====== -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.umd.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/datatable-vendas.js"></script>
 
