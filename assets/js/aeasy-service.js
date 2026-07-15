@@ -30,23 +30,21 @@ const AeasyService = (function () {
             Empresa: 'autovaleprevencoes',
         },
         // Proxy CORS - necessário para GitHub Pages (domínio diferente)
-        // RECOMENDADO: proxy PHP (api-proxy.php) em qualquer hospedagem
-        // O Supabase Edge Function está com problema no gateway
+        // RECOMENDADO: Vercel Serverless (api/proxy.js) - deploy automático via GitHub
         corsProxy: {
             enabled: true,
-            provider: 'php', // Proxy PHP (funciona 100%)
+            provider: 'vercel', // Vercel Serverless Function
             providers: {
-                // Proxy PHP - hospede api-proxy.php em qualquer servidor com PHP+cURL
-                // Exemplos gratuitos: InfinityFree, 000webhost, ou mesmo no servidor aEasy
+                // Vercel - deploy automático ao conectar repo GitHub
+                // URL após deploy: https://aurora-avp.vercel.app/api/proxy
+                vercel: 'https://aurora-avp.vercel.app/api/proxy',
+                // Proxy PHP (se tiver hospedagem PHP disponível)
                 php: 'https://aeasy.autovaleprevencoes.org/api-proxy.php',
                 // Supabase Edge Function (quando gateway normalizar)
                 supabase: 'https://zjacembodtjrkynfmtxf.supabase.co/functions/v1/aeasy-prox',
-                // Fallbacks genéricos (não mantêm sessão)
-                corsproxy: 'https://corsproxy.io/?',
-                thingproxy: 'https://thingproxy.freeboard.io/fetch/',
             },
             supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY',
-            fallbackOrder: ['php', 'supabase', 'corsproxy'],
+            fallbackOrder: ['vercel', 'php', 'supabase'],
         },
         cache: {
             enabled: true,
@@ -179,8 +177,8 @@ const AeasyService = (function () {
             return await directRequest(method, endpoint, data, headers);
         }
 
-        // Via proxy com sessão server-side (PHP ou Supabase)
-        if (['supabase', 'php'].includes(CONFIG.corsProxy.provider)) {
+        // Via proxy com sessão server-side (PHP, Vercel ou Supabase)
+        if (['supabase', 'php', 'vercel'].includes(CONFIG.corsProxy.provider)) {
             return await supabaseProxyRequest(method, endpoint, data);
         }
 
@@ -382,8 +380,8 @@ const AeasyService = (function () {
         try {
             const useProxy = CONFIG.corsProxy.enabled && !isLocalhost();
 
-            if (useProxy && (CONFIG.corsProxy.provider === 'supabase' || CONFIG.corsProxy.provider === 'php')) {
-                // Login via proxy com sessão server-side (PHP ou Supabase)
+            if (useProxy && ['supabase', 'php', 'vercel'].includes(CONFIG.corsProxy.provider)) {
+                // Login via proxy com sessão server-side
                 const proxyUrl = CONFIG.corsProxy.providers[CONFIG.corsProxy.provider];
 
                 const response = await fetch(proxyUrl, {
