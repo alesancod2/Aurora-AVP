@@ -425,28 +425,13 @@ $(document).ready(function() {
     $('#filtro-data-inicio').val(moment().startOf('month').format('YYYY-MM-DD'));
     $('#filtro-data-fim').val(moment().format('YYYY-MM-DD'));
 
-    // Init Session Manager
-    SessionManager.init({
-        onSessionExpired: function() {
-            alert('Sessão expirada por inatividade. Recarregando...');
-            location.reload();
-        },
-        onSessionKicked: function() {
-            alert('Sua sessão foi encerrada. Outro dispositivo fez login.');
-            location.reload();
-        }
-    });
+    // Init Session Manager (disabled - no Supabase Auth active)
+    // SessionManager.init({...});
 
     // Init Gestores Ocultos
     GestoresOcultos.init('admin', function() {
-        // Callback when list changes - re-render dashboard
         DashboardComercial.carregarDashboard();
     });
-
-    // Register session on "login" (Edge Function handles actual auth)
-    if (!SessionManager.isActive()) {
-        SessionManager.login('admin');
-    }
 
     // Sidebar toggle
     $('#btn-sidebar-toggle').on('click', function() {
