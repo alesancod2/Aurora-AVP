@@ -294,7 +294,7 @@ async function buscarDados(forceRefresh) {
         var cached = dbCache[0];
         var age = Date.now() - new Date(cached.updated_at).getTime();
         console.log('[Aurora] Cache age:', Math.round(age / 60000) + ' min');
-        if (age < 30 * 60 * 1000) {
+        if (age < 120 * 60 * 1000) {
           DATA = cached.dados;
           var minAgo = Math.round(age / 60000);
           showData('Cache DB (atualizado ' + minAgo + ' min atras)');
@@ -309,7 +309,7 @@ async function buscarDados(forceRefresh) {
     // 2. Fallback: localStorage (individual)
     try {
       var local = JSON.parse(localStorage.getItem('avp_cache_' + hash));
-      if (local && (Date.now() - local.ts) < 30 * 60 * 1000) {
+      if (local && (Date.now() - local.ts) < 120 * 60 * 1000) {
         DATA = local.dados;
         showData('Cache local (< 30min)');
         btn.disabled = false;
@@ -407,52 +407,60 @@ async function buscarDados(forceRefresh) {
 
     console.log('[Aurora] Gestores (lideres) parseados:', gestores.length);
 
-    // Passo 3: Para cada lider, buscar equipe completa via EquipeId
+    // Passo 3: Para cada lider, buscar equipe completa via EquipeId (PARALELO 5 por vez)
     updateProgress(55, 'Carregando equipes dos gestores...', '0 / ' + gestores.length, '');
     var lideresInfo = gestoresRes.lideres_info || [];
+    var PARALLEL = 5;
 
-    for (var i = 0; i < gestores.length; i++) {
-      var g = gestores[i];
-      // Encontrar ID do lider
-      var liderInfo = lideresInfo.find(function(l) {
-        return l.nome.toUpperCase() === g.gestor.toUpperCase();
+    for (var i = 0; i < gestores.length; i += PARALLEL) {
+      var batch = gestores.slice(i, i + PARALLEL);
+
+      // Buscar em paralelo
+      var promises = batch.map(function(g) {
+        var liderInfo = lideresInfo.find(function(l) {
+          return l.nome.toUpperCase() === g.gestor.toUpperCase();
+        });
+
+        if (!liderInfo || !liderInfo.id) return Promise.resolve(null);
+
+        return edgeCall({
+          action: 'gestores',
+          session_cookie: sessionCookie,
+          tipo_data: params.tipo_data,
+          data_inicial: params.data_inicial,
+          data_final: params.data_final,
+          ordenar: params.ordenar,
+          campo_order: 'Quantidade',
+          equipe_id: liderInfo.id,
+          retornar_lider: params.retornar_lider
+        }).catch(function(e) {
+          console.warn('[Aurora] Erro equipe ' + g.gestor + ':', e.message);
+          return null;
+        });
       });
 
-      if (liderInfo && liderInfo.id) {
-        try {
-          var eqRes = await edgeCall({
-            action: 'gestores',
-            session_cookie: sessionCookie,
-            tipo_data: params.tipo_data,
-            data_inicial: params.data_inicial,
-            data_final: params.data_final,
-            ordenar: params.ordenar,
-            campo_order: 'Quantidade',
-            equipe_id: liderInfo.id,
-            retornar_lider: params.retornar_lider
-          });
+      var results = await Promise.all(promises);
 
-          if (eqRes.success && eqRes.html) {
-            var membros = parseGestoresHTML(eqRes.html);
-            // Remover o proprio lider da lista
-            membros = membros.filter(function(m) {
-              return m.gestor.toUpperCase() !== g.gestor.toUpperCase();
-            });
-            // Filtrar apenas consultores ativos com cotacoes >= 1
-            membros = membros.filter(function(m) {
-              return m.cot_qtd >= 1;
-            });
-            g.equipe = membros;
-          }
-        } catch (e) {
-          console.warn('[Aurora] Erro ao buscar equipe de ' + g.gestor + ':', e.message);
+      // Processar resultados
+      results.forEach(function(eqRes, idx) {
+        if (eqRes && eqRes.success && eqRes.html) {
+          var g = batch[idx];
+          var membros = parseGestoresHTML(eqRes.html);
+          membros = membros.filter(function(m) {
+            return m.gestor.toUpperCase() !== g.gestor.toUpperCase();
+          });
+          membros = membros.filter(function(m) {
+            return m.cot_qtd >= 1;
+          });
+          g.equipe = membros;
         }
-      }
+      });
 
       // Atualizar progresso
-      var pct = 55 + ((i + 1) / gestores.length) * 40;
+      var done = Math.min(i + PARALLEL, gestores.length);
+      var pct = 55 + (done / gestores.length) * 40;
       var elapsed = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
-      updateProgress(pct, 'Carregando equipes...', (i + 1) + ' / ' + gestores.length + ' - ' + g.gestor, elapsed);
+      updateProgress(pct, 'Carregando equipes...', done + ' / ' + gestores.length, elapsed);
     }
 
     console.log('[Aurora] Equipes carregadas');
