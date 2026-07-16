@@ -156,66 +156,53 @@ async function checkMultiMonthCache(params) {
 
   console.log('[Aurora] Multi-month cache: verificando ' + months.length + ' meses');
 
-  var allDados = [];
+  // Buscar TODOS os registros mensais que caem no periodo com 1 unica query
+  var firstMonth = months[0].data_inicial;
+  var lastMonth = months[months.length - 1].data_inicial;
 
-  for (var i = 0; i < months.length; i++) {
-    var monthParams = {
-      tipo_data: params.tipo_data,
-      data_inicial: months[i].data_inicial,
-      data_final: months[i].data_final,
-      ordenar: params.ordenar,
-      campo_order: params.campo_order,
-      centro_custo: params.centro_custo,
-      retornar_lider: params.retornar_lider
-    };
+  try {
+    var dbResults = await sbFetch(
+      'relatorios_cache?data_inicial=gte.' + firstMonth + '&data_inicial=lte.' + lastMonth + '&select=dados,data_inicial,data_final,expires_at&order=data_inicial.asc'
+    );
 
-    var hash = getFilterHash(monthParams);
-
-    try {
-      var dbCache = null;
-
-      // Para o ultimo mes (pode ser parcial/atual), buscar por data_inicial do mes
-      var lastDayOfMonth = new Date(new Date(months[i].data_inicial).getFullYear(), new Date(months[i].data_inicial).getMonth() + 1, 0);
-      var isPartialMonth = months[i].data_final !== lastDayOfMonth.toISOString().split('T')[0];
-
-      if (isPartialMonth) {
-        // Mes parcial: buscar qualquer registro que comece nesse mes
-        var firstOfMonth = months[i].data_inicial.substring(0, 7) + '-01';
-        var lastOfMonth = months[i].data_inicial.substring(0, 7) + '-31';
-        dbCache = await sbFetch(
-          'relatorios_cache?data_inicial=gte.' + firstOfMonth + '&data_inicial=lte.' + lastOfMonth + '&select=dados,updated_at,expires_at&limit=1'
-        );
-      } else {
-        // Mes completo: buscar por hash exato
-        dbCache = await sbFetch(
-          'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
-        );
-      }
-
-      if (dbCache && dbCache.length > 0) {
-        var cached = dbCache[0];
-        var now = new Date();
-        var expiresAt = new Date(cached.expires_at);
-
-        if (now < expiresAt && cached.dados) {
-          console.log('[Aurora] Multi-month cache HIT: ' + months[i].data_inicial + ' a ' + months[i].data_final);
-          allDados.push(cached.dados);
-        } else {
-          console.log('[Aurora] Multi-month cache EXPIRED: ' + months[i].data_inicial);
-          return null; // Um mes expirado, ir para API
-        }
-      } else {
-        console.log('[Aurora] Multi-month cache MISS: ' + months[i].data_inicial);
-        return null; // Um mes faltando, ir para API
-      }
-    } catch (e) {
-      console.warn('[Aurora] Multi-month cache erro:', e.message);
+    if (!dbResults || dbResults.length === 0) {
+      console.log('[Aurora] Multi-month: nenhum registro no periodo');
       return null;
     }
-  }
 
-  // Todos os meses encontrados no cache, combinar os dados
-  return mergeMultiMonthData(allDados);
+    console.log('[Aurora] Multi-month: encontrados ' + dbResults.length + ' registros no DB');
+
+    // Verificar se temos todos os meses necessarios
+    var allDados = [];
+    var now = new Date();
+
+    for (var i = 0; i < months.length; i++) {
+      var found = false;
+      for (var j = 0; j < dbResults.length; j++) {
+        // Verificar se este registro cobre o mes i
+        if (dbResults[j].data_inicial === months[i].data_inicial ||
+            dbResults[j].data_inicial.substring(0, 7) === months[i].data_inicial.substring(0, 7)) {
+          // Verificar expiracao
+          if (now < new Date(dbResults[j].expires_at) && dbResults[j].dados) {
+            console.log('[Aurora] Multi-month cache HIT: ' + months[i].data_inicial + ' a ' + months[i].data_final);
+            allDados.push(dbResults[j].dados);
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        console.log('[Aurora] Multi-month cache MISS: ' + months[i].data_inicial);
+        return null;
+      }
+    }
+
+    // Todos os meses encontrados, combinar
+    return mergeMultiMonthData(allDados);
+  } catch (e) {
+    console.warn('[Aurora] Multi-month cache erro:', e.message);
+    return null;
+  }
 }
 
 // Combina dados de multiplos meses: agrupa por gestor e soma valores numericos
