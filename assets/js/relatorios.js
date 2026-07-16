@@ -707,7 +707,31 @@ async function buscarDados(forceRefresh) {
       console.warn('[Aurora] Erro ao verificar cache DB:', e.message);
     }
 
-    // 1.5 Tentar combinar cache de meses individuais (multi-month)
+    // 1.5 Tentar buscar pelo mes que contem o periodo (Hoje, 7 dias, etc.)
+    try {
+      var startMonth = params.data_inicial.substring(0, 7); // "2026-07"
+      var endMonth = params.data_final.substring(0, 7);
+      // Se periodo cabe em 1 mes OU ambos estao no mesmo mes
+      if (startMonth === endMonth) {
+        var monthCache = await sbFetch(
+          'relatorios_cache?data_inicial=like.' + startMonth + '*&select=dados,updated_at,expires_at&limit=1'
+        );
+        if (monthCache && monthCache.length > 0) {
+          var mc = monthCache[0];
+          var now = new Date();
+          if (now < new Date(mc.expires_at) && mc.dados) {
+            var age = Math.round((now - new Date(mc.updated_at)) / 60000);
+            console.log('[Aurora] Cache mes encontrado: ' + startMonth + ' (age: ' + age + ' min)');
+            DATA = mc.dados;
+            showData('Cache DB (' + startMonth + ', ' + age + ' min atras) | ' + (mc.dados ? mc.dados.length : 0) + ' gestores');
+            btn.disabled = false;
+            return;
+          }
+        }
+      }
+    } catch (e) { /* continuar */ }
+
+    // 1.6 Tentar combinar cache de meses individuais (multi-month)
     try {
       var multiCache = await checkMultiMonthCache(params);
       if (multiCache) {
