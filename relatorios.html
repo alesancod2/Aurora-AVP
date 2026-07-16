@@ -161,14 +161,6 @@
       <div class="table-wrap">
         <table class="data-table" id="mainTable">
           <thead>
-            <tr class="thead-groups">
-              <th colspan="4"></th>
-              <th colspan="3" class="th-group th-group-green">ATIVADAS</th>
-              <th colspan="2" class="th-group th-group-purple">SUSPENSAS</th>
-              <th colspan="2" class="th-group th-group-amber">CANCELADAS</th>
-              <th colspan="2" class="th-group" style="background:var(--blue);color:#fff">PBP</th>
-              <th></th>
-            </tr>
             <tr>
               <th class="col-num">#</th>
               <th class="sortable" data-key="gestor" onclick="sortBy('gestor')">Gestor</th>
@@ -177,17 +169,14 @@
               <th class="sortable col-num" data-key="ati_qtd" onclick="sortBy('ati_qtd')">Qtd</th>
               <th class="sortable col-num" data-key="ati_valor" onclick="sortBy('ati_valor')">Valor</th>
               <th class="sortable col-num" data-key="ati_ticket" onclick="sortBy('ati_ticket')">Ticket</th>
-              <th class="sortable col-num" data-key="sus_qtd" onclick="sortBy('sus_qtd')">Qtd</th>
-              <th class="sortable col-num" data-key="sus_valor" onclick="sortBy('sus_valor')">Valor</th>
-              <th class="sortable col-num" data-key="can_qtd" onclick="sortBy('can_qtd')">Qtd</th>
-              <th class="sortable col-num" data-key="can_valor" onclick="sortBy('can_valor')">Valor</th>
-              <th class="sortable col-num" data-key="pbp_qtd" onclick="sortBy('pbp_qtd')">Qtd</th>
-              <th class="sortable col-num" data-key="pbp_valor" onclick="sortBy('pbp_valor')">Valor</th>
+              <th class="sortable col-num" data-key="sus_qtd" onclick="sortBy('sus_qtd')">Sus.</th>
+              <th class="sortable col-num" data-key="can_qtd" onclick="sortBy('can_qtd')">Can.</th>
+              <th class="sortable col-num" data-key="pbp_qtd" onclick="sortBy('pbp_qtd')">PBP</th>
               <th class="col-actions"></th>
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="14" class="empty-state">Use os filtros acima para buscar dados</td></tr>
+            <tr><td colspan="11" class="empty-state">Use os filtros acima para buscar dados</td></tr>
           </tbody>
         </table>
       </div>

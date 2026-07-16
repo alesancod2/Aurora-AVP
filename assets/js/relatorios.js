@@ -367,27 +367,68 @@ async function buscarDados(forceRefresh) {
       }
     }
 
-    // Parsear HTML dos gestores
+    // Parsear HTML dos gestores (tela geral)
     var allGestores = parseGestoresHTML(htmlRetornado);
 
     // Filtrar apenas lideres reais (62) se a Edge Function retornou a lista
     var lideresNomes = gestoresRes.lideres || [];
     var gestores = allGestores;
     if (lideresNomes.length > 0) {
-      console.log('[Aurora] Filtrando por ' + lideresNomes.length + ' lideres reais');
       gestores = allGestores.filter(function(g) {
         return lideresNomes.indexOf(g.gestor.toUpperCase()) !== -1;
       });
-      // Para cada lider, encontrar membros da equipe (nao-lideres com mesmo "grupo")
-      // Os membros sao todos os demais do TopVendas que NAO sao lideres
-      // Mas nao temos como associar por grupo aqui — deixar para carregar sob demanda
     }
-
-    console.log('[Aurora] Gestores (lideres) parseados:', gestores.length);
-    console.log('[Aurora] Total no TopVendas:', allGestores.length);
 
     // Salvar info dos lideres para uso no expandir equipe
     window._lideresInfo = gestoresRes.lideres_info || [];
+
+    console.log('[Aurora] Gestores (lideres) parseados:', gestores.length);
+
+    // Passo 3: Para cada lider, buscar equipe completa via EquipeId
+    updateProgress(55, 'Carregando equipes dos gestores...', '0 / ' + gestores.length, '');
+    var lideresInfo = gestoresRes.lideres_info || [];
+
+    for (var i = 0; i < gestores.length; i++) {
+      var g = gestores[i];
+      // Encontrar ID do lider
+      var liderInfo = lideresInfo.find(function(l) {
+        return l.nome.toUpperCase() === g.gestor.toUpperCase();
+      });
+
+      if (liderInfo && liderInfo.id) {
+        try {
+          var eqRes = await edgeCall({
+            action: 'gestores',
+            session_cookie: sessionCookie,
+            tipo_data: params.tipo_data,
+            data_inicial: params.data_inicial,
+            data_final: params.data_final,
+            ordenar: params.ordenar,
+            campo_order: 'Quantidade',
+            equipe_id: liderInfo.id,
+            retornar_lider: params.retornar_lider
+          });
+
+          if (eqRes.success && eqRes.html) {
+            var membros = parseGestoresHTML(eqRes.html);
+            // Remover o proprio lider da lista
+            membros = membros.filter(function(m) {
+              return m.gestor.toUpperCase() !== g.gestor.toUpperCase();
+            });
+            g.equipe = membros;
+          }
+        } catch (e) {
+          console.warn('[Aurora] Erro ao buscar equipe de ' + g.gestor + ':', e.message);
+        }
+      }
+
+      // Atualizar progresso
+      var pct = 55 + ((i + 1) / gestores.length) * 40;
+      var elapsed = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
+      updateProgress(pct, 'Carregando equipes...', (i + 1) + ' / ' + gestores.length + ' - ' + g.gestor, elapsed);
+    }
+
+    console.log('[Aurora] Equipes carregadas');
     if (gestores.length > 0) {
       console.log('[Aurora] Primeiro gestor:', JSON.stringify(gestores[0]));
     }
@@ -533,9 +574,18 @@ function updateKPIs() {
   var totalCotacoes = 0, totalAtivadas = 0, totalValor = 0;
 
   visible.forEach(function(g) {
+    // Gestor individual
     totalCotacoes += g.cot_qtd;
     totalAtivadas += g.ati_qtd;
     totalValor += g.ati_valor;
+    // Equipe
+    if (g.equipe && g.equipe.length > 0) {
+      g.equipe.forEach(function(m) {
+        totalCotacoes += m.cot_qtd;
+        totalAtivadas += m.ati_qtd;
+        totalValor += m.ati_valor;
+      });
+    }
   });
 
   var taxaConversao = totalCotacoes > 0 ? ((totalAtivadas / totalCotacoes) * 100) : 0;
@@ -551,7 +601,7 @@ function updateKPIs() {
 function renderTable(ds) {
   var tbody = document.getElementById('tableBody');
   if (!ds || ds.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="14" class="empty-state">Nenhum resultado encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Nenhum resultado encontrado</td></tr>';
     return;
   }
 
@@ -563,20 +613,12 @@ function renderTable(ds) {
     html += '<td><strong>' + esc(g.gestor) + '</strong></td>';
     html += '<td>' + esc(g.cidade) + '</td>';
     html += '<td class="col-num">' + esc(g.taxa_conversao) + '</td>';
-    // Ativadas (verde)
-    html += '<td class="col-num col-green"><strong>' + formatNum(g.ati_qtd) + '</strong></td>';
-    html += '<td class="col-num col-green">' + formatMoney(g.ati_valor) + '</td>';
-    html += '<td class="col-num col-green">' + formatMoney(g.ati_ticket) + '</td>';
-    // Suspensas (roxo)
-    html += '<td class="col-num col-purple">' + formatNum(g.sus_qtd) + '</td>';
-    html += '<td class="col-num col-purple">' + formatMoney(g.sus_valor) + '</td>';
-    // Canceladas (ambar)
-    html += '<td class="col-num col-amber">' + formatNum(g.can_qtd) + '</td>';
-    html += '<td class="col-num col-amber">' + formatMoney(g.can_valor) + '</td>';
-    // PBP (azul)
-    html += '<td class="col-num" style="color:var(--blue)">' + formatNum(g.pbp_qtd) + '</td>';
-    html += '<td class="col-num" style="color:var(--blue)">' + formatMoney(g.pbp_valor) + '</td>';
-    // Ações
+    html += '<td class="col-num"><strong>' + formatNum(g.ati_qtd) + '</strong></td>';
+    html += '<td class="col-num">' + formatMoney(g.ati_valor) + '</td>';
+    html += '<td class="col-num">' + formatMoney(g.ati_ticket) + '</td>';
+    html += '<td class="col-num">' + formatNum(g.sus_qtd) + '</td>';
+    html += '<td class="col-num">' + formatNum(g.can_qtd) + '</td>';
+    html += '<td class="col-num">' + formatNum(g.pbp_qtd) + '</td>';
     html += '<td class="col-actions">';
     html += '<button class="btn-hide" onclick="event.stopPropagation();hideGestor(\'' + esc(g.gestor) + '\')" title="Ocultar gestor">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -584,138 +626,49 @@ function renderTable(ds) {
     html += '</td>';
     html += '</tr>';
 
-    // Linha expandivel (equipe)
-    html += '<tr class="row-equipe" id="equipe-' + i + '">';
-    html += '<td colspan="14">';
-    html += renderEquipe(g.equipe || []);
-    html += '</td></tr>';
+    // Equipe (ja carregada)
+    if (g.equipe && g.equipe.length > 0) {
+      html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="11">';
+      html += renderEquipeTable(g.equipe);
+      html += '</td></tr>';
+    }
   }
 
   tbody.innerHTML = html;
 }
 
-
-// ─── RENDER EQUIPE (sub-tabela) ─────────────────────────────
-function renderEquipe(equipe) {
-  if (!equipe || equipe.length === 0) {
-    return '<em style="color:var(--text3)">Sem membros de equipe carregados</em>';
-  }
+function renderEquipeTable(membros) {
   var html = '<table class="equipe-table">';
-  html += '<thead><tr><th>Membro</th><th>Qtd</th><th>Valor</th><th>Ticket</th></tr></thead>';
+  html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
+  html += '<th>Qtd</th><th>Valor</th><th>Ticket</th>';
+  html += '<th>Sus.</th><th>Can.</th><th>PBP</th></tr></thead>';
   html += '<tbody>';
-  equipe.forEach(function(m) {
+  membros.forEach(function(m, i) {
     html += '<tr>';
-    html += '<td>' + esc(m.nome) + '</td>';
-    html += '<td>' + formatNum(m.qtd) + '</td>';
-    html += '<td>' + formatMoney(m.valor) + '</td>';
-    html += '<td>' + formatMoney(m.ticket) + '</td>';
+    html += '<td>' + (i + 1) + '</td>';
+    html += '<td>' + esc(m.gestor) + '</td>';
+    html += '<td>' + esc(m.cidade) + '</td>';
+    html += '<td>' + esc(m.taxa_conversao) + '</td>';
+    html += '<td>' + formatNum(m.ati_qtd) + '</td>';
+    html += '<td>' + formatMoney(m.ati_valor) + '</td>';
+    html += '<td>' + formatMoney(m.ati_ticket) + '</td>';
+    html += '<td>' + formatNum(m.sus_qtd) + '</td>';
+    html += '<td>' + formatNum(m.can_qtd) + '</td>';
+    html += '<td>' + formatNum(m.pbp_qtd) + '</td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
+  html += '<div style="margin-top:6px;font-size:.72rem;color:var(--text3)">' + membros.length + ' membros na equipe</div>';
   return html;
 }
 
-// ─── EXPANDIR EQUIPE ────────────────────────────────────────
-async function toggleEquipe(row, index) {
+
+// ─── EXPANDIR/COLAPSAR EQUIPE ────────────────────────────────
+function toggleEquipe(row, index) {
   var equipeRow = document.getElementById('equipe-' + index);
-  if (!equipeRow) return;
-
-  // Se ja esta visivel, colapsar
-  if (equipeRow.classList.contains('visible')) {
-    equipeRow.classList.remove('visible');
-    return;
+  if (equipeRow) {
+    equipeRow.classList.toggle('visible');
   }
-
-  // Se ja carregou antes, apenas mostrar
-  if (equipeRow.getAttribute('data-loaded') === '1') {
-    equipeRow.classList.add('visible');
-    return;
-  }
-
-  // Buscar equipe do gestor
-  var g = filterData(DATA)[index];
-  if (!g) return;
-
-  // Encontrar o ID do gestor na lista de lideres_info
-  var liderInfo = (window._lideresInfo || []).find(function(l) {
-    return l.nome.toUpperCase() === g.gestor.toUpperCase();
-  });
-
-  if (!liderInfo || !liderInfo.id) {
-    equipeRow.querySelector('td').innerHTML = '<em style="color:var(--text3)">ID do gestor nao encontrado</em>';
-    equipeRow.classList.add('visible');
-    equipeRow.setAttribute('data-loaded', '1');
-    return;
-  }
-
-  equipeRow.querySelector('td').innerHTML = '<em style="color:var(--text3)">Carregando equipe...</em>';
-  equipeRow.classList.add('visible');
-
-  try {
-    // Buscar TopVendas filtrado por EquipeId deste gestor
-    var params = {
-      tipo_data: document.getElementById('fTipoData').value,
-      data_inicial: document.getElementById('fDataInicial').value,
-      data_final: document.getElementById('fDataFinal').value,
-      ordenar: document.getElementById('fOrdenar').value,
-      campo_order: 'Quantidade',
-      centro_custo: '',
-      retornar_lider: document.getElementById('fRetornarLider').value
-    };
-
-    var res = await edgeCall({
-      action: 'gestores',
-      session_cookie: sessionCookie,
-      tipo_data: params.tipo_data,
-      data_inicial: params.data_inicial,
-      data_final: params.data_final,
-      ordenar: params.ordenar,
-      campo_order: params.campo_order,
-      equipe_id: liderInfo.id,
-      retornar_lider: 'NAO'
-    });
-
-    if (res.success && res.html) {
-      var membros = parseGestoresHTML(res.html);
-      // Remover o proprio lider da lista de membros
-      membros = membros.filter(function(m) {
-        return m.gestor.toUpperCase() !== g.gestor.toUpperCase();
-      });
-
-      if (membros.length > 0) {
-        var html = '<table class="equipe-table">';
-        html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
-        html += '<th class="col-green">Qtd</th><th class="col-green">Valor</th><th class="col-green">Ticket</th>';
-        html += '<th class="col-purple">Sus.</th><th class="col-amber">Can.</th><th style="color:var(--blue)">PBP</th></tr></thead>';
-        html += '<tbody>';
-        membros.forEach(function(m, i) {
-          html += '<tr>';
-          html += '<td>' + (i + 1) + '</td>';
-          html += '<td>' + esc(m.gestor) + '</td>';
-          html += '<td>' + esc(m.cidade) + '</td>';
-          html += '<td>' + esc(m.taxa_conversao) + '</td>';
-          html += '<td class="col-green">' + formatNum(m.ati_qtd) + '</td>';
-          html += '<td class="col-green">' + formatMoney(m.ati_valor) + '</td>';
-          html += '<td class="col-green">' + formatMoney(m.ati_ticket) + '</td>';
-          html += '<td class="col-purple">' + formatNum(m.sus_qtd) + '</td>';
-          html += '<td class="col-amber">' + formatNum(m.can_qtd) + '</td>';
-          html += '<td style="color:var(--blue)">' + formatNum(m.pbp_qtd) + '</td>';
-          html += '</tr>';
-        });
-        html += '</tbody></table>';
-        html += '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">' + membros.length + ' membros na equipe</div>';
-        equipeRow.querySelector('td').innerHTML = html;
-      } else {
-        equipeRow.querySelector('td').innerHTML = '<em style="color:var(--text3)">Nenhum membro encontrado na equipe</em>';
-      }
-    } else {
-      equipeRow.querySelector('td').innerHTML = '<em style="color:var(--red)">Erro ao buscar equipe</em>';
-    }
-  } catch (e) {
-    equipeRow.querySelector('td').innerHTML = '<em style="color:var(--red)">Erro: ' + esc(e.message) + '</em>';
-  }
-
-  equipeRow.setAttribute('data-loaded', '1');
 }
 
 // ─── FILTRAR TABELA ─────────────────────────────────────────
