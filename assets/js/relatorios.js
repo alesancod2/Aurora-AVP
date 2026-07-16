@@ -243,11 +243,6 @@ function updateProgress(pct, text, detail, time) {
 
 // ─── BUSCAR DADOS (Top Adesoes - funcao principal) ──────────
 async function buscarDados(forceRefresh) {
-  if (!sessionCookie) {
-    showLoginModal();
-    return;
-  }
-
   var btn = document.getElementById('btnBuscar');
   btn.disabled = true;
 
@@ -281,7 +276,21 @@ async function buscarDados(forceRefresh) {
   var startTime = Date.now();
 
   try {
-    updateProgress(10, 'Fazendo login e buscando dados...', '', '');
+    // Passo 1: Garantir sessao ativa (login automatico via Edge Function)
+    updateProgress(5, 'Verificando sessao...', '', '');
+    if (!sessionCookie) {
+      var loginRes = await edgeCall({ action: 'login' });
+      if (loginRes.success) {
+        sessionCookie = loginRes.session_cookie;
+        localStorage.setItem('avp_session', sessionCookie);
+        updateSessionBadge(true);
+      } else {
+        throw new Error('Login automatico falhou: ' + (loginRes.error || 'sem credenciais'));
+      }
+    }
+
+    // Passo 2: Buscar dados do TopVendas
+    updateProgress(15, 'Buscando dados da API...', '', '');
 
     var gestoresRes = await edgeCall({
       action: 'gestores',
@@ -301,12 +310,45 @@ async function buscarDados(forceRefresh) {
 
     updateProgress(50, 'Processando resposta...', '', '');
 
-    // Debug: log do HTML retornado
-    console.log('[Aurora] HTML retornado (primeiros 500 chars):', (gestoresRes.html || '').substring(0, 500));
+    var htmlRetornado = gestoresRes.html || '';
+    console.log('[Aurora] HTML retornado (tamanho):', htmlRetornado.length);
+    console.log('[Aurora] Primeiros 1000 chars:', htmlRetornado.substring(0, 1000));
+
+    // Verificar se retornou pagina de login (sessao expirada)
+    if (htmlRetornado.indexOf('conta/login') !== -1 || htmlRetornado.indexOf('UsuariosLogin') !== -1) {
+      console.warn('[Aurora] Sessao expirada, refazendo login...');
+      sessionCookie = '';
+      localStorage.removeItem('avp_session');
+      // Refazer login
+      var reloginRes = await edgeCall({ action: 'login' });
+      if (reloginRes.success) {
+        sessionCookie = reloginRes.session_cookie;
+        localStorage.setItem('avp_session', sessionCookie);
+        // Tentar buscar novamente
+        gestoresRes = await edgeCall({
+          action: 'gestores',
+          session_cookie: sessionCookie,
+          tipo_data: params.tipo_data,
+          data_inicial: params.data_inicial,
+          data_final: params.data_final,
+          ordenar: params.ordenar,
+          campo_order: params.campo_order,
+          centro_custo: params.centro_custo,
+          retornar_lider: params.retornar_lider
+        });
+        htmlRetornado = gestoresRes.html || '';
+        console.log('[Aurora] Retry HTML (tamanho):', htmlRetornado.length);
+      } else {
+        throw new Error('Re-login falhou');
+      }
+    }
 
     // Parsear HTML dos gestores
-    var gestores = parseGestoresHTML(gestoresRes.html || '');
-    console.log('[Aurora] Gestores parseados:', gestores.length, gestores.slice(0, 3));
+    var gestores = parseGestoresHTML(htmlRetornado);
+    console.log('[Aurora] Gestores parseados:', gestores.length);
+    if (gestores.length > 0) {
+      console.log('[Aurora] Primeiro gestor:', JSON.stringify(gestores[0]));
+    }
 
     var elapsed = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
     updateProgress(90, 'Encontrados ' + gestores.length + ' gestores', '', elapsed);
@@ -325,15 +367,17 @@ async function buscarDados(forceRefresh) {
 
   } catch (e) {
     console.error('[Aurora] Erro buscarDados:', e);
+    hideProgress();
     alert('Erro: ' + e.message);
     if (e.message.includes('401') || e.message.includes('login')) {
       sessionCookie = '';
       localStorage.removeItem('avp_session');
       updateSessionBadge(false);
+      showLoginModal();
     }
   } finally {
     btn.disabled = false;
-    setTimeout(hideProgress, 2000);
+    setTimeout(hideProgress, 3000);
   }
 }
 
