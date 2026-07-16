@@ -816,9 +816,9 @@ function renderEquipeTable(membros, gestor) {
   // Primeira linha: o proprio gestor (individual)
   if (gestor) {
     var gConv = gestor.cot_qtd > 0 ? ((gestor.ati_qtd / gestor.cot_qtd) * 100).toFixed(2) + '%' : '0,00%';
-    html += '<tr style="font-weight:600;color:var(--text1)">';
+    html += '<tr style="font-weight:600;color:var(--accent);background:var(--accent-light);border-left:3px solid var(--accent)">';
     html += '<td></td>';
-    html += '<td>' + esc(gestor.gestor) + ' <span style="font-size:.65rem;color:var(--text3);font-weight:400">(individual)</span></td>';
+    html += '<td>' + esc(gestor.gestor) + '</td>';
     html += '<td>' + esc(gestor.cidade) + '</td>';
     html += '<td>' + gConv + '</td>';
     html += '<td>' + formatNum(gestor.cot_qtd) + '</td>';
