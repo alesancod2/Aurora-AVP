@@ -669,9 +669,9 @@ async function buscarDados(forceRefresh) {
 
   var hash = getFilterHash(params);
 
-  // Determinar se o periodo e sub-mensal (Hoje, 7 dias) - precisa de dados precisos da API
+  // Determinar se o periodo e sub-mensal (Hoje, 7 dias, Personalizado com periodo curto) - precisa de dados precisos da API
   var preset = document.getElementById('fPeriodoPreset') ? document.getElementById('fPeriodoPreset').value : '';
-  var isSubMonthly = (preset === 'hoje' || preset === '7dias');
+  var isSubMonthly = (preset === 'hoje' || preset === '7dias' || preset === '');
 
   // Verificar cache compartilhado no Supabase DB (se nao forcar)
   if (!forceRefresh) {
