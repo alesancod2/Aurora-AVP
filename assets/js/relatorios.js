@@ -797,9 +797,9 @@ function renderTable(ds) {
     html += '</td>';
     html += '</tr>';
 
-    // Equipe (ja carregada)
+    // Equipe (ja carregada, mas inicia retraida)
     if (g.equipe && g.equipe.length > 0) {
-      html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="9">';
+      html += '<tr class="row-equipe" id="equipe-' + i + '"><td colspan="9">';
       html += renderEquipeTable(g.equipe, g);
       html += '</td></tr>';
     }
