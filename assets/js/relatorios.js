@@ -1103,10 +1103,23 @@ function showData(msg) {
 
 // ─── KPIs ───────────────────────────────────────────────────
 function updateKPIs() {
-  var visible = filterData(DATA);
+  // Aplicar mesmos filtros que a tabela (busca + cidade)
+  var search = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+  var cidade = document.getElementById('filterCidade') ? document.getElementById('filterCidade').value : '';
+
+  var filtered = filterData(DATA).filter(function(g) {
+    var matchSearch = !search || g.gestor.toLowerCase().indexOf(search) !== -1;
+    var matchCidade = !cidade || g.cidade === cidade;
+    return matchSearch && matchCidade;
+  });
+
+  updateKPIsFromData(filtered);
+}
+
+function updateKPIsFromData(gestores) {
   var totalCotacoes = 0, totalAtivadas = 0, totalValor = 0;
 
-  visible.forEach(function(g) {
+  gestores.forEach(function(g) {
     // Gestor individual
     totalCotacoes += g.cot_qtd;
     totalAtivadas += g.ati_qtd;
@@ -1248,6 +1261,8 @@ function filtrarTabela() {
   });
 
   renderTable(sortData(filtered));
+  // Recalcular KPIs com base nos dados filtrados (mesma base da tabela)
+  updateKPIsFromData(filtered);
 }
 
 
