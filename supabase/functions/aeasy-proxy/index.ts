@@ -364,6 +364,61 @@ serve(async (req: Request) => {
       return jsonResponse({ success: true, data: results });
     }
 
+    // ─── IMPORTAR CACHE (Cron job) ─────────────────────────────
+    if (action === "importar-cache") {
+      const session = await getSession(session_cookie);
+      if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
+
+      const { data_inicial, data_final } = params;
+      if (!data_inicial || !data_final) {
+        return jsonResponse({ success: false, error: "data_inicial e data_final obrigatorios" }, 400);
+      }
+
+      // 1. Buscar TopVendas geral
+      const topUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
+      const topRes = await fetch(topUrl, {
+        method: "GET",
+        headers: { "Accept": "text/html", "Cookie": session, "Referer": AEASY_BASE + "/" },
+      });
+      const topHtml = await topRes.text();
+
+      // 2. Buscar lideres reais
+      const lideresQs = new URLSearchParams();
+      lideresQs.append("draw", "1");
+      lideresQs.append("start", "0");
+      lideresQs.append("length", "5000");
+      lideresQs.append("columns[0][data]", "IndividuosNome");
+      lideresQs.append("columns[0][name]", "IndividuosNome");
+      lideresQs.append("columns[0][orderable]", "true");
+      lideresQs.append("columns[0][searchable]", "false");
+      lideresQs.append("order[0][column]", "0");
+      lideresQs.append("order[0][dir]", "asc");
+      lideresQs.append("formPesquisa[submitFilter]", "true");
+      lideresQs.append("formPesquisa[Situacao][]", "2");
+      lideresQs.append("formPesquisa[TipoConsultor]", "5");
+
+      const lideresRes = await fetch(`${AEASY_BASE}/consultores/listagem?${lideresQs.toString()}`, {
+        method: "GET", headers: { "X-Requested-With": "XMLHttpRequest", "Cookie": session }
+      });
+      const lideresData = await lideresRes.json();
+      const lideres = (lideresData.data || [])
+        .filter((c: any) => String(c.ConsultoresLider) === "1")
+        .map((c: any) => ({ id: c.ConsultoresId, nome: (c.IndividuosNome || "").trim() }));
+
+      // 3. Parsear HTML - retornar dados brutos + lideres para o chamador processar
+      // (o processamento pesado de equipes sera feito pelo script Python do cron)
+      return jsonResponse({
+        success: true,
+        html: topHtml,
+        lideres: lideres.map((l: any) => l.nome.toUpperCase()),
+        lideres_info: lideres,
+        html_length: topHtml.length,
+        lideres_count: lideres.length,
+        data_inicial,
+        data_final
+      });
+    }
+
     return jsonResponse({ error: "Action nao reconhecida: " + action }, 400);
   } catch (err) {
     return jsonResponse({ error: String(err) }, 500);

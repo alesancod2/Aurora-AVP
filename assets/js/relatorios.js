@@ -669,14 +669,15 @@ async function buscarDados(forceRefresh) {
 
   var hash = getFilterHash(params);
 
-  // Determinar se o periodo e sub-mensal (Hoje, 7 dias, Personalizado com periodo curto) - precisa de dados precisos da API
+  // Determinar se precisa buscar da API (Personalizado, Hoje, 7 dias)
+  // Presets mensais usam cache do DB (atualizado pelo Cron a cada 1h)
   var preset = document.getElementById('fPeriodoPreset') ? document.getElementById('fPeriodoPreset').value : '';
-  var isSubMonthly = (preset === 'hoje' || preset === '7dias' || preset === '');
+  var needsAPI = (preset === '' || preset === 'hoje' || preset === '7dias');
 
   // Verificar cache compartilhado no Supabase DB (se nao forcar)
   if (!forceRefresh) {
     // Para sub-mensais: verificar cache de curta duracao (1h)
-    if (isSubMonthly) {
+    if (needsAPI) {
       try {
         var dbCache = await sbFetch(
           'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
@@ -696,7 +697,7 @@ async function buscarDados(forceRefresh) {
     }
 
     // Para periodos mensais+: usar cache normal
-    if (!isSubMonthly) {
+    if (!needsAPI) {
     // 1. Tentar Supabase DB (compartilhado entre todos os usuarios)
     try {
       var dbCache = await sbFetch(
@@ -759,7 +760,7 @@ async function buscarDados(forceRefresh) {
     } catch (e) {
       console.warn('[Aurora] Erro ao verificar cache multi-mes:', e.message);
     }
-    } // fim if (!isSubMonthly)
+    } // fim if (!needsAPI)
 
     // 2. Fallback: localStorage (individual)
     try {
@@ -775,7 +776,7 @@ async function buscarDados(forceRefresh) {
 
   // Buscar da API
   showProgress();
-  if (isSubMonthly) {
+  if (needsAPI) {
     updateProgress(5, 'Buscando dados atualizados (periodo curto, ~30s)...', '', '');
   }
   var startTime = Date.now();
