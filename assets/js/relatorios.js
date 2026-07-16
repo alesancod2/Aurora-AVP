@@ -4,8 +4,8 @@
    ═══════════════════════════════════════════════════════════ */
 
 // ─── CONFIGURACAO ───────────────────────────────────────────
-var SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
-var SUPABASE_KEY = 'SUA-ANON-KEY';
+var SUPABASE_URL = 'https://zjacembodtjrkynfmtxf.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY';
 var PROXY_URL = SUPABASE_URL + '/functions/v1/aeasy-proxy';
 var BATCH_SIZE = 5;
 
