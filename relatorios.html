@@ -32,10 +32,9 @@
 
     <!-- ─── TABS ─── -->
     <nav class="report-tabs">
-      <button class="tab active" data-tab="top-adesoes" onclick="switchTab(this)">Top Adesoes</button>
-      <button class="tab" data-tab="vendas" onclick="switchTab(this)">Associados</button>
+      <button class="tab active" data-tab="top-adesoes" onclick="switchTab(this)">Acompanhamento Gestor/Equipe</button>
+      <button class="tab" data-tab="vendas" onclick="switchTab(this)">Detalhamento</button>
       <button class="tab" data-tab="fluxo-caixa" onclick="switchTab(this)">Fluxo de Caixa</button>
-      <button class="tab" data-tab="consultores" onclick="switchTab(this)">Consultores</button>
     </nav>
 
     <!-- ═══════════════ PAINEL: TOP ADESOES ═══════════════ -->
@@ -368,78 +367,6 @@
           </thead>
           <tbody id="fluxoBody">
             <tr><td colspan="9" class="empty-state">Defina as datas e busque o fluxo de caixa</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ═══════════════ PAINEL: CONSULTORES ═══════════════ -->
-    <section class="report-panel" id="panel-consultores">
-
-      <div class="filter-panel">
-        <div class="filter-header" onclick="toggleFilters('consultores')">
-          <h3>Filtros - Consultores</h3>
-          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="filter-body" id="filters-consultores">
-          <div class="filter-grid">
-            <div class="filter-group">
-              <label>Situacao</label>
-              <select id="fConsultoresSituacao">
-                <option value="2">Ativo</option>
-                <option value="">Todos</option>
-                <option value="1">Pre-cadastro</option>
-                <option value="3">Suspenso</option>
-                <option value="4">Bloqueado</option>
-                <option value="5">Cancelado</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Tipo</label>
-              <select id="fConsultoresTipo">
-                <option value="">Todos</option>
-                <option value="1">Consultor</option>
-                <option value="2">Vendedor</option>
-                <option value="3">Sede/Parceria</option>
-                <option value="5">Regional/Gestor</option>
-                <option value="6">Gestor</option>
-                <option value="7">Interno</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Centro de Custo</label>
-              <select id="fConsultoresCentro">
-                <option value="">Todos</option>
-                <option value="Empresa">01 - AutoVale</option>
-                <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
-                <option value="Juazeiro">03 - Juazeiro</option>
-                <option value="JNorte">06 - J. Norte</option>
-                <option value="Maceio">07 - Maceio</option>
-              </select>
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn btn-primary" onclick="buscarConsultores()">Buscar Consultores</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nome</th>
-              <th>CPF</th>
-              <th>Tipo</th>
-              <th>Situacao</th>
-              <th>Cidade</th>
-              <th>Telefone</th>
-              <th>Email</th>
-            </tr>
-          </thead>
-          <tbody id="consultoresBody">
-            <tr><td colspan="8" class="empty-state">Busque os consultores usando os filtros</td></tr>
           </tbody>
         </table>
       </div>
