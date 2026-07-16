@@ -434,6 +434,10 @@ async function buscarDados(forceRefresh) {
             membros = membros.filter(function(m) {
               return m.gestor.toUpperCase() !== g.gestor.toUpperCase();
             });
+            // Filtrar apenas consultores ativos com cotacoes >= 1
+            membros = membros.filter(function(m) {
+              return m.cot_qtd >= 1;
+            });
             g.equipe = membros;
           }
         } catch (e) {
