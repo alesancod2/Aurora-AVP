@@ -810,7 +810,7 @@ function renderTable(ds) {
 
 function renderEquipeTable(membros, gestor) {
   var html = '<table class="equipe-table">';
-  html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
+  html += '<thead><tr><th>#</th><th>Gestor</th><th>Cidade</th><th>Conv.</th>';
   html += '<th>Cotacoes</th><th>Efetivadas</th><th>Valor</th><th>Ticket</th></tr></thead>';
   html += '<tbody>';
   // Primeira linha: o proprio gestor (individual)
