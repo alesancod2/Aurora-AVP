@@ -170,10 +170,43 @@ serve(async (req: Request) => {
         lideresNomes = [];
       }
 
+      // Tambem retornar IDs dos lideres para buscar equipe individualmente
+      let lideresInfo: any[] = [];
+      try {
+        const lideresQs2 = new URLSearchParams();
+        lideresQs2.append("draw", "1");
+        lideresQs2.append("start", "0");
+        lideresQs2.append("length", "5000");
+        lideresQs2.append("columns[0][data]", "IndividuosNome");
+        lideresQs2.append("columns[0][name]", "IndividuosNome");
+        lideresQs2.append("columns[0][orderable]", "true");
+        lideresQs2.append("columns[0][searchable]", "false");
+        lideresQs2.append("order[0][column]", "0");
+        lideresQs2.append("order[0][dir]", "asc");
+        lideresQs2.append("formPesquisa[submitFilter]", "true");
+        lideresQs2.append("formPesquisa[Situacao][]", "2");
+        lideresQs2.append("formPesquisa[TipoConsultor]", "5");
+
+        const lideresRes2 = await fetch(
+          `${AEASY_BASE}/consultores/listagem?${lideresQs2.toString()}`,
+          { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest", "Cookie": session } }
+        );
+        const lideresData2 = await lideresRes2.json();
+        lideresInfo = (lideresData2.data || [])
+          .filter((c: any) => String(c.ConsultoresLider) === "1")
+          .map((c: any) => ({
+            id: c.ConsultoresId,
+            nome: (c.IndividuosNome || "").trim(),
+            centro: c.GruposEmpresasNome || "",
+            forma_lider: c.ConsultoresFormaLider
+          }));
+      } catch (e) { /* ignore */ }
+
       return jsonResponse({
         success: true,
         html,
         lideres: lideresNomes,
+        lideres_info: lideresInfo,
         debug: {
           session_used: session.substring(0, 25) + "...",
           response_status: res.status,

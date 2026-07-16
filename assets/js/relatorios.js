@@ -368,18 +368,26 @@ async function buscarDados(forceRefresh) {
     }
 
     // Parsear HTML dos gestores
-    var gestores = parseGestoresHTML(htmlRetornado);
+    var allGestores = parseGestoresHTML(htmlRetornado);
 
     // Filtrar apenas lideres reais (62) se a Edge Function retornou a lista
     var lideresNomes = gestoresRes.lideres || [];
+    var gestores = allGestores;
     if (lideresNomes.length > 0) {
       console.log('[Aurora] Filtrando por ' + lideresNomes.length + ' lideres reais');
-      gestores = gestores.filter(function(g) {
+      gestores = allGestores.filter(function(g) {
         return lideresNomes.indexOf(g.gestor.toUpperCase()) !== -1;
       });
+      // Para cada lider, encontrar membros da equipe (nao-lideres com mesmo "grupo")
+      // Os membros sao todos os demais do TopVendas que NAO sao lideres
+      // Mas nao temos como associar por grupo aqui — deixar para carregar sob demanda
     }
 
-    console.log('[Aurora] Gestores parseados:', gestores.length);
+    console.log('[Aurora] Gestores (lideres) parseados:', gestores.length);
+    console.log('[Aurora] Total no TopVendas:', allGestores.length);
+
+    // Salvar info dos lideres para uso no expandir equipe
+    window._lideresInfo = gestoresRes.lideres_info || [];
     if (gestores.length > 0) {
       console.log('[Aurora] Primeiro gestor:', JSON.stringify(gestores[0]));
     }
@@ -608,11 +616,106 @@ function renderEquipe(equipe) {
 }
 
 // ─── EXPANDIR EQUIPE ────────────────────────────────────────
-function toggleEquipe(row, index) {
+async function toggleEquipe(row, index) {
   var equipeRow = document.getElementById('equipe-' + index);
-  if (equipeRow) {
-    equipeRow.classList.toggle('visible');
+  if (!equipeRow) return;
+
+  // Se ja esta visivel, colapsar
+  if (equipeRow.classList.contains('visible')) {
+    equipeRow.classList.remove('visible');
+    return;
   }
+
+  // Se ja carregou antes, apenas mostrar
+  if (equipeRow.getAttribute('data-loaded') === '1') {
+    equipeRow.classList.add('visible');
+    return;
+  }
+
+  // Buscar equipe do gestor
+  var g = filterData(DATA)[index];
+  if (!g) return;
+
+  // Encontrar o ID do gestor na lista de lideres_info
+  var liderInfo = (window._lideresInfo || []).find(function(l) {
+    return l.nome.toUpperCase() === g.gestor.toUpperCase();
+  });
+
+  if (!liderInfo || !liderInfo.id) {
+    equipeRow.querySelector('td').innerHTML = '<em style="color:var(--text3)">ID do gestor nao encontrado</em>';
+    equipeRow.classList.add('visible');
+    equipeRow.setAttribute('data-loaded', '1');
+    return;
+  }
+
+  equipeRow.querySelector('td').innerHTML = '<em style="color:var(--text3)">Carregando equipe...</em>';
+  equipeRow.classList.add('visible');
+
+  try {
+    // Buscar TopVendas filtrado por EquipeId deste gestor
+    var params = {
+      tipo_data: document.getElementById('fTipoData').value,
+      data_inicial: document.getElementById('fDataInicial').value,
+      data_final: document.getElementById('fDataFinal').value,
+      ordenar: document.getElementById('fOrdenar').value,
+      campo_order: 'Quantidade',
+      centro_custo: '',
+      retornar_lider: document.getElementById('fRetornarLider').value
+    };
+
+    var res = await edgeCall({
+      action: 'gestores',
+      session_cookie: sessionCookie,
+      tipo_data: params.tipo_data,
+      data_inicial: params.data_inicial,
+      data_final: params.data_final,
+      ordenar: params.ordenar,
+      campo_order: params.campo_order,
+      equipe_id: liderInfo.id,
+      retornar_lider: 'NAO'
+    });
+
+    if (res.success && res.html) {
+      var membros = parseGestoresHTML(res.html);
+      // Remover o proprio lider da lista de membros
+      membros = membros.filter(function(m) {
+        return m.gestor.toUpperCase() !== g.gestor.toUpperCase();
+      });
+
+      if (membros.length > 0) {
+        var html = '<table class="equipe-table">';
+        html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
+        html += '<th class="col-green">Qtd</th><th class="col-green">Valor</th><th class="col-green">Ticket</th>';
+        html += '<th class="col-purple">Sus.</th><th class="col-amber">Can.</th><th style="color:var(--blue)">PBP</th></tr></thead>';
+        html += '<tbody>';
+        membros.forEach(function(m, i) {
+          html += '<tr>';
+          html += '<td>' + (i + 1) + '</td>';
+          html += '<td>' + esc(m.gestor) + '</td>';
+          html += '<td>' + esc(m.cidade) + '</td>';
+          html += '<td>' + esc(m.taxa_conversao) + '</td>';
+          html += '<td class="col-green">' + formatNum(m.ati_qtd) + '</td>';
+          html += '<td class="col-green">' + formatMoney(m.ati_valor) + '</td>';
+          html += '<td class="col-green">' + formatMoney(m.ati_ticket) + '</td>';
+          html += '<td class="col-purple">' + formatNum(m.sus_qtd) + '</td>';
+          html += '<td class="col-amber">' + formatNum(m.can_qtd) + '</td>';
+          html += '<td style="color:var(--blue)">' + formatNum(m.pbp_qtd) + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div style="margin-top:8px;font-size:.75rem;color:var(--text3)">' + membros.length + ' membros na equipe</div>';
+        equipeRow.querySelector('td').innerHTML = html;
+      } else {
+        equipeRow.querySelector('td').innerHTML = '<em style="color:var(--text3)">Nenhum membro encontrado na equipe</em>';
+      }
+    } else {
+      equipeRow.querySelector('td').innerHTML = '<em style="color:var(--red)">Erro ao buscar equipe</em>';
+    }
+  } catch (e) {
+    equipeRow.querySelector('td').innerHTML = '<em style="color:var(--red)">Erro: ' + esc(e.message) + '</em>';
+  }
+
+  equipeRow.setAttribute('data-loaded', '1');
 }
 
 // ─── FILTRAR TABELA ─────────────────────────────────────────
