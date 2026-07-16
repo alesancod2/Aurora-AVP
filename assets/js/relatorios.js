@@ -755,7 +755,7 @@ function updateKPIs() {
 function renderTable(ds) {
   var tbody = document.getElementById('tableBody');
   if (!ds || ds.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Nenhum resultado encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum resultado encontrado</td></tr>';
     return;
   }
 
@@ -770,9 +770,6 @@ function renderTable(ds) {
     html += '<td class="col-num"><strong>' + formatNum(g.ati_qtd) + '</strong></td>';
     html += '<td class="col-num">' + formatMoney(g.ati_valor) + '</td>';
     html += '<td class="col-num">' + formatMoney(g.ati_ticket) + '</td>';
-    html += '<td class="col-num">' + formatNum(g.sus_qtd) + '</td>';
-    html += '<td class="col-num">' + formatNum(g.can_qtd) + '</td>';
-    html += '<td class="col-num">' + formatNum(g.pbp_qtd) + '</td>';
     html += '<td class="col-actions">';
     html += '<button class="btn-hide" onclick="event.stopPropagation();hideGestor(\'' + esc(g.gestor) + '\')" title="Ocultar gestor">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -782,7 +779,7 @@ function renderTable(ds) {
 
     // Equipe (ja carregada)
     if (g.equipe && g.equipe.length > 0) {
-      html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="11">';
+      html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="8">';
       html += renderEquipeTable(g.equipe);
       html += '</td></tr>';
     }
@@ -794,8 +791,7 @@ function renderTable(ds) {
 function renderEquipeTable(membros) {
   var html = '<table class="equipe-table">';
   html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
-  html += '<th>Qtd</th><th>Valor</th><th>Ticket</th>';
-  html += '<th>Sus.</th><th>Can.</th><th>PBP</th></tr></thead>';
+  html += '<th>Qtd</th><th>Valor</th><th>Ticket</th></tr></thead>';
   html += '<tbody>';
   membros.forEach(function(m, i) {
     html += '<tr>';
@@ -806,9 +802,6 @@ function renderEquipeTable(membros) {
     html += '<td>' + formatNum(m.ati_qtd) + '</td>';
     html += '<td>' + formatMoney(m.ati_valor) + '</td>';
     html += '<td>' + formatMoney(m.ati_ticket) + '</td>';
-    html += '<td>' + formatNum(m.sus_qtd) + '</td>';
-    html += '<td>' + formatNum(m.can_qtd) + '</td>';
-    html += '<td>' + formatNum(m.pbp_qtd) + '</td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
