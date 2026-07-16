@@ -370,7 +370,7 @@ async function buscarDados(forceRefresh) {
     ordenar: document.getElementById('fOrdenar').value,
     campo_order: 'Quantidade',
     centro_custo: '',
-    retornar_lider: document.getElementById('fRetornarLider').value
+    retornar_lider: 'NAO'
   };
 
   var hash = getFilterHash(params);
