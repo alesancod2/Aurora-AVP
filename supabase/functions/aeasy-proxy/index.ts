@@ -127,10 +127,9 @@ serve(async (req: Request) => {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          "X-Requested-With": "XMLHttpRequest",
           "Accept": "text/html, application/xhtml+xml, */*",
-          "Accept-Language": "pt-BR,pt;q=0.9",
           "Cookie": session,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           "Referer": `${AEASY_BASE}/TopVendas`,
           "Origin": AEASY_BASE,
         },
