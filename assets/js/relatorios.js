@@ -760,7 +760,7 @@ function updateKPIs() {
 function renderTable(ds) {
   var tbody = document.getElementById('tableBody');
   if (!ds || ds.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum resultado encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum resultado encontrado</td></tr>';
     return;
   }
 
@@ -786,6 +786,7 @@ function renderTable(ds) {
     html += '<td><strong>' + esc(g.gestor) + '</strong></td>';
     html += '<td>' + esc(g.cidade) + '</td>';
     html += '<td class="col-num">' + totalConv + '</td>';
+    html += '<td class="col-num">' + formatNum(totalCot) + '</td>';
     html += '<td class="col-num"><strong>' + formatNum(totalAti) + '</strong></td>';
     html += '<td class="col-num">' + formatMoney(totalValor) + '</td>';
     html += '<td class="col-num">' + formatMoney(totalTicket) + '</td>';
@@ -798,7 +799,7 @@ function renderTable(ds) {
 
     // Equipe (ja carregada)
     if (g.equipe && g.equipe.length > 0) {
-      html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="8">';
+      html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="9">';
       html += renderEquipeTable(g.equipe, g);
       html += '</td></tr>';
     }
@@ -810,15 +811,17 @@ function renderTable(ds) {
 function renderEquipeTable(membros, gestor) {
   var html = '<table class="equipe-table">';
   html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
-  html += '<th>Qtd</th><th>Valor</th><th>Ticket</th></tr></thead>';
+  html += '<th>Cotacoes</th><th>Efetivadas</th><th>Valor</th><th>Ticket</th></tr></thead>';
   html += '<tbody>';
   // Primeira linha: o proprio gestor (individual)
   if (gestor) {
+    var gConv = gestor.cot_qtd > 0 ? ((gestor.ati_qtd / gestor.cot_qtd) * 100).toFixed(2) + '%' : '0,00%';
     html += '<tr style="font-weight:600;color:var(--text1)">';
     html += '<td></td>';
     html += '<td>' + esc(gestor.gestor) + ' <span style="font-size:.65rem;color:var(--text3);font-weight:400">(individual)</span></td>';
     html += '<td>' + esc(gestor.cidade) + '</td>';
-    html += '<td>' + esc(gestor.taxa_conversao) + '</td>';
+    html += '<td>' + gConv + '</td>';
+    html += '<td>' + formatNum(gestor.cot_qtd) + '</td>';
     html += '<td>' + formatNum(gestor.ati_qtd) + '</td>';
     html += '<td>' + formatMoney(gestor.ati_valor) + '</td>';
     html += '<td>' + formatMoney(gestor.ati_ticket) + '</td>';
@@ -826,11 +829,13 @@ function renderEquipeTable(membros, gestor) {
   }
   // Membros da equipe
   membros.forEach(function(m, i) {
+    var mConv = m.cot_qtd > 0 ? ((m.ati_qtd / m.cot_qtd) * 100).toFixed(2) + '%' : '0,00%';
     html += '<tr>';
     html += '<td>' + (i + 1) + '</td>';
     html += '<td>' + esc(m.gestor) + '</td>';
     html += '<td>' + esc(m.cidade) + '</td>';
-    html += '<td>' + esc(m.taxa_conversao) + '</td>';
+    html += '<td>' + mConv + '</td>';
+    html += '<td>' + formatNum(m.cot_qtd) + '</td>';
     html += '<td>' + formatNum(m.ati_qtd) + '</td>';
     html += '<td>' + formatMoney(m.ati_valor) + '</td>';
     html += '<td>' + formatMoney(m.ati_ticket) + '</td>';
