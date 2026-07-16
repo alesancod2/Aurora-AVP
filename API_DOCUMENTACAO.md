@@ -26,6 +26,8 @@
 13. [Exemplos de Requisicoes](#13-exemplos-de-requisicoes-prontas)
 14. [Consideracoes Tecnicas](#14-consideracoes-tecnicas)
 15. [Categorias de Veiculos](#15-categorias-de-veiculos-ids)
+16. [Hierarquia Consultores/Gestores](#16-hierarquia-consultoresgestores)
+17. [Retornar Lider com Equipe (Comportamento)](#17-retornar-lider-com-equipe-comportamento)
 
 ---
 
@@ -358,6 +360,17 @@ formPesquisa[search]=63741373370             (valor da busca rapida)
 | `VendasTipoSuspensao` | Tipo suspensao | "" |
 | `VendasMotivosCancelamentosNome` | Motivo cancelamento | "-" |
 
+#### Campos de Cancelamento/Inadimplencia (confirmados)
+
+| Campo | Descricao | Exemplo |
+|-------|-----------|---------|
+| `VendasMotivosCancelamentosNome` | Nome/motivo do cancelamento | "Inadimplencia" ou "-" |
+| `VendasDiasAtraso` | Quantidade de dias em atraso | "45" ou "0" |
+| `VendasQuantidadeFaturasPagas` | Total de faturas ja pagas | "8" |
+| `VendasQuantidadeFaturasAtraso` | Total de faturas em atraso | "3" |
+
+**Nota:** Esses campos sao uteis para identificar associados em risco de cancelamento e para relatorios de inadimplencia.
+
 #### Consultor
 
 | Campo | Descricao | Exemplo |
@@ -513,6 +526,38 @@ TipoData=FaturasDataVencimento
   "paginacao": null
 }
 ```
+
+### Estrutura dos Totais (confirmada)
+
+O objeto `totais` contem todos os campos de sumarizacao. Exemplo real (periodo jul/2025, primeira semana):
+
+```json
+{
+  "ValorTotal": 747488.62,
+  "ValorPago": 354866.28,
+  "ValorAberto": 378392.23,
+  "Quantidade": 5219,
+  "QuantidadePago": 2650,
+  "QuantidadeAberto": 2484,
+  "ValorCancelado": 14461.25,
+  "QuantidadeCancelado": 85
+}
+```
+
+| Campo | Descricao |
+|-------|-----------|
+| `ValorTotal` | Soma de todos os valores (pago + aberto + cancelado) |
+| `ValorPago` | Total de faturas pagas no periodo |
+| `ValorAberto` | Total de faturas em aberto no periodo |
+| `Quantidade` | Total de faturas no periodo |
+| `QuantidadePago` | Quantidade de faturas pagas |
+| `QuantidadeAberto` | Quantidade de faturas em aberto |
+| `ValorCancelado` | Total de faturas canceladas |
+| `QuantidadeCancelado` | Quantidade de faturas canceladas |
+| `Diferenca` | Diferenca entre valores (presente em alguns periodos) |
+| `QuantidadeDiferenca` | Quantidade da diferenca (presente em alguns periodos) |
+
+**Nota:** Os campos `Diferenca` e `QuantidadeDiferenca` podem nao estar presentes em todos os periodos.
 
 
 ### Filtros
@@ -680,7 +725,51 @@ TipoData=FaturasDataVencimento
 | `EquipeId` | select | ID equipe |
 | `RetornarLiderComEquipe` | select | SIM, NAO, ATE_NIVEL_1 |
 
-**Nota:** Este relatorio renderiza HTML server-side.
+### Estrutura HTML retornada (25 colunas confirmadas)
+
+O endpoint retorna HTML server-side com uma tabela de 25 colunas. Mapeamento confirmado:
+
+| Indice | Coluna | Descricao |
+|--------|--------|-----------|
+| `[0]` | # | Posicao no ranking |
+| `[1]` | Nome | Nome do consultor |
+| `[2]` | Centro Custo | Sede do consultor |
+| `[3]` | Taxa Conversao | Percentual de conversao |
+| `[4]` | Cotacoes Qtd | Quantidade de cotacoes |
+| `[5]` | Cotacoes Valor | Valor total cotacoes |
+| `[6]` | Cotacoes Ticket | Ticket medio cotacoes |
+| `[7]` | Cadastros Qtd | Quantidade de cadastros |
+| `[8]` | Cadastros Valor | Valor total cadastros |
+| `[9]` | Cadastros Ticket | Ticket medio cadastros |
+| `[10]` | Efetivadas Qtd | Quantidade efetivadas |
+| `[11]` | Efetivadas Valor | Valor total efetivadas |
+| `[12]` | Efetivadas Ticket | Ticket medio efetivadas |
+| `[13]` | Ativadas Qtd | Quantidade ativadas |
+| `[14]` | Ativadas Valor | Valor total ativadas |
+| `[15]` | Ativadas Ticket | Ticket medio ativadas |
+| `[16]` | Suspensas Qtd | Quantidade suspensas |
+| `[17]` | Suspensas Valor | Valor total suspensas |
+| `[18]` | Suspensas Ticket | Ticket medio suspensas |
+| `[19]` | Canceladas Qtd | Quantidade canceladas |
+| `[20]` | Canceladas Valor | Valor total canceladas |
+| `[21]` | Canceladas Ticket | Ticket medio canceladas |
+| `[22]` | Primeiro Boleto Pago Qtd | Quantidade primeiro boleto pago |
+| `[23]` | Primeiro Boleto Pago Valor | Valor total primeiro boleto pago |
+| `[24]` | Primeiro Boleto Pago Ticket | Ticket medio primeiro boleto pago |
+
+### Agrupamento por blocos
+
+| Bloco | Colunas | Tripla (Qtd/Valor/Ticket) |
+|-------|---------|---------------------------|
+| Cotacoes | [4], [5], [6] | Sim |
+| Cadastros | [7], [8], [9] | Sim |
+| Efetivadas | [10], [11], [12] | Sim |
+| Ativadas | [13], [14], [15] | Sim |
+| Suspensas | [16], [17], [18] | Sim |
+| Canceladas | [19], [20], [21] | Sim |
+| Primeiro Boleto Pago | [22], [23], [24] | Sim |
+
+**Nota:** Este relatorio renderiza HTML server-side (nao retorna JSON). O parser deve extrair dados dos `<td>` da tabela HTML.
 
 ---
 
@@ -940,6 +1029,113 @@ Amostra dos 80+ categorias disponiveis:
 | 16 | Passeio - Importado |
 | 1 | Passeio - Nacional |
 | 15 | SUV/Caminhonete/Utilitario |
+
+---
+
+
+## 16. HIERARQUIA CONSULTORES/GESTORES
+
+### Visao Geral
+
+O sistema AEasy possui uma hierarquia complexa de consultores. Dados confirmados por testes diretos na API:
+
+| Metrica | Valor |
+|---------|-------|
+| **Total consultores ativos** | 5.951 |
+| **Tipo Gestor (enum=5)** | 3.257 |
+| **Tipo Consultor (enum=1)** | ~1.500+ |
+| **Tipo Indicador (enum=4)** | ~1.200+ |
+
+### Detalhamento do tipo "Gestor" (enum=5)
+
+Nem todo consultor com `ConsultoresTipoConsultorEnum=5` e um lider real com equipe. A grande maioria sao vendedores classificados como "Gestor" no sistema mas sem equipe:
+
+| Subgrupo | Quantidade | Descricao |
+|----------|-----------|-----------|
+| `ConsultoresLider=1` | 62 | **Lideres reais** - possuem equipe |
+| `ConsultoresLider=0` | 3.195 | Vendedores classificados como "Gestor" mas sem equipe |
+
+### FormaLider (subdivisao dos 62 lideres reais)
+
+| FormaLider | Quantidade | Descricao |
+|------------|-----------|-----------|
+| `FormaLider=1` | ~30 | Lider direto (gestor principal) |
+| `FormaLider=2` | ~32 | Sub-lider (subordinado a outro gestor) |
+
+### Resumo visual da hierarquia
+
+```
+Consultores Ativos (5.951)
+├── Tipo Gestor - enum=5 (3.257)
+│   ├── COM equipe - ConsultoresLider=1 (62)
+│   │   ├── Lider Direto - FormaLider=1 (~30)
+│   │   └── Sub-lider - FormaLider=2 (~32)
+│   └── SEM equipe - ConsultoresLider=0 (3.195)
+│       └── Sao vendedores, apesar do tipo "Gestor"
+├── Tipo Consultor - enum=1 (~1.500+)
+└── Tipo Indicador - enum=4 (~1.200+)
+```
+
+### Implicacao pratica
+
+Para filtrar apenas gestores que realmente lideram equipes no dashboard, o criterio correto e:
+- `ConsultoresTipoConsultorEnum=5` (tipo Gestor)
+- **E** `ConsultoresLider=1` (possui equipe)
+
+Isso retorna apenas os 62 lideres reais, nao os 3.257 do tipo Gestor.
+
+---
+
+
+## 17. RETORNAR LIDER COM EQUIPE (Comportamento)
+
+### O que e
+
+O filtro `RetornarLiderComEquipe` controla quais membros da equipe de um gestor sao retornados quando se seleciona uma equipe nos endpoints `/TopVendas` e `/vendas/listagem`.
+
+### Valores possiveis
+
+| Opcao | Valor na API | O que retorna |
+|-------|-------------|---------------|
+| **Equipe completa** | `SIM` | Todos da equipe + sub-lideres + membros dos sub-lideres |
+| **Equipe sem lideres** | `NAO` | Apenas os membros diretos (remove sub-lideres e suas equipes) |
+| **Equipe ate lider 1o nivel** | `ATE_NIVEL_1` | Membros diretos + sub-lideres do primeiro nivel (sem as equipes deles) |
+
+### Exemplo pratico (ADHRIAN - confirmado em testes)
+
+| Filtro | Resultado |
+|--------|-----------|
+| Equipe completa (`SIM`) | **104 membros** (ele + sub-lideres + equipes dos sub-lideres) |
+| Equipe sem lideres (`NAO`) | **61 membros** (apenas membros diretos, sem sub-lideres) |
+
+A diferenca (104 - 61 = 43) sao **sub-lideres e suas equipes** que ficam ocultos no modo "sem lideres".
+
+### Comportamento detalhado
+
+#### `SIM` (Equipe completa)
+- Retorna o gestor selecionado
+- Retorna todos os membros diretos da equipe
+- Retorna todos os sub-lideres (FormaLider=2)
+- Retorna todos os membros das equipes dos sub-lideres
+- Resultado: arvore completa abaixo do gestor
+
+#### `NAO` (Equipe sem lideres)
+- Retorna o gestor selecionado
+- Retorna apenas os consultores diretamente sob o gestor
+- **Exclui** quem e sub-lider
+- **Exclui** as equipes dos sub-lideres
+- Resultado: apenas os "soldados" diretos
+
+#### `ATE_NIVEL_1` (Ate lider 1o nivel)
+- Retorna o gestor selecionado
+- Retorna membros diretos da equipe
+- Retorna sub-lideres do primeiro nivel
+- **Nao retorna** os membros das equipes dos sub-lideres
+- Resultado: primeiro nivel completo, sem expandir sub-equipes
+
+### Uso no dashboard
+
+No relatorio do dashboard, usamos **`NAO`** (Equipe sem lideres) para obter apenas os consultores que estao diretamente sob cada gestor, sem duplicar membros que aparecem em sub-equipes. O proprio gestor ainda aparece na lista, por isso separamos resultado individual vs equipe no processamento.
 
 ---
 

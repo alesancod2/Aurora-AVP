@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "docs",
+  "description": "Update API_DOCUMENTACAO.md with confirmed findings from testing session: consultant/manager hierarchy, TopVendas 25-column structure, RetornarLiderComEquipe behavior with practical examples, and fluxo de caixa totals structure.",
+  "status": "in_progress",
+  "steps": [
+    "Add a new section '16. HIERARQUIA CONSULTORES/GESTORES' documenting the confirmed hierarchy: Total active 5,951; Type Gestor (enum=5) = 3,257 total, 62 with ConsultoresLider=1 (real leaders), 3,195 salespeople; FormaLider=1 (direct leader ~30) vs FormaLider=2 (sub-leader ~32); Type Consultor (enum=1) ~1,500+; Type Indicador (enum=4) ~1,200+",
+    "Add a new section '17. RETORNAR LIDER COM EQUIPE (Comportamento)' documenting: SIM = full team + sub-leaders + sub-leaders' members; NAO = only direct members (hides sub-leaders and their teams); ATE_NIVEL_1 = direct members + first-level sub-leaders without their teams. Include the practical example with ADHRIAN (SIM=104, NAO=61, difference=43 are sub-leaders and their teams)",
+    "Update section 8 (Top Vendas) to document the confirmed 25-column HTML structure: [0] # | [1] Nome | [2] Centro Custo | [3] Taxa Conversao | [4-6] Cotacoes (Qtd/Valor/Ticket) | [7-9] Cadastros (Qtd/Valor/Ticket) | [10-12] Efetivadas (Qtd/Valor/Ticket) | [13-15] Ativadas (Qtd/Valor/Ticket) | [16-18] Suspensas (Qtd/Valor/Ticket) | [19-21] Canceladas (Qtd/Valor/Ticket) | [22-24] Primeiro Boleto Pago (Qtd/Valor/Ticket)",
+    "Update section 4 (Fluxo de Caixa) to include the confirmed totals structure with all fields: ValorTotal, ValorPago, ValorAberto, Quantidade, QuantidadePago, QuantidadeAberto, ValorCancelado, QuantidadeCancelado",
+    "Document confirmed cancellation fields in section 2 (Vendas): VendasMotivosCancelamentosNome, VendasDiasAtraso, VendasQuantidadeFaturasPagas, VendasQuantidadeFaturasAtraso",
+    "Update the index to include the new sections 16 and 17"
+  ],
+  "acceptance_criteria": [
+    "API_DOCUMENTACAO.md contains section 16 with full consultant hierarchy breakdown",
+    "API_DOCUMENTACAO.md contains section 17 with RetornarLiderComEquipe behavior table and ADHRIAN example",
+    "Section 8 includes the confirmed 25-column TopVendas HTML table structure",
+    "Section 4 includes the full totais JSON structure with all 8 fields",
+    "Index is updated to reference sections 16 and 17"
+  ],
+  "verification": [
+    "Read API_DOCUMENTACAO.md and confirm new sections 16 and 17 exist",
+    "Confirm the TopVendas column mapping is present in section 8",
+    "Confirm the file is valid markdown"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
