@@ -530,21 +530,21 @@ function showData(msg) {
 // ─── KPIs ───────────────────────────────────────────────────
 function updateKPIs() {
   var visible = filterData(DATA);
-  var totalAtivadas = 0, totalValor = 0, totalSuspensos = 0, totalCancelados = 0, totalPBP = 0;
+  var totalCotacoes = 0, totalAtivadas = 0, totalValor = 0;
 
   visible.forEach(function(g) {
+    totalCotacoes += g.cot_qtd;
     totalAtivadas += g.ati_qtd;
     totalValor += g.ati_valor;
-    totalSuspensos += g.sus_qtd;
-    totalCancelados += g.can_qtd;
-    totalPBP += g.pbp_qtd;
   });
 
-  document.getElementById('kpiGestores').textContent = formatNum(visible.length);
-  document.getElementById('kpiAdesoes').textContent = formatNum(totalAtivadas);
-  document.getElementById('kpiValor').textContent = formatMoney(totalValor);
-  document.getElementById('kpiIndividual').textContent = formatNum(totalCancelados);
-  document.getElementById('kpiEquipes').textContent = formatNum(totalPBP);
+  var taxaConversao = totalCotacoes > 0 ? ((totalAtivadas / totalCotacoes) * 100) : 0;
+  var ticketMedio = totalAtivadas > 0 ? (totalValor / totalAtivadas) : 0;
+
+  document.getElementById('kpiCotacoes').textContent = formatNum(totalCotacoes);
+  document.getElementById('kpiAtivadas').textContent = formatNum(totalAtivadas);
+  document.getElementById('kpiConversao').textContent = taxaConversao.toFixed(2) + '%';
+  document.getElementById('kpiTicket').textContent = formatMoney(ticketMedio);
 }
 
 // ─── RENDER TABLE ───────────────────────────────────────────
