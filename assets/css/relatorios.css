@@ -511,6 +511,79 @@ body {
 .sortable.asc::after { content: ' \u25B2'; font-size: .6rem; }
 .sortable.desc::after { content: ' \u25BC'; font-size: .6rem; }
 
+/* ─── GROUPED TABLE HEADERS ─── */
+.thead-groups th {
+  padding: 6px 14px;
+  font-size: .68rem;
+  border-bottom: none;
+}
+.th-group {
+  text-align: center;
+  border-radius: 6px 6px 0 0;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.th-group-green {
+  background: var(--green);
+  color: #fff;
+}
+.th-group-purple {
+  background: var(--purple);
+  color: #fff;
+}
+.th-group-amber {
+  background: var(--amber);
+  color: #fff;
+}
+
+/* Column colors in table body */
+.col-green { color: var(--green); }
+.col-purple { color: var(--purple); }
+.col-amber { color: var(--amber); }
+
+/* Hide button (icon only) */
+.btn-hide {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-hide:hover {
+  background: var(--red-light);
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Hidden panel compact */
+.hidden-panel {
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: .8rem;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hidden-list {
+  display: none;
+  width: 100%;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.hidden-list.visible { display: flex; flex-wrap: wrap; gap: 8px; }
+
 .empty-state {
   text-align: center;
   padding: 40px 20px !important;
@@ -557,44 +630,6 @@ body {
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   color: var(--text2);
-}
-
-/* ─── HIDDEN PANEL (gestores ocultos) ─── */
-.hidden-panel {
-  margin-top: 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-}
-.hidden-panel h4 {
-  font-size: .85rem;
-  color: var(--text2);
-  margin-bottom: 12px;
-}
-.hidden-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.hidden-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  font-size: .75rem;
-  color: var(--text2);
-}
-.hidden-tag button {
-  background: none;
-  border: none;
-  color: var(--green);
-  cursor: pointer;
-  font-weight: 700;
-  font-size: .85rem;
 }
 
 /* ─── PAGINATION ─── */
