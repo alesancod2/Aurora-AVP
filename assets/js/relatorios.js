@@ -669,8 +669,12 @@ async function buscarDados(forceRefresh) {
 
   var hash = getFilterHash(params);
 
-  // Verificar cache compartilhado no Supabase DB (se nao forcar)
-  if (!forceRefresh) {
+  // Determinar se o periodo e sub-mensal (Hoje, 7 dias) - precisa de dados precisos da API
+  var preset = document.getElementById('fPeriodoPreset') ? document.getElementById('fPeriodoPreset').value : '';
+  var isSubMonthly = (preset === 'hoje' || preset === '7dias');
+
+  // Verificar cache compartilhado no Supabase DB (se nao forcar e nao sub-mensal)
+  if (!forceRefresh && !isSubMonthly) {
     // 1. Tentar Supabase DB (compartilhado entre todos os usuarios)
     try {
       var dbCache = await sbFetch(
