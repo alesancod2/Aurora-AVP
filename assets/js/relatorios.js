@@ -289,9 +289,11 @@ async function buscarDados(forceRefresh) {
       var dbCache = await sbFetch(
         'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at'
       );
+      console.log('[Aurora] Cache DB check:', dbCache ? dbCache.length + ' registros' : 'null/erro');
       if (dbCache && dbCache.length > 0) {
         var cached = dbCache[0];
         var age = Date.now() - new Date(cached.updated_at).getTime();
+        console.log('[Aurora] Cache age:', Math.round(age / 60000) + ' min');
         if (age < 30 * 60 * 1000) {
           DATA = cached.dados;
           var minAgo = Math.round(age / 60000);
@@ -300,7 +302,9 @@ async function buscarDados(forceRefresh) {
           return;
         }
       }
-    } catch (e) { /* DB indisponivel, continuar */ }
+    } catch (e) {
+      console.warn('[Aurora] Erro ao verificar cache DB:', e.message);
+    }
 
     // 2. Fallback: localStorage (individual)
     try {
@@ -461,7 +465,8 @@ async function buscarDados(forceRefresh) {
 
     // Salvar cache compartilhado no Supabase DB (para todos os usuarios)
     try {
-      await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache', {
+      console.log('[Aurora] Salvando cache no DB com hash:', hash);
+      var saveRes = await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache', {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -480,7 +485,11 @@ async function buscarDados(forceRefresh) {
           updated_at: new Date().toISOString()
         })
       });
-      console.log('[Aurora] Cache salvo no DB para todos os usuarios');
+      console.log('[Aurora] Cache save status:', saveRes.status, saveRes.ok ? 'OK' : 'FALHOU');
+      if (!saveRes.ok) {
+        var errText = await saveRes.text();
+        console.warn('[Aurora] Cache save erro:', errText);
+      }
     } catch (e) {
       console.warn('[Aurora] Falha ao salvar cache no DB:', e.message);
     }
