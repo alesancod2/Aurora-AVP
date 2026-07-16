@@ -370,7 +370,30 @@ body {
 .report-panel { display: none; }
 .report-panel.active { display: block; }
 
-/* ─── FILTER PANEL ─── */
+/* ─── FILTER BAR (inline) ─── */
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.filter-bar .filter-group {
+  flex: 1;
+  min-width: 140px;
+}
+.filter-bar .filter-actions-inline {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding-bottom: 1px;
+}
+
+/* ─── FILTER PANEL (legacy) ─── */
 .filter-panel {
   background: var(--surface);
   border: 1px solid var(--border);
