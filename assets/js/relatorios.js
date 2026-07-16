@@ -927,7 +927,7 @@ async function buscarDados(forceRefresh) {
           dados: gestores,
           total_registros: gestores.length,
           updated_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 120 * 60 * 1000).toISOString()
+          expires_at: '2099-12-31T23:59:59+00:00'
         })
       });
       console.log('[Aurora] Cache save status:', saveRes.status, saveRes.ok ? 'OK' : 'FALHOU');
