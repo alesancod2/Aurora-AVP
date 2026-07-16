@@ -312,7 +312,6 @@ async function buscarDados(forceRefresh) {
 
     var htmlRetornado = gestoresRes.html || '';
     console.log('[Aurora] HTML retornado (tamanho):', htmlRetornado.length);
-    console.log('[Aurora] Primeiros 1000 chars:', htmlRetornado.substring(0, 1000));
     console.log('[Aurora] Debug da Edge Function:', gestoresRes.debug);
 
     // Verificar se retornou pagina de login (sessao expirada)
@@ -393,23 +392,50 @@ function parseGestoresHTML(html) {
   rows.forEach(function(row) {
     var cells = row.querySelectorAll('td');
     if (cells.length >= 5) {
-      var nome = (cells[1] || cells[0]).textContent.trim();
-      if (!nome || nome === 'Total') return;
+      // Primeira celula e o ranking (#), pular
+      var startIdx = 0;
+      var firstText = (cells[0] ? cells[0].textContent.trim() : '');
+      // Se primeira celula e um numero (ranking), pular
+      if (/^\d+$/.test(firstText)) {
+        startIdx = 1;
+      }
+
+      var nome = (cells[startIdx] ? cells[startIdx].textContent.trim() : '');
+      if (!nome || nome === 'Total' || nome === 'Totais' || nome === '#') return;
 
       gestores.push({
         gestor: nome,
-        cidade: (cells[2] ? cells[2].textContent.trim() : ''),
-        total_qtd: parseInt((cells[3] ? cells[3].textContent.trim() : '0').replace(/\D/g, '')) || 0,
-        total_valor: parseFloat((cells[4] ? cells[4].textContent.trim() : '0').replace(/[^\d.,]/g, '').replace(',', '.')) || 0,
-        ticket: parseFloat((cells[5] ? cells[5].textContent.trim() : '0').replace(/[^\d.,]/g, '').replace(',', '.')) || 0,
-        cancelados: parseInt((cells[6] ? cells[6].textContent.trim() : '0').replace(/\D/g, '')) || 0,
-        suspensos: parseInt((cells[7] ? cells[7].textContent.trim() : '0').replace(/\D/g, '')) || 0,
+        cidade: (cells[startIdx + 1] ? cells[startIdx + 1].textContent.trim() : ''),
+        total_qtd: parseBrNumber(cells[startIdx + 2] ? cells[startIdx + 2].textContent.trim() : '0'),
+        total_valor: parseBrCurrency(cells[startIdx + 3] ? cells[startIdx + 3].textContent.trim() : '0'),
+        ticket: parseBrCurrency(cells[startIdx + 4] ? cells[startIdx + 4].textContent.trim() : '0'),
+        cancelados: parseBrNumber(cells[startIdx + 5] ? cells[startIdx + 5].textContent.trim() : '0'),
+        suspensos: parseBrNumber(cells[startIdx + 6] ? cells[startIdx + 6].textContent.trim() : '0'),
         equipe: []
       });
     }
   });
 
   return gestores;
+}
+
+// Parse numero brasileiro: "11.250" → 11250, "3.618.750" → 3618750
+function parseBrNumber(str) {
+  if (!str) return 0;
+  // Remover tudo que nao e digito
+  var clean = str.replace(/[^\d]/g, '');
+  return parseInt(clean) || 0;
+}
+
+// Parse moeda brasileira: "R$ 8,00" → 8.00, "R$ 1.324,50" → 1324.50
+function parseBrCurrency(str) {
+  if (!str) return 0;
+  // Remover "R$" e espacos
+  var clean = str.replace(/R\$\s*/g, '').trim();
+  // Formato brasileiro: ponto e separador de milhar, virgula e decimal
+  // Remover pontos de milhar, trocar virgula por ponto
+  clean = clean.replace(/\./g, '').replace(',', '.');
+  return parseFloat(clean) || 0;
 }
 
 // ─── EXIBIR DADOS ───────────────────────────────────────────
@@ -425,17 +451,18 @@ function showData(msg) {
 // ─── KPIs ───────────────────────────────────────────────────
 function updateKPIs() {
   var visible = filterData(DATA);
-  var totalQtd = 0, totalValor = 0, totalCancel = 0;
+  var totalQtd = 0, totalValor = 0, totalCancel = 0, totalSusp = 0;
 
   visible.forEach(function(g) {
     totalQtd += g.total_qtd;
     totalValor += g.total_valor;
     totalCancel += g.cancelados;
+    totalSusp += g.suspensos;
   });
 
-  var ticketMedio = visible.length > 0 ? (totalValor / totalQtd) : 0;
+  var ticketMedio = totalQtd > 0 ? (totalValor / totalQtd) : 0;
 
-  document.getElementById('kpiGestores').textContent = visible.length;
+  document.getElementById('kpiGestores').textContent = formatNum(visible.length);
   document.getElementById('kpiAdesoes').textContent = formatNum(totalQtd);
   document.getElementById('kpiTicket').textContent = formatMoney(ticketMedio);
   document.getElementById('kpiCancelados').textContent = formatNum(totalCancel);
