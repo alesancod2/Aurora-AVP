@@ -380,17 +380,19 @@ async function buscarDados(forceRefresh) {
     // 1. Tentar Supabase DB (compartilhado entre todos os usuarios)
     try {
       var dbCache = await sbFetch(
-        'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at'
+        'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
       );
       console.log('[Aurora] Cache DB check:', dbCache ? dbCache.length + ' registros' : 'null/erro');
       if (dbCache && dbCache.length > 0) {
         var cached = dbCache[0];
-        var age = Date.now() - new Date(cached.updated_at).getTime();
-        console.log('[Aurora] Cache age:', Math.round(age / 60000) + ' min');
-        if (age < 120 * 60 * 1000) {
+        var now = new Date();
+        var expiresAt = new Date(cached.expires_at);
+        var age = Math.round((now - new Date(cached.updated_at)) / 60000);
+        console.log('[Aurora] Cache age:', age + ' min, expires:', cached.expires_at);
+        // Usar expires_at como criterio (dados historicos nunca expiram)
+        if (now < expiresAt) {
           DATA = cached.dados;
-          var minAgo = Math.round(age / 60000);
-          showData('Cache DB (atualizado ' + minAgo + ' min atras)');
+          showData('Cache DB (atualizado ' + age + ' min atras) | ' + (cached.dados ? cached.dados.length : 0) + ' gestores');
           btn.disabled = false;
           return;
         }
