@@ -661,7 +661,7 @@ async function buscarDados(forceRefresh) {
     tipo_data: '2',
     data_inicial: document.getElementById('fDataInicial').value,
     data_final: document.getElementById('fDataFinal').value,
-    ordenar: document.getElementById('fOrdenar').value,
+    ordenar: '3',
     campo_order: 'Quantidade',
     centro_custo: '',
     retornar_lider: 'NAO'
