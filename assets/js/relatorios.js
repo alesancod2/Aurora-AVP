@@ -282,8 +282,27 @@ async function buscarDados(forceRefresh) {
 
   var hash = getFilterHash(params);
 
-  // Verificar cache local apenas (se nao forcar)
+  // Verificar cache compartilhado no Supabase DB (se nao forcar)
   if (!forceRefresh) {
+    // 1. Tentar Supabase DB (compartilhado entre todos os usuarios)
+    try {
+      var dbCache = await sbFetch(
+        'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at'
+      );
+      if (dbCache && dbCache.length > 0) {
+        var cached = dbCache[0];
+        var age = Date.now() - new Date(cached.updated_at).getTime();
+        if (age < 30 * 60 * 1000) {
+          DATA = cached.dados;
+          var minAgo = Math.round(age / 60000);
+          showData('Cache DB (atualizado ' + minAgo + ' min atras)');
+          btn.disabled = false;
+          return;
+        }
+      }
+    } catch (e) { /* DB indisponivel, continuar */ }
+
+    // 2. Fallback: localStorage (individual)
     try {
       var local = JSON.parse(localStorage.getItem('avp_cache_' + hash));
       if (local && (Date.now() - local.ts) < 30 * 60 * 1000) {
@@ -436,7 +455,33 @@ async function buscarDados(forceRefresh) {
     var elapsed = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
     updateProgress(90, 'Encontrados ' + gestores.length + ' gestores', '', elapsed);
 
-    // Salvar cache local
+    // Salvar cache compartilhado no Supabase DB (para todos os usuarios)
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          filtro_hash: hash,
+          tipo_data: params.tipo_data,
+          data_inicial: params.data_inicial,
+          data_final: params.data_final,
+          ordenacao: params.ordenar,
+          retornar_lider: params.retornar_lider,
+          dados: gestores,
+          updated_at: new Date().toISOString()
+        })
+      });
+      console.log('[Aurora] Cache salvo no DB para todos os usuarios');
+    } catch (e) {
+      console.warn('[Aurora] Falha ao salvar cache no DB:', e.message);
+    }
+
+    // Salvar tambem no localStorage (fallback individual)
     try {
       localStorage.setItem('avp_cache_' + hash, JSON.stringify({
         dados: gestores,
