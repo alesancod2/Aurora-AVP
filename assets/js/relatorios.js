@@ -767,14 +767,28 @@ function renderTable(ds) {
   var html = '';
   for (var i = 0; i < ds.length; i++) {
     var g = ds[i];
+    // Calcular totais (gestor + equipe)
+    var totalCot = g.cot_qtd;
+    var totalAti = g.ati_qtd;
+    var totalValor = g.ati_valor;
+    if (g.equipe && g.equipe.length > 0) {
+      g.equipe.forEach(function(m) {
+        totalCot += m.cot_qtd;
+        totalAti += m.ati_qtd;
+        totalValor += m.ati_valor;
+      });
+    }
+    var totalConv = totalCot > 0 ? ((totalAti / totalCot) * 100).toFixed(2) + '%' : '0,00%';
+    var totalTicket = totalAti > 0 ? (totalValor / totalAti) : 0;
+
     html += '<tr class="row-gestor" onclick="toggleEquipe(this,' + i + ')">';
     html += '<td class="col-num">' + (i + 1) + '</td>';
     html += '<td><strong>' + esc(g.gestor) + '</strong></td>';
     html += '<td>' + esc(g.cidade) + '</td>';
-    html += '<td class="col-num">' + esc(g.taxa_conversao) + '</td>';
-    html += '<td class="col-num"><strong>' + formatNum(g.ati_qtd) + '</strong></td>';
-    html += '<td class="col-num">' + formatMoney(g.ati_valor) + '</td>';
-    html += '<td class="col-num">' + formatMoney(g.ati_ticket) + '</td>';
+    html += '<td class="col-num">' + totalConv + '</td>';
+    html += '<td class="col-num"><strong>' + formatNum(totalAti) + '</strong></td>';
+    html += '<td class="col-num">' + formatMoney(totalValor) + '</td>';
+    html += '<td class="col-num">' + formatMoney(totalTicket) + '</td>';
     html += '<td class="col-actions">';
     html += '<button class="btn-hide" onclick="event.stopPropagation();hideGestor(\'' + esc(g.gestor) + '\')" title="Ocultar gestor">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
