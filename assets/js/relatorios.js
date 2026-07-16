@@ -180,9 +180,10 @@ async function checkMultiMonthCache(params) {
 
       if (isPartialMonth) {
         // Mes parcial: buscar qualquer registro que comece nesse mes
-        var mesPrefix = months[i].data_inicial.substring(0, 7);
+        var firstOfMonth = months[i].data_inicial.substring(0, 7) + '-01';
+        var lastOfMonth = months[i].data_inicial.substring(0, 7) + '-31';
         dbCache = await sbFetch(
-          'relatorios_cache?data_inicial=like.' + mesPrefix + '*&select=dados,updated_at,expires_at&limit=1&order=updated_at.desc'
+          'relatorios_cache?data_inicial=gte.' + firstOfMonth + '&data_inicial=lte.' + lastOfMonth + '&select=dados,updated_at,expires_at&limit=1'
         );
       } else {
         // Mes completo: buscar por hash exato
@@ -713,8 +714,10 @@ async function buscarDados(forceRefresh) {
       var endMonth = params.data_final.substring(0, 7);
       // Se periodo cabe em 1 mes OU ambos estao no mesmo mes
       if (startMonth === endMonth) {
+        var firstOfMonth = startMonth + '-01';
+        var lastOfMonth = startMonth + '-31';
         var monthCache = await sbFetch(
-          'relatorios_cache?data_inicial=like.' + startMonth + '*&select=dados,updated_at,expires_at&limit=1'
+          'relatorios_cache?data_inicial=gte.' + firstOfMonth + '&data_inicial=lte.' + lastOfMonth + '&select=dados,updated_at,expires_at&limit=1'
         );
         if (monthCache && monthCache.length > 0) {
           var mc = monthCache[0];
