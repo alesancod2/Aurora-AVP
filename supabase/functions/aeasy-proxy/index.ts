@@ -2,11 +2,66 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const AEASY_BASE = "https://aeasy.autovaleprevencoes.org";
 
+// ─── CREDENCIAIS VIA SECRETS (variaveis de ambiente) ─────────
+// Configurar no Supabase com:
+//   supabase secrets set AEASY_CPF=00000000000
+//   supabase secrets set AEASY_SENHA=suasenha
+const AEASY_CPF = Deno.env.get("AEASY_CPF") || "";
+const AEASY_SENHA = Deno.env.get("AEASY_SENHA") || "";
+
+// Cache da sessao em memoria (persiste enquanto a function estiver quente)
+let cachedSession: string | null = null;
+let sessionExpiry: number = 0;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// ─── LOGIN INTERNO (usa credenciais do Secret) ───────────────
+async function doInternalLogin(): Promise<string | null> {
+  if (!AEASY_CPF || !AEASY_SENHA) return null;
+
+  const res = await fetch(`${AEASY_BASE}/conta/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      UsuariosLogin: AEASY_CPF,
+      UsuariosSenha: AEASY_SENHA,
+    }),
+    redirect: "manual",
+  });
+
+  const cookies = res.headers.getSetCookie?.() || [];
+  const phpSession = cookies
+    .find((c: string) => c.startsWith("PHPSESSID"))
+    ?.split(";")[0];
+
+  const data = await res.json().catch(() => null);
+
+  if (phpSession && data?.mensagem?.includes("sucesso")) {
+    cachedSession = phpSession;
+    // Sessao valida por 55 minutos (margem de seguranca dos 60min do AEasy)
+    sessionExpiry = Date.now() + 55 * 60 * 1000;
+    return phpSession;
+  }
+  return null;
+}
+
+// ─── OBTER SESSAO (usa cache ou faz login automatico) ────────
+async function getSession(clientSession?: string): Promise<string | null> {
+  // Se o cliente enviou uma sessao propria, usar ela
+  if (clientSession) return clientSession;
+
+  // Se temos sessao em cache e ainda nao expirou
+  if (cachedSession && Date.now() < sessionExpiry) {
+    return cachedSession;
+  }
+
+  // Fazer login automatico com credenciais do Secret
+  return await doInternalLogin();
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -18,8 +73,15 @@ serve(async (req: Request) => {
     const { action, session_cookie, ...params } = body;
 
     // ─── LOGIN ───────────────────────────────────────────────
+    // Login manual (frontend envia CPF/senha) OU login automatico (sem parametros)
     if (action === "login") {
-      const { cpf, senha } = params;
+      const cpf = params.cpf || AEASY_CPF;
+      const senha = params.senha || AEASY_SENHA;
+
+      if (!cpf || !senha) {
+        return jsonResponse({ success: false, error: "CPF e senha nao configurados" }, 400);
+      }
+
       const res = await fetch(`${AEASY_BASE}/conta/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,6 +100,9 @@ serve(async (req: Request) => {
       const data = await res.json().catch(() => null);
 
       if (phpSession && data?.mensagem?.includes("sucesso")) {
+        // Atualizar cache interno
+        cachedSession = phpSession;
+        sessionExpiry = Date.now() + 55 * 60 * 1000;
         return jsonResponse({ success: true, session_cookie: phpSession });
       }
       return jsonResponse({ success: false, error: data?.mensagem || "Falha no login" }, 401);
@@ -45,6 +110,9 @@ serve(async (req: Request) => {
 
     // ─── GESTORES (Top Vendas) ───────────────────────────────
     if (action === "gestores") {
+      const session = await getSession(session_cookie);
+      if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel. Configure AEASY_CPF/AEASY_SENHA ou envie session_cookie." }, 401);
+
       const { tipo_data, data_inicial, data_final, ordenar, campo_order, centro_custo, retornar_lider } = params;
 
       const formData = new URLSearchParams();
@@ -61,7 +129,7 @@ serve(async (req: Request) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "X-Requested-With": "XMLHttpRequest",
-          Cookie: session_cookie,
+          Cookie: session,
         },
         body: formData.toString(),
       });
@@ -72,6 +140,9 @@ serve(async (req: Request) => {
 
     // ─── VENDAS (Associados) ─────────────────────────────────
     if (action === "vendas") {
+      const session = await getSession(session_cookie);
+      if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
+
       const { start, length, situacao, tipo_data, data_inicial, data_final, campo_pesquisa, search, centro_custo } = params;
 
       const formData = new URLSearchParams();
@@ -102,7 +173,7 @@ serve(async (req: Request) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "X-Requested-With": "XMLHttpRequest",
-          Cookie: session_cookie,
+          Cookie: session,
         },
         body: formData.toString(),
       });
@@ -113,6 +184,9 @@ serve(async (req: Request) => {
 
     // ─── CONSULTORES ─────────────────────────────────────────
     if (action === "consultores") {
+      const session = await getSession(session_cookie);
+      if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
+
       const { start, length, situacao, centro_custo, tipo_consultor } = params;
 
       const qs = new URLSearchParams();
@@ -138,7 +212,7 @@ serve(async (req: Request) => {
         method: "GET",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
-          Cookie: session_cookie,
+          Cookie: session,
         },
       });
 
@@ -148,6 +222,9 @@ serve(async (req: Request) => {
 
     // ─── FLUXO DE CAIXA ─────────────────────────────────────
     if (action === "fluxo-caixa") {
+      const session = await getSession(session_cookie);
+      if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
+
       const { page, length, data_inicial, data_final, tipo_data, faturas_tipo, forma_cobranca } = params;
 
       const formData = new URLSearchParams();
@@ -164,7 +241,7 @@ serve(async (req: Request) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "X-Requested-With": "XMLHttpRequest",
-          Cookie: session_cookie,
+          Cookie: session,
         },
         body: formData.toString(),
       });
@@ -175,6 +252,9 @@ serve(async (req: Request) => {
 
     // ─── BATCH (multiplos gestores) ──────────────────────────
     if (action === "batch") {
+      const session = await getSession(session_cookie);
+      if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
+
       const { gestores, tipo_data, data_inicial, data_final, ordenar, campo_order, retornar_lider } = params;
       const results: any[] = [];
 
@@ -193,7 +273,7 @@ serve(async (req: Request) => {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
             "X-Requested-With": "XMLHttpRequest",
-            Cookie: session_cookie,
+            Cookie: session,
           },
           body: formData.toString(),
         });
