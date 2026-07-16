@@ -127,10 +127,10 @@ serve(async (req: Request) => {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "X-Requested-With": "XMLHttpRequest",
           Cookie: session,
         },
         body: formData.toString(),
+        redirect: "follow",
       });
 
       const html = await res.text();
