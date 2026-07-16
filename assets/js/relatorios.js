@@ -313,6 +313,7 @@ async function buscarDados(forceRefresh) {
     var htmlRetornado = gestoresRes.html || '';
     console.log('[Aurora] HTML retornado (tamanho):', htmlRetornado.length);
     console.log('[Aurora] Primeiros 1000 chars:', htmlRetornado.substring(0, 1000));
+    console.log('[Aurora] Debug da Edge Function:', gestoresRes.debug);
 
     // Verificar se retornou pagina de login (sessao expirada)
     if (htmlRetornado.indexOf('conta/login') !== -1 || htmlRetornado.indexOf('UsuariosLogin') !== -1) {

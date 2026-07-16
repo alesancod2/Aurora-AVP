@@ -3,13 +3,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const AEASY_BASE = "https://aeasy.autovaleprevencoes.org";
 
 // ─── CREDENCIAIS VIA SECRETS (variaveis de ambiente) ─────────
-// Configurar no Supabase com:
-//   supabase secrets set AEASY_CPF=00000000000
-//   supabase secrets set AEASY_SENHA=suasenha
 const AEASY_CPF = Deno.env.get("AEASY_CPF") || "";
 const AEASY_SENHA = Deno.env.get("AEASY_SENHA") || "";
 
-// Cache da sessao em memoria (persiste enquanto a function estiver quente)
+// Cache da sessao em memoria
 let cachedSession: string | null = null;
 let sessionExpiry: number = 0;
 
@@ -19,48 +16,75 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// ─── EXTRAIR COOKIE DE RESPOSTA ──────────────────────────────
+function extractSessionCookie(res: Response): string | null {
+  // Metodo 1: getSetCookie (Deno moderno)
+  try {
+    const cookies = res.headers.getSetCookie?.() || [];
+    for (const c of cookies) {
+      if (c.startsWith("PHPSESSID")) {
+        return c.split(";")[0]; // "PHPSESSID=abc123"
+      }
+    }
+  } catch (e) { /* fallback */ }
+
+  // Metodo 2: get('set-cookie') manual
+  try {
+    const raw = res.headers.get("set-cookie") || "";
+    const match = raw.match(/PHPSESSID=([^;]+)/);
+    if (match) return "PHPSESSID=" + match[1];
+  } catch (e) { /* fallback */ }
+
+  return null;
+}
+
 // ─── LOGIN INTERNO (usa credenciais do Secret) ───────────────
-async function doInternalLogin(): Promise<string | null> {
-  if (!AEASY_CPF || !AEASY_SENHA) return null;
+async function doInternalLogin(cpf?: string, senha?: string): Promise<{ session: string | null; error: string | null; debug: any }> {
+  const loginCpf = cpf || AEASY_CPF;
+  const loginSenha = senha || AEASY_SENHA;
+
+  if (!loginCpf || !loginSenha) {
+    return { session: null, error: "CPF e senha nao configurados", debug: { cpf_length: loginCpf.length, senha_length: loginSenha.length } };
+  }
 
   const res = await fetch(`${AEASY_BASE}/conta/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      UsuariosLogin: AEASY_CPF,
-      UsuariosSenha: AEASY_SENHA,
+      UsuariosLogin: loginCpf,
+      UsuariosSenha: loginSenha,
     }),
     redirect: "manual",
   });
 
-  const cookies = res.headers.getSetCookie?.() || [];
-  const phpSession = cookies
-    .find((c: string) => c.startsWith("PHPSESSID"))
-    ?.split(";")[0];
+  const phpSession = extractSessionCookie(res);
+  const responseText = await res.text();
+  let data: any = null;
+  try { data = JSON.parse(responseText); } catch (e) { /* nao e JSON */ }
 
-  const data = await res.json().catch(() => null);
+  const debug = {
+    status: res.status,
+    phpSession: phpSession ? phpSession.substring(0, 20) + "..." : null,
+    responsePreview: responseText.substring(0, 200),
+    hasSetCookie: !!res.headers.get("set-cookie"),
+    allHeaders: Object.fromEntries(res.headers.entries()),
+  };
 
   if (phpSession && data?.mensagem?.includes("sucesso")) {
     cachedSession = phpSession;
-    // Sessao valida por 55 minutos (margem de seguranca dos 60min do AEasy)
     sessionExpiry = Date.now() + 55 * 60 * 1000;
-    return phpSession;
+    return { session: phpSession, error: null, debug };
   }
-  return null;
+
+  return { session: null, error: data?.mensagem || "Login falhou (status " + res.status + ")", debug };
 }
 
-// ─── OBTER SESSAO (usa cache ou faz login automatico) ────────
+// ─── OBTER SESSAO ────────────────────────────────────────────
 async function getSession(clientSession?: string): Promise<string | null> {
-  // Se o cliente enviou uma sessao propria, usar ela
   if (clientSession) return clientSession;
-
-  // Se temos sessao em cache e ainda nao expirou
-  if (cachedSession && Date.now() < sessionExpiry) {
-    return cachedSession;
-  }
-
-  // Fazer login automatico com credenciais do Secret
-  return await doInternalLogin();
+  if (cachedSession && Date.now() < sessionExpiry) return cachedSession;
+  const result = await doInternalLogin();
+  return result.session;
 }
 
 serve(async (req: Request) => {
@@ -75,37 +99,12 @@ serve(async (req: Request) => {
     // ─── LOGIN ───────────────────────────────────────────────
     // Login manual (frontend envia CPF/senha) OU login automatico (sem parametros)
     if (action === "login") {
-      const cpf = params.cpf || AEASY_CPF;
-      const senha = params.senha || AEASY_SENHA;
+      const result = await doInternalLogin(params.cpf, params.senha);
 
-      if (!cpf || !senha) {
-        return jsonResponse({ success: false, error: "CPF e senha nao configurados" }, 400);
+      if (result.session) {
+        return jsonResponse({ success: true, session_cookie: result.session, debug: result.debug });
       }
-
-      const res = await fetch(`${AEASY_BASE}/conta/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          UsuariosLogin: cpf,
-          UsuariosSenha: senha,
-        }),
-        redirect: "manual",
-      });
-
-      const cookies = res.headers.getSetCookie?.() || [];
-      const phpSession = cookies
-        .find((c: string) => c.startsWith("PHPSESSID"))
-        ?.split(";")[0];
-
-      const data = await res.json().catch(() => null);
-
-      if (phpSession && data?.mensagem?.includes("sucesso")) {
-        // Atualizar cache interno
-        cachedSession = phpSession;
-        sessionExpiry = Date.now() + 55 * 60 * 1000;
-        return jsonResponse({ success: true, session_cookie: phpSession });
-      }
-      return jsonResponse({ success: false, error: data?.mensagem || "Falha no login" }, 401);
+      return jsonResponse({ success: false, error: result.error, debug: result.debug }, 401);
     }
 
     // ─── GESTORES (Top Vendas) ───────────────────────────────
@@ -135,7 +134,17 @@ serve(async (req: Request) => {
       });
 
       const html = await res.text();
-      return jsonResponse({ success: true, html });
+      return jsonResponse({
+        success: true,
+        html,
+        debug: {
+          session_used: session.substring(0, 25) + "...",
+          response_status: res.status,
+          html_length: html.length,
+          html_preview: html.substring(0, 300),
+          request_body: formData.toString(),
+        }
+      });
     }
 
     // ─── VENDAS (Associados) ─────────────────────────────────
