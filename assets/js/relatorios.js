@@ -369,6 +369,16 @@ async function buscarDados(forceRefresh) {
 
     // Parsear HTML dos gestores
     var gestores = parseGestoresHTML(htmlRetornado);
+
+    // Filtrar apenas lideres reais (62) se a Edge Function retornou a lista
+    var lideresNomes = gestoresRes.lideres || [];
+    if (lideresNomes.length > 0) {
+      console.log('[Aurora] Filtrando por ' + lideresNomes.length + ' lideres reais');
+      gestores = gestores.filter(function(g) {
+        return lideresNomes.indexOf(g.gestor.toUpperCase()) !== -1;
+      });
+    }
+
     console.log('[Aurora] Gestores parseados:', gestores.length);
     if (gestores.length > 0) {
       console.log('[Aurora] Primeiro gestor:', JSON.stringify(gestores[0]));

@@ -138,14 +138,47 @@ serve(async (req: Request) => {
       });
 
       const html = await res.text();
+
+      // Buscar lista de lideres reais para filtrar
+      let lideresNomes: string[] = [];
+      try {
+        const lideresQs = new URLSearchParams();
+        lideresQs.append("draw", "1");
+        lideresQs.append("start", "0");
+        lideresQs.append("length", "5000");
+        lideresQs.append("columns[0][data]", "IndividuosNome");
+        lideresQs.append("columns[0][name]", "IndividuosNome");
+        lideresQs.append("columns[0][orderable]", "true");
+        lideresQs.append("columns[0][searchable]", "false");
+        lideresQs.append("order[0][column]", "0");
+        lideresQs.append("order[0][dir]", "asc");
+        lideresQs.append("formPesquisa[submitFilter]", "true");
+        lideresQs.append("formPesquisa[Situacao][]", "2");
+        lideresQs.append("formPesquisa[TipoConsultor]", "5");
+
+        const lideresRes = await fetch(
+          `${AEASY_BASE}/consultores/listagem?${lideresQs.toString()}`,
+          { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest", "Cookie": session } }
+        );
+        const lideresData = await lideresRes.json();
+        // Filtrar apenas os que tem ConsultoresLider = "1"
+        lideresNomes = (lideresData.data || [])
+          .filter((c: any) => String(c.ConsultoresLider) === "1")
+          .map((c: any) => (c.IndividuosNome || "").trim().toUpperCase());
+      } catch (e) {
+        // Se falhar, retorna todos (sem filtro)
+        lideresNomes = [];
+      }
+
       return jsonResponse({
         success: true,
         html,
+        lideres: lideresNomes,
         debug: {
           session_used: session.substring(0, 25) + "...",
           response_status: res.status,
           html_length: html.length,
-          html_preview: html.substring(0, 500),
+          lideres_count: lideresNomes.length,
           request_url: url,
         }
       });
