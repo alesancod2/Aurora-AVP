@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "docs",
   "description": "Update API_DOCUMENTACAO.md with confirmed findings from testing session: consultant/manager hierarchy, TopVendas 25-column structure, RetornarLiderComEquipe behavior with practical examples, and fluxo de caixa totals structure.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add a new section '16. HIERARQUIA CONSULTORES/GESTORES' documenting the confirmed hierarchy: Total active 5,951; Type Gestor (enum=5) = 3,257 total, 62 with ConsultoresLider=1 (real leaders), 3,195 salespeople; FormaLider=1 (direct leader ~30) vs FormaLider=2 (sub-leader ~32); Type Consultor (enum=1) ~1,500+; Type Indicador (enum=4) ~1,200+",
     "Add a new section '17. RETORNAR LIDER COM EQUIPE (Comportamento)' documenting: SIM = full team + sub-leaders + sub-leaders' members; NAO = only direct members (hides sub-leaders and their teams); ATE_NIVEL_1 = direct members + first-level sub-leaders without their teams. Include the practical example with ADHRIAN (SIM=104, NAO=61, difference=43 are sub-leaders and their teams)",
@@ -24,5 +24,5 @@
     "Confirm the file is valid markdown"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 6 steps completed successfully. Added sections 16 (Hierarquia) and 17 (RetornarLider), updated section 8 with 25-column TopVendas mapping, section 4 with confirmed totals JSON, section 2 with cancellation fields, and index with new section links."
 }
