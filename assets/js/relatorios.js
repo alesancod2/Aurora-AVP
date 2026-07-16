@@ -364,7 +364,7 @@ async function buscarDados(forceRefresh) {
   btn.disabled = true;
 
   var params = {
-    tipo_data: document.getElementById('fTipoData').value,
+    tipo_data: '2',
     data_inicial: document.getElementById('fDataInicial').value,
     data_final: document.getElementById('fDataFinal').value,
     ordenar: document.getElementById('fOrdenar').value,
