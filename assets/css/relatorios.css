@@ -149,6 +149,176 @@ body {
   border-color: var(--border2);
 }
 
+/* ─── LAYOUT WRAPPER ─── */
+.layout-wrapper {
+  display: flex;
+  min-height: calc(100vh - 61px);
+  position: relative;
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 61px;
+  left: 0;
+  bottom: 0;
+  z-index: 90;
+  transition: transform .3s ease, width .3s ease, min-width .3s ease, box-shadow .3s ease;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.sidebar-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.sidebar-btn:hover {
+  background: var(--surface2);
+  color: var(--text1);
+  border-color: var(--border2);
+}
+.sidebar-btn.pinned {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 10px;
+  flex: 1;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: .85rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  width: 100%;
+  white-space: nowrap;
+}
+.sidebar-item:hover {
+  color: var(--text1);
+  background: var(--surface2);
+}
+.sidebar-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sidebar-item svg {
+  flex-shrink: 0;
+}
+.sidebar-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── SIDEBAR TOGGLE BUTTON (visible when collapsed) ─── */
+.sidebar-toggle {
+  position: fixed;
+  top: 74px;
+  left: 12px;
+  z-index: 89;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition);
+}
+.sidebar-toggle:hover {
+  background: var(--surface2);
+  color: var(--text1);
+  border-color: var(--border2);
+}
+.sidebar-toggle.visible {
+  display: flex;
+}
+
+/* ─── SIDEBAR OVERLAY (mobile) ─── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: 61px;
+  background: rgba(0, 0, 0, .4);
+  z-index: 85;
+  backdrop-filter: blur(2px);
+}
+.sidebar-overlay.visible {
+  display: block;
+}
+
+/* ─── MAIN CONTENT ─── */
+.main-content {
+  flex: 1;
+  margin-left: 260px;
+  transition: margin-left .3s ease;
+  min-width: 0;
+}
+.main-content.expanded {
+  margin-left: 0;
+}
+
 /* ─── CONTAINER ─── */
 .container {
   max-width: 1400px;
@@ -156,9 +326,9 @@ body {
   padding: 24px;
 }
 
-/* ─── TABS ─── */
+/* ─── TABS (hidden, replaced by sidebar) ─── */
 .report-tabs {
-  display: flex;
+  display: none;
   gap: 4px;
   padding: 4px;
   background: var(--surface2);
@@ -728,6 +898,30 @@ body {
   .container { padding: 16px; }
   .page-header { padding: 10px 16px; }
   .header-title { font-size: .95rem; }
+
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-toggle {
+    display: flex;
+  }
+  .sidebar-toggle.visible {
+    display: flex;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+  }
 
   .report-tabs { gap: 2px; padding: 3px; }
   .tab { padding: 8px 14px; font-size: .78rem; }

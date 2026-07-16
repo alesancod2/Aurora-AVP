@@ -43,6 +43,9 @@ var vendasTotal = 0;
 
   // Renderizar gestores ocultos
   renderHiddenGestores();
+
+  // Inicializar sidebar
+  initSidebar();
 })();
 
 function setDateValue(id, date) {
@@ -62,13 +65,98 @@ function toggleTheme() {
 // ─── TABS ───────────────────────────────────────────────────
 function switchTab(btn) {
   var tabId = btn.getAttribute('data-tab');
-  // Desativar todas
+  // Desativar todas (sidebar items e tabs legados)
+  document.querySelectorAll('.sidebar-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.report-panel').forEach(function(p) { p.classList.remove('active'); });
   // Ativar selecionada
   btn.classList.add('active');
   var panel = document.getElementById('panel-' + tabId);
   if (panel) panel.classList.add('active');
+  // Em mobile, fechar sidebar apos selecionar (se nao estiver fixada)
+  if (window.innerWidth <= 768 && !sidebarPinned) {
+    collapseSidebar();
+  }
+}
+
+// ─── SIDEBAR ────────────────────────────────────────────────
+var sidebarPinned = JSON.parse(localStorage.getItem('avp_sidebar_pinned') || 'true');
+var sidebarOpen = JSON.parse(localStorage.getItem('avp_sidebar_open') || 'true');
+
+function initSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var toggle = document.getElementById('sidebarToggle');
+  var mainContent = document.getElementById('mainContent');
+  var pinBtn = document.getElementById('btnPinSidebar');
+
+  if (sidebarPinned) {
+    pinBtn.classList.add('pinned');
+  }
+
+  if (!sidebarOpen || (!sidebarPinned && window.innerWidth <= 768)) {
+    sidebar.classList.add('collapsed');
+    toggle.classList.add('visible');
+    mainContent.classList.add('expanded');
+  }
+}
+
+function toggleSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var isCollapsed = sidebar.classList.contains('collapsed');
+
+  if (isCollapsed) {
+    expandSidebar();
+  } else {
+    collapseSidebar();
+  }
+}
+
+function expandSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var toggle = document.getElementById('sidebarToggle');
+  var mainContent = document.getElementById('mainContent');
+  var overlay = document.getElementById('sidebarOverlay');
+
+  sidebar.classList.remove('collapsed');
+  toggle.classList.remove('visible');
+  mainContent.classList.remove('expanded');
+
+  // Show overlay on mobile
+  if (window.innerWidth <= 768) {
+    overlay.classList.add('visible');
+  }
+
+  sidebarOpen = true;
+  localStorage.setItem('avp_sidebar_open', 'true');
+}
+
+function collapseSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var toggle = document.getElementById('sidebarToggle');
+  var mainContent = document.getElementById('mainContent');
+  var overlay = document.getElementById('sidebarOverlay');
+
+  sidebar.classList.add('collapsed');
+  toggle.classList.add('visible');
+  mainContent.classList.add('expanded');
+  overlay.classList.remove('visible');
+
+  sidebarOpen = false;
+  localStorage.setItem('avp_sidebar_open', 'false');
+}
+
+function togglePinSidebar() {
+  var pinBtn = document.getElementById('btnPinSidebar');
+  sidebarPinned = !sidebarPinned;
+
+  if (sidebarPinned) {
+    pinBtn.classList.add('pinned');
+    expandSidebar();
+  } else {
+    pinBtn.classList.remove('pinned');
+  }
+
+  localStorage.setItem('avp_sidebar_pinned', JSON.stringify(sidebarPinned));
 }
 
 // ─── FILTROS (toggle) ───────────────────────────────────────

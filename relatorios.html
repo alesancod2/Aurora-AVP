@@ -27,15 +27,72 @@
     </div>
   </header>
 
-  <!-- ═══════════════ CONTAINER ═══════════════ -->
-  <div class="container">
+  <!-- ═══════════════ LAYOUT WRAPPER ═══════════════ -->
+  <div class="layout-wrapper">
 
-    <!-- ─── TABS ─── -->
-    <nav class="report-tabs">
-      <button class="tab active" data-tab="top-adesoes" onclick="switchTab(this)">Acompanhamento Gestor/Equipe</button>
-      <button class="tab" data-tab="vendas" onclick="switchTab(this)">Detalhamento</button>
-      <button class="tab" data-tab="fluxo-caixa" onclick="switchTab(this)">Fluxo de Caixa</button>
-    </nav>
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Menu</span>
+        <div class="sidebar-actions">
+          <button class="sidebar-btn" id="btnPinSidebar" onclick="togglePinSidebar()" title="Fixar sidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </button>
+          <button class="sidebar-btn" id="btnCollapseSidebar" onclick="toggleSidebar()" title="Recolher sidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"/>
+              <polyline points="18 17 13 12 18 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="sidebar-item active" data-tab="top-adesoes" onclick="switchTab(this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="sidebar-item-text">Acompanhamento Gestor/Equipe</span>
+        </button>
+        <button class="sidebar-item" data-tab="vendas" onclick="switchTab(this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span class="sidebar-item-text">Detalhamento</span>
+        </button>
+        <button class="sidebar-item" data-tab="fluxo-caixa" onclick="switchTab(this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span class="sidebar-item-text">Fluxo de Caixa</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- ─── SIDEBAR COLLAPSED TOGGLE ─── -->
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Abrir menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <!-- ─── SIDEBAR OVERLAY (mobile) ─── -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="collapseSidebar()"></div>
+
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <div class="main-content" id="mainContent">
+      <div class="container">
 
     <!-- ═══════════════ PAINEL: TOP ADESOES ═══════════════ -->
     <section class="report-panel active" id="panel-top-adesoes">
@@ -372,7 +429,9 @@
       </div>
     </section>
 
-  </div>
+      </div><!-- /.container -->
+    </div><!-- /.main-content -->
+  </div><!-- /.layout-wrapper -->
 
   <!-- ═══════════════ MODAL LOGIN ═══════════════ -->
   <div class="modal-overlay" id="modalLogin" style="display:none">
