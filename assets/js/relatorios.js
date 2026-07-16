@@ -569,13 +569,22 @@ async function buscarDados(forceRefresh) {
     // Salvar cache compartilhado no Supabase DB (para todos os usuarios)
     try {
       console.log('[Aurora] Salvando cache no DB com hash:', hash);
+      // Primeiro deletar se existir
+      await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash), {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY
+        }
+      });
+      // Depois inserir novo
       var saveRes = await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache', {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates'
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify({
           filtro_hash: hash,
