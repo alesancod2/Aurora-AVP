@@ -785,7 +785,7 @@ function renderTable(ds) {
     // Equipe (ja carregada)
     if (g.equipe && g.equipe.length > 0) {
       html += '<tr class="row-equipe visible" id="equipe-' + i + '"><td colspan="8">';
-      html += renderEquipeTable(g.equipe);
+      html += renderEquipeTable(g.equipe, g);
       html += '</td></tr>';
     }
   }
@@ -793,11 +793,24 @@ function renderTable(ds) {
   tbody.innerHTML = html;
 }
 
-function renderEquipeTable(membros) {
+function renderEquipeTable(membros, gestor) {
   var html = '<table class="equipe-table">';
   html += '<thead><tr><th>#</th><th>Membro</th><th>Cidade</th><th>Conv.</th>';
   html += '<th>Qtd</th><th>Valor</th><th>Ticket</th></tr></thead>';
   html += '<tbody>';
+  // Primeira linha: o proprio gestor (individual)
+  if (gestor) {
+    html += '<tr style="font-weight:600;color:var(--text1)">';
+    html += '<td></td>';
+    html += '<td>' + esc(gestor.gestor) + ' <span style="font-size:.65rem;color:var(--text3);font-weight:400">(individual)</span></td>';
+    html += '<td>' + esc(gestor.cidade) + '</td>';
+    html += '<td>' + esc(gestor.taxa_conversao) + '</td>';
+    html += '<td>' + formatNum(gestor.ati_qtd) + '</td>';
+    html += '<td>' + formatMoney(gestor.ati_valor) + '</td>';
+    html += '<td>' + formatMoney(gestor.ati_ticket) + '</td>';
+    html += '</tr>';
+  }
+  // Membros da equipe
   membros.forEach(function(m, i) {
     html += '<tr>';
     html += '<td>' + (i + 1) + '</td>';
