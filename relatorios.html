@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurora AVP - Relatorios</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/relatorios.css">
+</head>
+<body>
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="logo-mark">AVP</div>
+      <h1 class="header-title">Aurora <span>Relatorios</span></h1>
+    </div>
+    <div class="header-right">
+      <span class="session-badge" id="sessionBadge">Desconectado</span>
+      <button class="btn-icon" id="btnTheme" onclick="toggleTheme()" title="Alternar tema">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════ CONTAINER ═══════════════ -->
+  <div class="container">
+
+    <!-- ─── TABS ─── -->
+    <nav class="report-tabs">
+      <button class="tab active" data-tab="top-adesoes" onclick="switchTab(this)">Top Adesoes</button>
+      <button class="tab" data-tab="vendas" onclick="switchTab(this)">Associados</button>
+      <button class="tab" data-tab="fluxo-caixa" onclick="switchTab(this)">Fluxo de Caixa</button>
+      <button class="tab" data-tab="consultores" onclick="switchTab(this)">Consultores</button>
+    </nav>
+
+    <!-- ═══════════════ PAINEL: TOP ADESOES ═══════════════ -->
+    <section class="report-panel active" id="panel-top-adesoes">
+
+      <!-- Filtros -->
+      <div class="filter-panel">
+        <div class="filter-header" onclick="toggleFilters('top-adesoes')">
+          <h3>Filtros</h3>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-body" id="filters-top-adesoes">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label>Tipo Data</label>
+              <select id="fTipoData">
+                <option value="3">Data Ativacao</option>
+                <option value="2">Data Cotacao</option>
+                <option value="4">Data Venda Efetivada</option>
+                <option value="5">Primeiro Boleto Pago</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Data Inicial</label>
+              <input type="date" id="fDataInicial">
+            </div>
+            <div class="filter-group">
+              <label>Data Final</label>
+              <input type="date" id="fDataFinal">
+            </div>
+            <div class="filter-group">
+              <label>Ordenar por</label>
+              <select id="fOrdenar">
+                <option value="3">Adesoes Efetivadas</option>
+                <option value="1">Cotacao</option>
+                <option value="2">Cadastros</option>
+                <option value="4">Adesoes Canceladas</option>
+                <option value="5">Adesoes Suspensas</option>
+                <option value="7">Primeiro Boleto Pago</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Campo Ordenacao</label>
+              <select id="fCampoOrder">
+                <option value="Quantidade">Quantidade</option>
+                <option value="Ticket">Ticket</option>
+                <option value="Valor">Valor</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Centro de Custo</label>
+              <select id="fCentroCusto">
+                <option value="">Todos</option>
+                <option value="Empresa">01 - AutoVale</option>
+                <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
+                <option value="Juazeiro">03 - Juazeiro</option>
+                <option value="Bomfim">04 - Sr. Bomfim</option>
+                <option value="Itabuna">05 - Itabuna</option>
+                <option value="JNorte">06 - J. Norte</option>
+                <option value="Maceio">07 - Maceio</option>
+                <option value="Salgueiro">08 - Salgueiro</option>
+                <option value="Arapiraca1">09 - Arapiraca</option>
+                <option value="SMiguelCampos">10 - S. Miguel Campos</option>
+                <option value="C2D9F83C-E5ED-10FC-C44F-F97B974C84F2">11 - Carpina</option>
+                <option value="DFA87AB6-49FF-B6C0-C971-BB9FDBF343EC">12 - Serra Talhada</option>
+                <option value="4808A9B4-1D5E-1D95-ECE6-D09FA4F5316F">13 - Propria</option>
+                <option value="C076FFB2-A1FF-DA78-D2C2-B8049B1C8F91">14 - Horizonte</option>
+                <option value="746E6EAC-32E8-455C-7230-BC41043D89B0">15 - Feira de Santana</option>
+                <option value="CF7C65F2-833C-F6E6-D726-426982B1453C">16 - Recife</option>
+                <option value="AA67330C-53E7-2B5B-1271-78E26734792E">17 - Meep Pagamentos</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Retornar Lider</label>
+              <select id="fRetornarLider">
+                <option value="SIM">Sim</option>
+                <option value="NAO">Nao</option>
+                <option value="ATE_NIVEL_1">Ate Nivel 1</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary" id="btnBuscar" onclick="buscarDados()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Buscar
+            </button>
+            <button class="btn btn-secondary" onclick="buscarDados(true)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Forcar Atualizacao
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Progresso -->
+      <div class="progress-panel" id="progressPanel" style="display:none">
+        <div class="progress-info">
+          <span id="progressText">Carregando...</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-detail">
+          <span id="progressDetail"></span>
+          <span id="progressTime"></span>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">Total Gestores</div>
+          <div class="kpi-value" id="kpiGestores">-</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Total Adesoes</div>
+          <div class="kpi-value" id="kpiAdesoes">-</div>
+        </div>
+        <div class="kpi-card kpi-amber">
+          <div class="kpi-label">Ticket Medio</div>
+          <div class="kpi-value" id="kpiTicket">-</div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-label">Cancelamentos</div>
+          <div class="kpi-value" id="kpiCancelados">-</div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-label">Valor Total</div>
+          <div class="kpi-value" id="kpiValor">-</div>
+        </div>
+      </div>
+
+      <!-- Busca rapida + info -->
+      <div class="search-row">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar gestor..." oninput="filtrarTabela()">
+        </div>
+        <div class="search-filters">
+          <select id="filterCidade" onchange="filtrarTabela()">
+            <option value="">Todas as cidades</option>
+          </select>
+        </div>
+        <div class="data-info">
+          <span id="dataInfo">Nenhum dado carregado</span>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-wrap">
+        <table class="data-table" id="mainTable">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th class="sortable" data-key="gestor" onclick="sortBy('gestor')">Gestor</th>
+              <th class="sortable" data-key="cidade" onclick="sortBy('cidade')">Cidade</th>
+              <th class="sortable col-num" data-key="total_qtd" onclick="sortBy('total_qtd')">Adesoes</th>
+              <th class="sortable col-num" data-key="total_valor" onclick="sortBy('total_valor')">Valor</th>
+              <th class="sortable col-num" data-key="ticket" onclick="sortBy('ticket')">Ticket</th>
+              <th class="sortable col-num" data-key="cancelados" onclick="sortBy('cancelados')">Cancel.</th>
+              <th class="sortable col-num" data-key="suspensos" onclick="sortBy('suspensos')">Susp.</th>
+              <th class="col-actions">Acoes</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="9" class="empty-state">Use os filtros acima para buscar dados</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Gestores ocultos -->
+      <div class="hidden-panel" id="hiddenPanel" style="display:none">
+        <h4>Gestores Ocultos (<span id="hiddenCount">0</span>)</h4>
+        <div class="hidden-list" id="hiddenList"></div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════ PAINEL: VENDAS/ASSOCIADOS ═══════════════ -->
+    <section class="report-panel" id="panel-vendas">
+
+      <div class="filter-panel">
+        <div class="filter-header" onclick="toggleFilters('vendas')">
+          <h3>Filtros - Associados</h3>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-body" id="filters-vendas">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label>Situacao</label>
+              <select id="fVendasSituacao">
+                <option value="">Todas</option>
+                <option value="1">Ativo</option>
+                <option value="2">Suspenso</option>
+                <option value="3">Cancelado</option>
+                <option value="4">Aguardando Pagamento</option>
+                <option value="5">Novo</option>
+                <option value="6">Aguardando Vistoria</option>
+                <option value="11">Reativacao</option>
+                <option value="13">Pre-Cancelamento</option>
+                <option value="17">Juridico</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Tipo Data</label>
+              <select id="fVendasTipoData">
+                <option value="VendasDataAtivacao">Data Ativacao</option>
+                <option value="VendasDataCadastro">Data Cadastro</option>
+                <option value="VendasDataCancelamento">Data Cancelamento</option>
+                <option value="VendasDataPagamento">Data Contrato</option>
+                <option value="VendasDataSuspensao">Data Suspensao</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Data Inicial</label>
+              <input type="date" id="fVendasDataInicial">
+            </div>
+            <div class="filter-group">
+              <label>Data Final</label>
+              <input type="date" id="fVendasDataFinal">
+            </div>
+            <div class="filter-group">
+              <label>Busca por</label>
+              <select id="fVendasCampoPesquisa">
+                <option value="">Nenhum</option>
+                <option value="nome">Nome</option>
+                <option value="cpf_cnpj">CPF/CNPJ</option>
+                <option value="placa">Placa</option>
+                <option value="chassi">Chassi</option>
+                <option value="telefone">Telefone</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Termo de busca</label>
+              <input type="text" id="fVendasSearch" placeholder="Digite aqui...">
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary" onclick="buscarVendas()">Buscar Associados</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpiGridVendas">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">Total Registros</div>
+          <div class="kpi-value" id="kpiVendasTotal">-</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Filtrados</div>
+          <div class="kpi-value" id="kpiVendasFiltrados">-</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>CPF</th>
+              <th>Placa</th>
+              <th>Modelo</th>
+              <th>Plano</th>
+              <th>Situacao</th>
+              <th>Consultor</th>
+              <th>Sede</th>
+            </tr>
+          </thead>
+          <tbody id="vendasBody">
+            <tr><td colspan="9" class="empty-state">Use os filtros para buscar associados</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="vendasPagination"></div>
+    </section>
+
+    <!-- ═══════════════ PAINEL: FLUXO DE CAIXA ═══════════════ -->
+    <section class="report-panel" id="panel-fluxo-caixa">
+
+      <div class="filter-panel">
+        <div class="filter-header" onclick="toggleFilters('fluxo-caixa')">
+          <h3>Filtros - Fluxo de Caixa</h3>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-body" id="filters-fluxo-caixa">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label>Data Inicial</label>
+              <input type="date" id="fFluxoDataInicial">
+            </div>
+            <div class="filter-group">
+              <label>Data Final</label>
+              <input type="date" id="fFluxoDataFinal">
+            </div>
+            <div class="filter-group">
+              <label>Tipo Data</label>
+              <select id="fFluxoTipoData">
+                <option value="FaturasDataVencimento">Data Vencimento</option>
+                <option value="FaturasDataOriginal">Data Original</option>
+                <option value="FaturasDataCredito">Data Credito</option>
+                <option value="FaturasDataPagamento">Data Pagamento</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Tipo Fatura</label>
+              <select id="fFluxoTipoFatura">
+                <option value="">Todas</option>
+                <option value="1">Adesao</option>
+                <option value="2">Contribuicao</option>
+                <option value="3">Avulsa</option>
+                <option value="4">Rastreador</option>
+                <option value="8">Reativacao</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary" onclick="buscarFluxoCaixa()">Buscar Fluxo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpiGridFluxo">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">Valor Total</div>
+          <div class="kpi-value" id="kpiFluxoTotal">-</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Valor Pago</div>
+          <div class="kpi-value" id="kpiFluxoPago">-</div>
+        </div>
+        <div class="kpi-card kpi-amber">
+          <div class="kpi-label">Valor Aberto</div>
+          <div class="kpi-value" id="kpiFluxoAberto">-</div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-label">Valor Cancelado</div>
+          <div class="kpi-value" id="kpiFluxoCancelado">-</div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-label">Qtd Faturas</div>
+          <div class="kpi-value" id="kpiFluxoQtd">-</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>CPF</th>
+              <th>Placa</th>
+              <th>Tipo</th>
+              <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Pago</th>
+              <th>Situacao</th>
+            </tr>
+          </thead>
+          <tbody id="fluxoBody">
+            <tr><td colspan="9" class="empty-state">Defina as datas e busque o fluxo de caixa</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════ PAINEL: CONSULTORES ═══════════════ -->
+    <section class="report-panel" id="panel-consultores">
+
+      <div class="filter-panel">
+        <div class="filter-header" onclick="toggleFilters('consultores')">
+          <h3>Filtros - Consultores</h3>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="filter-body" id="filters-consultores">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label>Situacao</label>
+              <select id="fConsultoresSituacao">
+                <option value="2">Ativo</option>
+                <option value="">Todos</option>
+                <option value="1">Pre-cadastro</option>
+                <option value="3">Suspenso</option>
+                <option value="4">Bloqueado</option>
+                <option value="5">Cancelado</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Tipo</label>
+              <select id="fConsultoresTipo">
+                <option value="">Todos</option>
+                <option value="1">Consultor</option>
+                <option value="2">Vendedor</option>
+                <option value="3">Sede/Parceria</option>
+                <option value="5">Regional/Gestor</option>
+                <option value="6">Gestor</option>
+                <option value="7">Interno</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Centro de Custo</label>
+              <select id="fConsultoresCentro">
+                <option value="">Todos</option>
+                <option value="Empresa">01 - AutoVale</option>
+                <option value="2DFB8E7F-09CA-527B-0E36-CFF08A943C19">02 - Petrolina</option>
+                <option value="Juazeiro">03 - Juazeiro</option>
+                <option value="JNorte">06 - J. Norte</option>
+                <option value="Maceio">07 - Maceio</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary" onclick="buscarConsultores()">Buscar Consultores</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>CPF</th>
+              <th>Tipo</th>
+              <th>Situacao</th>
+              <th>Cidade</th>
+              <th>Telefone</th>
+              <th>Email</th>
+            </tr>
+          </thead>
+          <tbody id="consultoresBody">
+            <tr><td colspan="8" class="empty-state">Busque os consultores usando os filtros</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ═══════════════ MODAL LOGIN ═══════════════ -->
+  <div class="modal-overlay" id="modalLogin" style="display:none">
+    <div class="modal">
+      <h2>Login AEasy</h2>
+      <p class="modal-desc">Insira suas credenciais para acessar a API</p>
+      <div class="modal-form">
+        <div class="filter-group">
+          <label>CPF</label>
+          <input type="text" id="loginCpf" placeholder="00000000000">
+        </div>
+        <div class="filter-group">
+          <label>Senha</label>
+          <input type="password" id="loginSenha" placeholder="Sua senha">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      </div>
+      <p class="modal-error" id="loginError" style="display:none"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SCRIPTS ═══════════════ -->
+  <script src="assets/js/relatorios.js"></script>
+</body>
+</html>
