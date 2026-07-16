@@ -242,6 +242,30 @@ function updateProgress(pct, text, detail, time) {
 
 
 // ─── BUSCAR DADOS (Top Adesoes - funcao principal) ──────────
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║ RetornarLiderComEquipe - Comportamento do filtro "Retornar Lider"       ║
+// ║                                                                         ║
+// ║ Quando se seleciona um gestor no filtro "Equipe", o sistema retorna     ║
+// ║ a lista de membros da equipe dele. Este filtro controla QUEM aparece:   ║
+// ║                                                                         ║
+// ║ "SIM" = Equipe completa:                                                ║
+// ║   Retorna todos da equipe + sub-lideres + membros dos sub-lideres.      ║
+// ║   Exemplo: ADHRIAN com SIM = 104 membros.                               ║
+// ║                                                                         ║
+// ║ "NAO" = Equipe sem lideres (PADRAO):                                    ║
+// ║   Apenas membros diretos (remove sub-lideres e suas equipes).           ║
+// ║   Mostra so os "soldados" de cada gestor, sem incluir outros            ║
+// ║   gestores/sub-gestores que estao abaixo dele na hierarquia.            ║
+// ║   Exemplo: ADHRIAN com NAO = 61 membros.                                ║
+// ║   A diferenca (104 - 61 = 43) sao sub-lideres e suas equipes.          ║
+// ║                                                                         ║
+// ║ "ATE_NIVEL_1" = Equipe ate lider 1o nivel:                              ║
+// ║   Membros diretos + sub-lideres do primeiro nivel (sem as equipes       ║
+// ║   desses sub-lideres).                                                  ║
+// ║                                                                         ║
+// ║ Usamos "NAO" como padrao porque queremos ver apenas os consultores      ║
+// ║ diretos ("soldados") sob cada gestor no relatorio.                      ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
 async function buscarDados(forceRefresh) {
   var btn = document.getElementById('btnBuscar');
   btn.disabled = true;
@@ -392,6 +416,12 @@ async function buscarDados(forceRefresh) {
 // [16-18] Suspensas (Qtd/Valor/Ticket)
 // [19-21] Canceladas (Qtd/Valor/Ticket)
 // [22-24] Primeiro Boleto Pago (Qtd/Valor/Ticket)
+//
+// NOTA: Com o filtro RetornarLider = "NAO" (Equipe sem lideres),
+// cada linha de gestor representa apenas seus consultores diretos.
+// Sub-lideres e suas equipes nao aparecem nos resultados.
+// O proprio gestor ainda aparece na lista (por isso separamos
+// individual vs equipe na exibicao).
 
 function parseGestoresHTML(html) {
   var parser = new DOMParser();
