@@ -383,72 +383,71 @@ async function buscarDados(forceRefresh) {
 
 
 // ─── PARSE HTML DO TOP VENDAS ───────────────────────────────
+// Estrutura real da tabela AEasy (25 colunas por row):
+// [0] # | [1] Nome | [2] Centro Custo | [3] Taxa Conversao
+// [4-6] Cotacoes (Qtd/Valor/Ticket)
+// [7-9] Cadastros (Qtd/Valor/Ticket)
+// [10-12] Efetivadas (Qtd/Valor/Ticket)
+// [13-15] Ativadas (Qtd/Valor/Ticket)
+// [16-18] Suspensas (Qtd/Valor/Ticket)
+// [19-21] Canceladas (Qtd/Valor/Ticket)
+// [22-24] Primeiro Boleto Pago (Qtd/Valor/Ticket)
+
 function parseGestoresHTML(html) {
   var parser = new DOMParser();
   var doc = parser.parseFromString(html, 'text/html');
-  var rows = doc.querySelectorAll('tr');
+  var rows = doc.querySelectorAll('tbody tr');
   var gestores = [];
 
   rows.forEach(function(row) {
     var cells = row.querySelectorAll('td');
-    if (cells.length < 5) return;
+    if (cells.length < 20) return; // Pular rows incompletas ou headers
 
-    // Detectar indice de inicio (pular coluna de ranking se existir)
-    var startIdx = 0;
-    var firstText = (cells[0] ? cells[0].textContent.trim() : '');
-    if (/^\d+$/.test(firstText)) startIdx = 1;
-
-    var nome = (cells[startIdx] ? cells[startIdx].textContent.trim() : '');
-    if (!nome || nome === 'Total' || nome === 'Totais' || nome === '#' || nome === 'Nome') return;
-
-    var cidade = (cells[startIdx + 1] ? cells[startIdx + 1].textContent.trim() : '');
-
-    // Estrutura esperada apos nome e cidade:
-    // [ind_qtd] [ind_valor] [eq_qtd] [eq_valor] [total_qtd] [total_valor]
-    // Pode variar - tentar mapear o maximo de colunas disponivel
-    var colIdx = startIdx + 2;
-    var numCols = cells.length - colIdx;
-
-    var ind_qtd = 0, ind_valor = 0, eq_qtd = 0, eq_valor = 0, total_qtd = 0, total_valor = 0;
-
-    if (numCols >= 6) {
-      // Estrutura completa: ind_qtd, ind_valor, eq_qtd, eq_valor, total_qtd, total_valor
-      ind_qtd = parseBrNumber(cells[colIdx].textContent.trim());
-      ind_valor = parseBrCurrency(cells[colIdx + 1].textContent.trim());
-      eq_qtd = parseBrNumber(cells[colIdx + 2].textContent.trim());
-      eq_valor = parseBrCurrency(cells[colIdx + 3].textContent.trim());
-      total_qtd = parseBrNumber(cells[colIdx + 4].textContent.trim());
-      total_valor = parseBrCurrency(cells[colIdx + 5].textContent.trim());
-    } else if (numCols >= 4) {
-      // Estrutura com 4 colunas: qtd, valor, total_qtd, total_valor
-      ind_qtd = parseBrNumber(cells[colIdx].textContent.trim());
-      ind_valor = parseBrCurrency(cells[colIdx + 1].textContent.trim());
-      total_qtd = parseBrNumber(cells[colIdx + 2].textContent.trim());
-      total_valor = parseBrCurrency(cells[colIdx + 3].textContent.trim());
-      eq_qtd = total_qtd - ind_qtd;
-      eq_valor = total_valor - ind_valor;
-    } else if (numCols >= 2) {
-      // Estrutura minima: qtd, valor
-      total_qtd = parseBrNumber(cells[colIdx].textContent.trim());
-      total_valor = parseBrCurrency(cells[colIdx + 1].textContent.trim());
-      ind_qtd = total_qtd;
-      ind_valor = total_valor;
-    }
+    var nome = getText(cells[1]);
+    if (!nome || nome === 'Total' || nome === 'Totais') return;
 
     gestores.push({
       gestor: nome,
-      cidade: cidade,
-      ind_qtd: ind_qtd,
-      ind_valor: ind_valor,
-      eq_qtd: eq_qtd,
-      eq_valor: eq_valor,
-      total_qtd: total_qtd,
-      total_valor: total_valor,
+      cidade: getText(cells[2]),
+      taxa_conversao: getText(cells[3]),
+      // Cotacoes
+      cot_qtd: parseBrNumber(getText(cells[4])),
+      cot_valor: parseBrCurrency(getText(cells[5])),
+      cot_ticket: parseBrCurrency(getText(cells[6])),
+      // Cadastros
+      cad_qtd: parseBrNumber(getText(cells[7])),
+      cad_valor: parseBrCurrency(getText(cells[8])),
+      cad_ticket: parseBrCurrency(getText(cells[9])),
+      // Efetivadas
+      efe_qtd: parseBrNumber(getText(cells[10])),
+      efe_valor: parseBrCurrency(getText(cells[11])),
+      efe_ticket: parseBrCurrency(getText(cells[12])),
+      // Ativadas
+      ati_qtd: parseBrNumber(getText(cells[13])),
+      ati_valor: parseBrCurrency(getText(cells[14])),
+      ati_ticket: parseBrCurrency(getText(cells[15])),
+      // Suspensas
+      sus_qtd: parseBrNumber(getText(cells[16])),
+      sus_valor: parseBrCurrency(getText(cells[17])),
+      // Canceladas
+      can_qtd: parseBrNumber(getText(cells[19])),
+      can_valor: parseBrCurrency(getText(cells[20])),
+      // Primeiro Boleto Pago
+      pbp_qtd: parseBrNumber(getText(cells[22])),
+      pbp_valor: parseBrCurrency(getText(cells[23])),
+      // Totais calculados (ativadas como principal)
+      total_qtd: parseBrNumber(getText(cells[13])),
+      total_valor: parseBrCurrency(getText(cells[14])),
+      ticket: parseBrCurrency(getText(cells[15])),
       equipe: []
     });
   });
 
   return gestores;
+}
+
+function getText(cell) {
+  return cell ? cell.textContent.trim() : '';
 }
 
 // Parse numero brasileiro: "11.250" → 11250, "3.618.750" → 3618750
@@ -483,27 +482,28 @@ function showData(msg) {
 // ─── KPIs ───────────────────────────────────────────────────
 function updateKPIs() {
   var visible = filterData(DATA);
-  var totalQtd = 0, totalValor = 0, totalIndQtd = 0, totalEqQtd = 0;
+  var totalAtivadas = 0, totalValor = 0, totalSuspensos = 0, totalCancelados = 0, totalPBP = 0;
 
   visible.forEach(function(g) {
-    totalQtd += g.total_qtd;
-    totalValor += g.total_valor;
-    totalIndQtd += g.ind_qtd;
-    totalEqQtd += g.eq_qtd;
+    totalAtivadas += g.ati_qtd;
+    totalValor += g.ati_valor;
+    totalSuspensos += g.sus_qtd;
+    totalCancelados += g.can_qtd;
+    totalPBP += g.pbp_qtd;
   });
 
   document.getElementById('kpiGestores').textContent = formatNum(visible.length);
-  document.getElementById('kpiAdesoes').textContent = formatNum(totalQtd);
+  document.getElementById('kpiAdesoes').textContent = formatNum(totalAtivadas);
   document.getElementById('kpiValor').textContent = formatMoney(totalValor);
-  document.getElementById('kpiIndividual').textContent = formatNum(totalIndQtd);
-  document.getElementById('kpiEquipes').textContent = formatNum(totalEqQtd);
+  document.getElementById('kpiIndividual').textContent = formatNum(totalCancelados);
+  document.getElementById('kpiEquipes').textContent = formatNum(totalPBP);
 }
 
 // ─── RENDER TABLE ───────────────────────────────────────────
 function renderTable(ds) {
   var tbody = document.getElementById('tableBody');
   if (!ds || ds.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Nenhum resultado encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="empty-state">Nenhum resultado encontrado</td></tr>';
     return;
   }
 
@@ -514,12 +514,21 @@ function renderTable(ds) {
     html += '<td class="col-num">' + (i + 1) + '</td>';
     html += '<td><strong>' + esc(g.gestor) + '</strong></td>';
     html += '<td>' + esc(g.cidade) + '</td>';
-    html += '<td class="col-num col-green">' + formatNum(g.ind_qtd) + '</td>';
-    html += '<td class="col-num col-green">' + formatMoney(g.ind_valor) + '</td>';
-    html += '<td class="col-num col-purple">' + formatNum(g.eq_qtd) + '</td>';
-    html += '<td class="col-num col-purple">' + formatMoney(g.eq_valor) + '</td>';
-    html += '<td class="col-num col-amber"><strong>' + formatNum(g.total_qtd) + '</strong></td>';
-    html += '<td class="col-num col-amber"><strong>' + formatMoney(g.total_valor) + '</strong></td>';
+    html += '<td class="col-num">' + esc(g.taxa_conversao) + '</td>';
+    // Ativadas (verde)
+    html += '<td class="col-num col-green"><strong>' + formatNum(g.ati_qtd) + '</strong></td>';
+    html += '<td class="col-num col-green">' + formatMoney(g.ati_valor) + '</td>';
+    html += '<td class="col-num col-green">' + formatMoney(g.ati_ticket) + '</td>';
+    // Suspensas (roxo)
+    html += '<td class="col-num col-purple">' + formatNum(g.sus_qtd) + '</td>';
+    html += '<td class="col-num col-purple">' + formatMoney(g.sus_valor) + '</td>';
+    // Canceladas (ambar)
+    html += '<td class="col-num col-amber">' + formatNum(g.can_qtd) + '</td>';
+    html += '<td class="col-num col-amber">' + formatMoney(g.can_valor) + '</td>';
+    // PBP (azul)
+    html += '<td class="col-num" style="color:var(--blue)">' + formatNum(g.pbp_qtd) + '</td>';
+    html += '<td class="col-num" style="color:var(--blue)">' + formatMoney(g.pbp_valor) + '</td>';
+    // Ações
     html += '<td class="col-actions">';
     html += '<button class="btn-hide" onclick="event.stopPropagation();hideGestor(\'' + esc(g.gestor) + '\')" title="Ocultar gestor">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -529,7 +538,7 @@ function renderTable(ds) {
 
     // Linha expandivel (equipe)
     html += '<tr class="row-equipe" id="equipe-' + i + '">';
-    html += '<td colspan="10">';
+    html += '<td colspan="14">';
     html += renderEquipe(g.equipe || []);
     html += '</td></tr>';
   }
