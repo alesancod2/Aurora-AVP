@@ -364,7 +364,7 @@ serve(async (req: Request) => {
       return jsonResponse({ success: true, data: results });
     }
 
-    // ─── IMPORTAR CACHE (Cron job) ─────────────────────────────
+    // ─── IMPORTAR CACHE (Cron job - autonomo, salva no DB) ─────
     if (action === "importar-cache") {
       const session = await getSession(session_cookie);
       if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
@@ -373,6 +373,9 @@ serve(async (req: Request) => {
       if (!data_inicial || !data_final) {
         return jsonResponse({ success: false, error: "data_inicial e data_final obrigatorios" }, 400);
       }
+
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+      const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "";
 
       // 1. Buscar TopVendas geral
       const topUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
@@ -405,17 +408,101 @@ serve(async (req: Request) => {
         .filter((c: any) => String(c.ConsultoresLider) === "1")
         .map((c: any) => ({ id: c.ConsultoresId, nome: (c.IndividuosNome || "").trim() }));
 
-      // 3. Parsear HTML - retornar dados brutos + lideres para o chamador processar
-      // (o processamento pesado de equipes sera feito pelo script Python do cron)
+      const liderNomes = lideres.map((l: any) => l.nome.toUpperCase());
+
+      // 3. Parsear HTML do TopVendas
+      function parseTable(html: string): any[] {
+        const tbodyStart = html.indexOf('<tbody>');
+        const tbodyEnd = html.indexOf('</tbody>');
+        if (tbodyStart === -1) return [];
+        const tbody = html.substring(tbodyStart, tbodyEnd);
+        const rows = tbody.match(/<tr>(.*?)<\/tr>/gs) || [];
+        const gestores: any[] = [];
+        for (const row of rows) {
+          const cellMatches = row.match(/<td[^>]*>(.*?)<\/td>/gs) || [];
+          const cells = cellMatches.map((c: string) => c.replace(/<[^>]+>/g, '').trim());
+          if (cells.length < 20) continue;
+          const nome = cells[1];
+          if (!nome || nome === 'Total' || nome === 'Totais') continue;
+          const pn = (s: string) => parseInt(s.replace(/[^\d]/g, '') || '0');
+          const pm = (s: string) => {
+            const clean = s.replace(/R\$\s*/g, '').trim().replace(/\./g, '').replace(',', '.');
+            return parseFloat(clean) || 0;
+          };
+          gestores.push({
+            gestor: nome, cidade: cells[2], taxa_conversao: cells[3],
+            cot_qtd: pn(cells[4]), cot_valor: pm(cells[5]),
+            ati_qtd: pn(cells[13]), ati_valor: pm(cells[14]), ati_ticket: pm(cells[15]),
+            sus_qtd: pn(cells[16]), can_qtd: pn(cells[19]),
+            pbp_qtd: pn(cells[22]), pbp_valor: pm(cells[23]),
+            equipe: []
+          });
+        }
+        return gestores;
+      }
+
+      const allGestores = parseTable(topHtml);
+      const gestoresFiltrados = allGestores.filter((g: any) => liderNomes.includes(g.gestor.toUpperCase()));
+
+      // 4. Buscar equipe de cada lider (sequencial para evitar timeout)
+      for (const lider of lideres) {
+        const gd = gestoresFiltrados.find((g: any) => g.gestor.toUpperCase() === lider.nome.toUpperCase());
+        if (!gd) continue;
+
+        const eqUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=${lider.id}&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
+        try {
+          const eqRes = await fetch(eqUrl, {
+            method: "GET",
+            headers: { "Accept": "text/html", "Cookie": session, "Referer": AEASY_BASE + "/" },
+          });
+          const eqHtml = await eqRes.text();
+          const membros = parseTable(eqHtml)
+            .filter((m: any) => m.gestor.toUpperCase() !== lider.nome.toUpperCase() && m.cot_qtd >= 1);
+          gd.equipe = membros;
+        } catch (e) {
+          // Se falhar uma equipe, continuar com as demais
+        }
+      }
+
+      // 5. Salvar no Supabase DB
+      const hashKey = `campo_order=Quantidade|centro_custo=|data_final=${data_final}|data_inicial=${data_inicial}|ordenar=3|retornar_lider=NAO|tipo_data=2`;
+
+      // Deletar registro existente
+      await fetch(`${SUPABASE_URL}/rest/v1/relatorios_cache?filtro_hash=eq.${encodeURIComponent(hashKey)}`, {
+        method: "DELETE",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+      });
+
+      // Inserir novo
+      const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/relatorios_cache`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({
+          filtro_hash: hashKey,
+          tipo_relatorio: "dashboard",
+          data_inicial: data_inicial,
+          data_final: data_final,
+          dados: gestoresFiltrados,
+          total_registros: gestoresFiltrados.length,
+          updated_at: new Date().toISOString(),
+          expires_at: "2099-12-31T23:59:59+00:00"
+        })
+      });
+
+      const totalMembros = gestoresFiltrados.reduce((acc: number, g: any) => acc + (g.equipe?.length || 0), 0);
+
       return jsonResponse({
         success: true,
-        html: topHtml,
-        lideres: lideres.map((l: any) => l.nome.toUpperCase()),
-        lideres_info: lideres,
-        html_length: topHtml.length,
-        lideres_count: lideres.length,
-        data_inicial,
-        data_final
+        message: `Importado: ${gestoresFiltrados.length} gestores, ${totalMembros} membros`,
+        periodo: `${data_inicial} a ${data_final}`,
+        db_status: saveRes.status,
+        gestores_count: gestoresFiltrados.length,
+        membros_count: totalMembros
       });
     }
 
