@@ -444,10 +444,12 @@ serve(async (req: Request) => {
       const allGestores = parseTable(topHtml);
       const gestoresFiltrados = allGestores.filter((g: any) => liderNomes.includes(g.gestor.toUpperCase()));
 
-      // 4. Buscar equipe de cada lider (sequencial para evitar timeout)
-      for (const lider of lideres) {
-        const gd = gestoresFiltrados.find((g: any) => g.gestor.toUpperCase() === lider.nome.toUpperCase());
-        if (!gd) continue;
+      // 4. Buscar equipe apenas dos lideres COM cotacoes > 0 (otimiza tempo)
+      const lideresComCotacoes = gestoresFiltrados.filter((g: any) => g.cot_qtd > 0);
+
+      for (const gd of lideresComCotacoes) {
+        const lider = lideres.find((l: any) => l.nome.toUpperCase() === gd.gestor.toUpperCase());
+        if (!lider) continue;
 
         const eqUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=${lider.id}&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
         try {
