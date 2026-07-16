@@ -365,52 +365,25 @@ serve(async (req: Request) => {
     }
 
     // ─── IMPORTAR CACHE (Cron job - autonomo, salva no DB) ─────
+    // Dividido em 3 etapas para evitar timeout:
+    // etapa=1: Busca TopVendas geral + lideres, salva dados base
+    // etapa=2: Busca equipes dos lideres 1-20
+    // etapa=3: Busca equipes dos lideres 21-40
+    // etapa=4: Busca equipes dos lideres 41-60+
     if (action === "importar-cache") {
       const session = await getSession(session_cookie);
       if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel" }, 401);
 
-      const { data_inicial, data_final } = params;
+      const { data_inicial, data_final, etapa } = params;
       if (!data_inicial || !data_final) {
         return jsonResponse({ success: false, error: "data_inicial e data_final obrigatorios" }, 400);
       }
 
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
       const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "";
+      const hashKey = `campo_order=Quantidade|centro_custo=|data_final=${data_final}|data_inicial=${data_inicial}|ordenar=3|retornar_lider=NAO|tipo_data=2`;
 
-      // 1. Buscar TopVendas geral
-      const topUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
-      const topRes = await fetch(topUrl, {
-        method: "GET",
-        headers: { "Accept": "text/html", "Cookie": session, "Referer": AEASY_BASE + "/" },
-      });
-      const topHtml = await topRes.text();
-
-      // 2. Buscar lideres reais
-      const lideresQs = new URLSearchParams();
-      lideresQs.append("draw", "1");
-      lideresQs.append("start", "0");
-      lideresQs.append("length", "5000");
-      lideresQs.append("columns[0][data]", "IndividuosNome");
-      lideresQs.append("columns[0][name]", "IndividuosNome");
-      lideresQs.append("columns[0][orderable]", "true");
-      lideresQs.append("columns[0][searchable]", "false");
-      lideresQs.append("order[0][column]", "0");
-      lideresQs.append("order[0][dir]", "asc");
-      lideresQs.append("formPesquisa[submitFilter]", "true");
-      lideresQs.append("formPesquisa[Situacao][]", "2");
-      lideresQs.append("formPesquisa[TipoConsultor]", "5");
-
-      const lideresRes = await fetch(`${AEASY_BASE}/consultores/listagem?${lideresQs.toString()}`, {
-        method: "GET", headers: { "X-Requested-With": "XMLHttpRequest", "Cookie": session }
-      });
-      const lideresData = await lideresRes.json();
-      const lideres = (lideresData.data || [])
-        .filter((c: any) => String(c.ConsultoresLider) === "1")
-        .map((c: any) => ({ id: c.ConsultoresId, nome: (c.IndividuosNome || "").trim() }));
-
-      const liderNomes = lideres.map((l: any) => l.nome.toUpperCase());
-
-      // 3. Parsear HTML do TopVendas
+      // Helper: parsear HTML
       function parseTable(html: string): any[] {
         const tbodyStart = html.indexOf('<tbody>');
         const tbodyEnd = html.indexOf('</tbody>');
@@ -441,71 +414,128 @@ serve(async (req: Request) => {
         return gestores;
       }
 
-      const allGestores = parseTable(topHtml);
-      const gestoresFiltrados = allGestores.filter((g: any) => liderNomes.includes(g.gestor.toUpperCase()));
-
-      // 4. Buscar equipe apenas dos lideres COM cotacoes > 0 (otimiza tempo)
-      const lideresComCotacoes = gestoresFiltrados.filter((g: any) => g.cot_qtd > 0);
-
-      for (const gd of lideresComCotacoes) {
-        const lider = lideres.find((l: any) => l.nome.toUpperCase() === gd.gestor.toUpperCase());
-        if (!lider) continue;
-
-        const eqUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=${lider.id}&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
-        try {
-          const eqRes = await fetch(eqUrl, {
-            method: "GET",
-            headers: { "Accept": "text/html", "Cookie": session, "Referer": AEASY_BASE + "/" },
-          });
-          const eqHtml = await eqRes.text();
-          const membros = parseTable(eqHtml)
-            .filter((m: any) => m.gestor.toUpperCase() !== lider.nome.toUpperCase() && m.cot_qtd >= 1);
-          gd.equipe = membros;
-        } catch (e) {
-          // Se falhar uma equipe, continuar com as demais
-        }
+      // Helper: salvar no DB
+      async function saveToDb(dados: any[]) {
+        await fetch(`${SUPABASE_URL}/rest/v1/relatorios_cache?filtro_hash=eq.${encodeURIComponent(hashKey)}`, {
+          method: "DELETE",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/relatorios_cache`, {
+          method: "POST",
+          headers: {
+            "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json", "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({
+            filtro_hash: hashKey, tipo_relatorio: "dashboard",
+            data_inicial, data_final, dados,
+            total_registros: dados.length,
+            updated_at: new Date().toISOString(),
+            expires_at: "2099-12-31T23:59:59+00:00"
+          })
+        });
+        return saveRes.status;
       }
 
-      // 5. Salvar no Supabase DB
-      const hashKey = `campo_order=Quantidade|centro_custo=|data_final=${data_final}|data_inicial=${data_inicial}|ordenar=3|retornar_lider=NAO|tipo_data=2`;
+      // Helper: ler dados do DB
+      async function readFromDb(): Promise<any[]> {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/relatorios_cache?filtro_hash=eq.${encodeURIComponent(hashKey)}&select=dados`,
+          { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data && data.length > 0 && data[0].dados) ? data[0].dados : [];
+      }
 
-      // Deletar registro existente
-      await fetch(`${SUPABASE_URL}/rest/v1/relatorios_cache?filtro_hash=eq.${encodeURIComponent(hashKey)}`, {
-        method: "DELETE",
-        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
-      });
+      // ═══ ETAPA 1: Buscar dados gerais (rapido ~5s) ═══
+      if (!etapa || etapa === "1") {
+        const topUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
+        const topRes = await fetch(topUrl, {
+          method: "GET", headers: { "Accept": "text/html", "Cookie": session, "Referer": AEASY_BASE + "/" }
+        });
+        const topHtml = await topRes.text();
 
-      // Inserir novo
-      const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/relatorios_cache`, {
-        method: "POST",
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`,
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal"
-        },
-        body: JSON.stringify({
-          filtro_hash: hashKey,
-          tipo_relatorio: "dashboard",
-          data_inicial: data_inicial,
-          data_final: data_final,
-          dados: gestoresFiltrados,
-          total_registros: gestoresFiltrados.length,
-          updated_at: new Date().toISOString(),
-          expires_at: "2099-12-31T23:59:59+00:00"
-        })
-      });
+        // Buscar lideres
+        const lideresQs = new URLSearchParams();
+        lideresQs.append("draw", "1"); lideresQs.append("start", "0"); lideresQs.append("length", "5000");
+        lideresQs.append("columns[0][data]", "IndividuosNome"); lideresQs.append("columns[0][name]", "IndividuosNome");
+        lideresQs.append("columns[0][orderable]", "true"); lideresQs.append("columns[0][searchable]", "false");
+        lideresQs.append("order[0][column]", "0"); lideresQs.append("order[0][dir]", "asc");
+        lideresQs.append("formPesquisa[submitFilter]", "true");
+        lideresQs.append("formPesquisa[Situacao][]", "2"); lideresQs.append("formPesquisa[TipoConsultor]", "5");
 
-      const totalMembros = gestoresFiltrados.reduce((acc: number, g: any) => acc + (g.equipe?.length || 0), 0);
+        const lideresRes = await fetch(`${AEASY_BASE}/consultores/listagem?${lideresQs.toString()}`, {
+          method: "GET", headers: { "X-Requested-With": "XMLHttpRequest", "Cookie": session }
+        });
+        const lideresData = await lideresRes.json();
+        const lideres = (lideresData.data || [])
+          .filter((c: any) => String(c.ConsultoresLider) === "1")
+          .map((c: any) => ({ id: c.ConsultoresId, nome: (c.IndividuosNome || "").trim() }));
+        const liderNomes = lideres.map((l: any) => l.nome.toUpperCase());
 
-      return jsonResponse({
-        success: true,
-        message: `Importado: ${gestoresFiltrados.length} gestores, ${totalMembros} membros`,
-        periodo: `${data_inicial} a ${data_final}`,
-        db_status: saveRes.status,
-        gestores_count: gestoresFiltrados.length,
-        membros_count: totalMembros
-      });
+        const allGestores = parseTable(topHtml);
+        const gestoresFiltrados = allGestores.filter((g: any) => liderNomes.includes(g.gestor.toUpperCase()));
+
+        // Salvar dados base (sem equipes ainda) + lista de lideres como metadata
+        const dadosComMeta = gestoresFiltrados.map((g: any) => {
+          const lider = lideres.find((l: any) => l.nome.toUpperCase() === g.gestor.toUpperCase());
+          return { ...g, _lider_id: lider?.id || null };
+        });
+
+        const dbStatus = await saveToDb(dadosComMeta);
+        return jsonResponse({
+          success: true, etapa: "1/4", message: `Base salva: ${dadosComMeta.length} gestores`,
+          db_status: dbStatus, gestores_count: dadosComMeta.length,
+          com_cotacoes: dadosComMeta.filter((g: any) => g.cot_qtd > 0).length
+        });
+      }
+
+      // ═══ ETAPAS 2, 3, 4: Buscar equipes em lotes de 20 ═══
+      if (etapa === "2" || etapa === "3" || etapa === "4") {
+        const dados = await readFromDb();
+        if (!dados.length) return jsonResponse({ success: false, error: "Etapa 1 nao executada (sem dados no DB)" }, 400);
+
+        // Filtrar lideres com cotacoes que precisam de equipe
+        const lideresComCotacoes = dados.filter((g: any) => g.cot_qtd > 0 && g._lider_id);
+        const loteSize = Math.ceil(lideresComCotacoes.length / 3);
+        const loteIdx = parseInt(etapa) - 2; // 0, 1, 2
+        const lote = lideresComCotacoes.slice(loteIdx * loteSize, (loteIdx + 1) * loteSize);
+
+        let equipesCarregadas = 0;
+        for (const gd of lote) {
+          const eqUrl = `${AEASY_BASE}/TopVendas?TipoData=2&DataInicial=${data_inicial}&DataFinal=${data_final}&ConsultoresId=&EquipeId=${gd._lider_id}&Ordenar=3&CampoOrder=Quantidade&CentrodeCusto=&RetornarLiderComEquipe=NAO`;
+          try {
+            const eqRes = await fetch(eqUrl, {
+              method: "GET", headers: { "Accept": "text/html", "Cookie": session, "Referer": AEASY_BASE + "/" }
+            });
+            const eqHtml = await eqRes.text();
+            const membros = parseTable(eqHtml)
+              .filter((m: any) => m.gestor.toUpperCase() !== gd.gestor.toUpperCase() && m.cot_qtd >= 1);
+            gd.equipe = membros;
+            equipesCarregadas++;
+          } catch (e) { /* continuar */ }
+        }
+
+        // Atualizar dados no DB (merge com equipes)
+        // Re-ler dados completos, atualizar apenas os do lote
+        const dadosCompletos = await readFromDb();
+        for (const gAtualizado of lote) {
+          const idx = dadosCompletos.findIndex((g: any) => g.gestor.toUpperCase() === gAtualizado.gestor.toUpperCase());
+          if (idx !== -1) dadosCompletos[idx] = gAtualizado;
+        }
+
+        const dbStatus = await saveToDb(dadosCompletos);
+        const totalMembros = dadosCompletos.reduce((acc: number, g: any) => acc + (g.equipe?.length || 0), 0);
+
+        return jsonResponse({
+          success: true, etapa: `${etapa}/4`,
+          message: `Lote ${loteIdx+1}: ${equipesCarregadas} equipes carregadas`,
+          db_status: dbStatus, lote_size: lote.length, equipesCarregadas, totalMembros
+        });
+      }
+
+      return jsonResponse({ success: false, error: "Etapa invalida: " + etapa }, 400);
     }
 
     return jsonResponse({ error: "Action nao reconhecida: " + action }, 400);
