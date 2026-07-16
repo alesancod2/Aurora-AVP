@@ -172,9 +172,24 @@ async function checkMultiMonthCache(params) {
     var hash = getFilterHash(monthParams);
 
     try {
-      var dbCache = await sbFetch(
-        'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
-      );
+      var dbCache = null;
+
+      // Para o ultimo mes (pode ser parcial/atual), buscar por data_inicial do mes
+      var lastDayOfMonth = new Date(new Date(months[i].data_inicial).getFullYear(), new Date(months[i].data_inicial).getMonth() + 1, 0);
+      var isPartialMonth = months[i].data_final !== lastDayOfMonth.toISOString().split('T')[0];
+
+      if (isPartialMonth) {
+        // Mes parcial: buscar qualquer registro que comece nesse mes
+        var mesPrefix = months[i].data_inicial.substring(0, 7);
+        dbCache = await sbFetch(
+          'relatorios_cache?data_inicial=like.' + mesPrefix + '*&select=dados,updated_at,expires_at&limit=1&order=updated_at.desc'
+        );
+      } else {
+        // Mes completo: buscar por hash exato
+        dbCache = await sbFetch(
+          'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
+        );
+      }
 
       if (dbCache && dbCache.length > 0) {
         var cached = dbCache[0];
