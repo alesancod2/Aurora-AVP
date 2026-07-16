@@ -484,13 +484,13 @@ async function buscarDados(forceRefresh) {
         },
         body: JSON.stringify({
           filtro_hash: hash,
-          tipo_data: params.tipo_data,
+          tipo_relatorio: 'dashboard',
           data_inicial: params.data_inicial,
           data_final: params.data_final,
-          ordenacao: params.ordenar,
-          retornar_lider: params.retornar_lider,
           dados: gestores,
-          updated_at: new Date().toISOString()
+          total_registros: gestores.length,
+          updated_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 120 * 60 * 1000).toISOString()
         })
       });
       console.log('[Aurora] Cache save status:', saveRes.status, saveRes.ok ? 'OK' : 'FALHOU');
