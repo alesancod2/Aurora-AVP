@@ -673,8 +673,30 @@ async function buscarDados(forceRefresh) {
   var preset = document.getElementById('fPeriodoPreset') ? document.getElementById('fPeriodoPreset').value : '';
   var isSubMonthly = (preset === 'hoje' || preset === '7dias');
 
-  // Verificar cache compartilhado no Supabase DB (se nao forcar e nao sub-mensal)
-  if (!forceRefresh && !isSubMonthly) {
+  // Verificar cache compartilhado no Supabase DB (se nao forcar)
+  if (!forceRefresh) {
+    // Para sub-mensais: verificar cache de curta duracao (1h)
+    if (isSubMonthly) {
+      try {
+        var dbCache = await sbFetch(
+          'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
+        );
+        if (dbCache && dbCache.length > 0) {
+          var cached = dbCache[0];
+          var age = Date.now() - new Date(cached.updated_at).getTime();
+          if (age < 60 * 60 * 1000 && cached.dados) {
+            var minAgo = Math.round(age / 60000);
+            DATA = cached.dados;
+            showData('Cache DB (' + minAgo + ' min atras) | ' + cached.dados.length + ' gestores');
+            btn.disabled = false;
+            return;
+          }
+        }
+      } catch (e) { /* continuar para API */ }
+    }
+
+    // Para periodos mensais+: usar cache normal
+    if (!isSubMonthly) {
     // 1. Tentar Supabase DB (compartilhado entre todos os usuarios)
     try {
       var dbCache = await sbFetch(
@@ -737,6 +759,7 @@ async function buscarDados(forceRefresh) {
     } catch (e) {
       console.warn('[Aurora] Erro ao verificar cache multi-mes:', e.message);
     }
+    } // fim if (!isSubMonthly)
 
     // 2. Fallback: localStorage (individual)
     try {
@@ -752,6 +775,9 @@ async function buscarDados(forceRefresh) {
 
   // Buscar da API
   showProgress();
+  if (isSubMonthly) {
+    updateProgress(5, 'Buscando dados atualizados (periodo curto, ~30s)...', '', '');
+  }
   var startTime = Date.now();
 
   try {
