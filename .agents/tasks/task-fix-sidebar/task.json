@@ -1,0 +1,8 @@
+{
+  "task_id": "task-fix-sidebar",
+  "task_description": "Fix sidebar to display items vertically following the page pattern, matching the dark theme with proper positioning and functionality.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": null
+}

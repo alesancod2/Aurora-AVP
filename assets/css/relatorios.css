@@ -169,13 +169,15 @@ body {
   left: 0;
   bottom: 0;
   z-index: 90;
-  transition: transform .3s ease, width .3s ease, min-width .3s ease, box-shadow .3s ease;
+  transition: transform .3s ease, box-shadow .3s ease;
   box-shadow: var(--shadow);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .sidebar.collapsed {
   transform: translateX(-100%);
+  pointer-events: none;
 }
 
 .sidebar-header {
@@ -184,6 +186,7 @@ body {
   justify-content: space-between;
   padding: 16px 16px 12px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -226,8 +229,8 @@ body {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 10px;
+  gap: 6px;
+  padding: 16px 12px;
   flex: 1;
 }
 
@@ -235,7 +238,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 12px 16px;
   border: none;
   background: transparent;
   color: var(--text2);
@@ -248,6 +251,7 @@ body {
   text-align: left;
   width: 100%;
   white-space: nowrap;
+  line-height: 1.4;
 }
 .sidebar-item:hover {
   color: var(--text1);
@@ -260,10 +264,13 @@ body {
 }
 .sidebar-item svg {
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
 }
 .sidebar-item-text {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── SIDEBAR TOGGLE BUTTON (visible when collapsed) ─── */
@@ -904,12 +911,15 @@ body {
     min-width: 260px;
     transform: translateX(-100%);
     box-shadow: var(--shadow-lg);
+    pointer-events: none;
   }
   .sidebar:not(.collapsed) {
     transform: translateX(0);
+    pointer-events: auto;
   }
   .sidebar.collapsed {
     transform: translateX(-100%);
+    pointer-events: none;
   }
 
   .sidebar-toggle {

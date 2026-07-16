@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix sidebar to display items vertically with proper dark theme styling, fixed left position, collapsible/pinnable behavior, and content area shifting right when sidebar is open.",
+  "status": "in_progress",
+  "steps": [
+    "Review and fix CSS for sidebar to ensure vertical item layout is robust and matches page dark theme",
+    "Ensure sidebar is fixed on the left with proper spacing between items",
+    "Verify collapsible and pinnable functionality works correctly",
+    "Ensure content area shifts right when sidebar is open",
+    "Set dark theme as default to match the page pattern"
+  ],
+  "acceptance_criteria": [
+    "Sidebar items are stacked vertically (one per line)",
+    "Sidebar has clean dark background matching the page theme",
+    "Sidebar is fixed on the left side",
+    "Proper spacing between sidebar items",
+    "Each item shows icon + text",
+    "Sidebar is collapsible and pinnable",
+    "Content area shifts right when sidebar is open"
+  ],
+  "verification": [
+    "Check CSS has flex-direction: column on sidebar nav",
+    "Verify dark theme is applied by default",
+    "Verify sidebar position is fixed left",
+    "Verify items have proper padding and gap"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}

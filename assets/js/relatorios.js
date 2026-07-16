@@ -20,9 +20,14 @@ var vendasTotal = 0;
 
 // ─── INICIALIZACAO ──────────────────────────────────────────
 (function init() {
-  // Carregar tema
+  // Carregar tema (dark por padrao)
   var saved = localStorage.getItem('avp_theme');
-  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('avp_theme', 'dark');
+  }
 
   // Datas padrao (mes atual)
   var hoje = new Date();

@@ -1,0 +1,17 @@
+{
+  "project_type": "Static HTML/CSS/JS dashboard with Supabase Edge Functions proxy",
+  "language": "JavaScript (frontend), TypeScript (Supabase Edge Function)",
+  "build_system": "None - static files hosted on GitHub Pages",
+  "test_framework": "None - no test infrastructure",
+  "build_command": "N/A (static HTML)",
+  "test_command": "N/A",
+  "verification_instructions": "Verify files are syntactically valid HTML/JS/CSS. Confirm no broken references between files.",
+  "setup_instructions": "No setup needed - static files",
+  "environment_constraints": "OPEN_INTERNET mode. Push via kiro_powers github push_to_remote tool only.",
+  "contribution_requirements": "Push to main branch directly",
+  "relevant_files": [
+    "relatorios.html",
+    "assets/js/relatorios.js",
+    "assets/css/relatorios.css"
+  ]
+}
