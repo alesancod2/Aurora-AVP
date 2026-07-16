@@ -263,24 +263,17 @@ async function buscarDados(forceRefresh) {
 
   var hash = getFilterHash(params);
 
-  // Verificar cache (se nao forcar)
+  // Verificar cache local apenas (se nao forcar)
   if (!forceRefresh) {
-    var cached = await checkCache(hash);
-    if (!cached) {
-      // Tentar localStorage
-      try {
-        var local = JSON.parse(localStorage.getItem('avp_cache_' + hash));
-        if (local && (Date.now() - local.ts) < 30 * 60 * 1000) {
-          cached = local.dados;
-        }
-      } catch (e) {}
-    }
-    if (cached) {
-      DATA = cached;
-      showData('Cache (< 30min)');
-      btn.disabled = false;
-      return;
-    }
+    try {
+      var local = JSON.parse(localStorage.getItem('avp_cache_' + hash));
+      if (local && (Date.now() - local.ts) < 30 * 60 * 1000) {
+        DATA = local.dados;
+        showData('Cache local (< 30min)');
+        btn.disabled = false;
+        return;
+      }
+    } catch (e) {}
   }
 
   // Buscar da API
@@ -288,7 +281,7 @@ async function buscarDados(forceRefresh) {
   var startTime = Date.now();
 
   try {
-    updateProgress(5, 'Buscando gestores...', '', '');
+    updateProgress(10, 'Fazendo login e buscando dados...', '', '');
 
     var gestoresRes = await edgeCall({
       action: 'gestores',
@@ -303,46 +296,35 @@ async function buscarDados(forceRefresh) {
     });
 
     if (!gestoresRes.success) {
-      throw new Error('Falha ao buscar gestores');
+      throw new Error(gestoresRes.error || 'Falha ao buscar gestores');
     }
+
+    updateProgress(50, 'Processando resposta...', '', '');
+
+    // Debug: log do HTML retornado
+    console.log('[Aurora] HTML retornado (primeiros 500 chars):', (gestoresRes.html || '').substring(0, 500));
 
     // Parsear HTML dos gestores
-    var gestores = parseGestoresHTML(gestoresRes.html);
-    updateProgress(15, 'Encontrados ' + gestores.length + ' gestores', '', '');
+    var gestores = parseGestoresHTML(gestoresRes.html || '');
+    console.log('[Aurora] Gestores parseados:', gestores.length, gestores.slice(0, 3));
 
-    // Processar em lotes
-    var results = [];
-    var total = gestores.length;
+    var elapsed = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
+    updateProgress(90, 'Encontrados ' + gestores.length + ' gestores', '', elapsed);
 
-    for (var i = 0; i < total; i += BATCH_SIZE) {
-      var batch = gestores.slice(i, i + BATCH_SIZE);
-      var done = Math.min(i + BATCH_SIZE, total);
-      var pct = 15 + (done / total) * 80;
-      var elapsed = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
+    // Salvar cache local
+    try {
+      localStorage.setItem('avp_cache_' + hash, JSON.stringify({
+        dados: gestores,
+        ts: Date.now()
+      }));
+    } catch (e) { /* storage full */ }
 
-      updateProgress(
-        pct,
-        'Processando gestores...',
-        done + ' / ' + total,
-        elapsed
-      );
-
-      // Cada gestor no batch ja veio no HTML geral
-      batch.forEach(function(g) { results.push(g); });
-
-      // Pequeno delay para nao travar a UI
-      await new Promise(function(r) { setTimeout(r, 50); });
-    }
-
-    updateProgress(100, 'Concluido!', total + ' gestores', elapsed);
-
-    // Salvar cache
-    await saveCache(hash, results, params);
-
-    DATA = results;
+    DATA = gestores;
+    updateProgress(100, 'Concluido!', gestores.length + ' gestores', elapsed);
     showData('Atualizado agora');
 
   } catch (e) {
+    console.error('[Aurora] Erro buscarDados:', e);
     alert('Erro: ' + e.message);
     if (e.message.includes('401') || e.message.includes('login')) {
       sessionCookie = '';
