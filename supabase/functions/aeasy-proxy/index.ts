@@ -127,10 +127,14 @@ serve(async (req: Request) => {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: session,
+          "Accept": "text/html, application/xhtml+xml, */*",
+          "Accept-Language": "pt-BR,pt;q=0.9",
+          "Cookie": session,
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Referer": `${AEASY_BASE}/TopVendas`,
+          "Origin": AEASY_BASE,
         },
         body: formData.toString(),
-        redirect: "follow",
       });
 
       const html = await res.text();
@@ -141,8 +145,9 @@ serve(async (req: Request) => {
           session_used: session.substring(0, 25) + "...",
           response_status: res.status,
           html_length: html.length,
-          html_preview: html.substring(0, 300),
+          html_preview: html.substring(0, 500),
           request_body: formData.toString(),
+          response_headers: Object.fromEntries(res.headers.entries()),
         }
       });
     }
