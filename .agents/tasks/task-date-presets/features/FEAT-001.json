@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "feature",
+  "description": "Add date preset buttons to the dashboard filter bar (Hoje, Ultimos 7 dias, Mes atual, Mes anterior, Ultimo trimestre, Semestre, Ano) with calendar-based calculation and multi-month cache combination logic.",
+  "status": "in_progress",
+  "steps": [
+    "Add a date preset select dropdown to relatorios.html filter bar",
+    "Add preset date calculation logic in relatorios.js (Hoje, Ultimos 7 dias, Mes atual, Mes anterior, Ultimo trimestre, Semestre, Ano)",
+    "Add multi-month cache combination logic: when a period spans multiple months, check if all individual months exist in cache and combine their dados arrays",
+    "Style the preset selector to match existing filter bar design"
+  ],
+  "acceptance_criteria": [
+    "Date preset select is visible in the filter bar",
+    "Selecting a preset correctly sets Data Inicial and Data Final based on current calendar",
+    "Multi-month periods check cache for each individual month and combine results if all are cached",
+    "If any month is missing from cache, falls through to normal API flow"
+  ],
+  "verification": [
+    "Verify HTML structure is valid",
+    "Verify JS has no syntax errors",
+    "Verify preset calculations produce correct dates"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}

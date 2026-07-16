@@ -1,0 +1,8 @@
+{
+  "task_id": "task-date-presets",
+  "task_description": "Add date preset filters and multi-month cache combination to the dashboard",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": null
+}

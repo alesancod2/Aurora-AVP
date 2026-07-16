@@ -59,6 +59,297 @@ function setDateValue(id, date) {
 }
 
 
+// ─── PRESETS DE DATA ────────────────────────────────────────
+// Calcula datas com base no calendario atual para cada preset
+function calcularPresetDatas(preset) {
+  var hoje = new Date();
+  var dataInicial, dataFinal;
+
+  switch (preset) {
+    case 'hoje':
+      dataInicial = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      break;
+
+    case '7dias':
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      dataInicial = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 6);
+      break;
+
+    case 'mes_atual':
+      dataInicial = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      break;
+
+    case 'mes_anterior':
+      dataInicial = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), 0); // ultimo dia do mes anterior
+      break;
+
+    case 'trimestre':
+      // Ultimo trimestre: primeiro dia de 3 meses atras ate ultimo dia do mes anterior
+      dataInicial = new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1);
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      break;
+
+    case 'semestre':
+      // Semestre: primeiro dia de 6 meses atras ate ultimo dia do mes anterior
+      dataInicial = new Date(hoje.getFullYear(), hoje.getMonth() - 6, 1);
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      break;
+
+    case 'ano':
+      dataInicial = new Date(hoje.getFullYear(), 0, 1); // 1 de janeiro
+      dataFinal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      break;
+
+    default:
+      return null;
+  }
+
+  return { dataInicial: dataInicial, dataFinal: dataFinal };
+}
+
+function aplicarPresetData() {
+  var preset = document.getElementById('fPeriodoPreset').value;
+  if (!preset) return;
+
+  var datas = calcularPresetDatas(preset);
+  if (datas) {
+    setDateValue('fDataInicial', datas.dataInicial);
+    setDateValue('fDataFinal', datas.dataFinal);
+  }
+}
+
+
+// ─── CACHE MULTI-MES ────────────────────────────────────────
+// Quando o periodo selecionado abrange multiplos meses, verifica se cada
+// mes individual existe no cache do DB e combina os dados (merge dos arrays).
+// Retorna null se algum mes nao estiver no cache (fallthrough para API).
+function getMonthRanges(dataInicial, dataFinal) {
+  var ranges = [];
+  var start = new Date(dataInicial + 'T00:00:00');
+  var end = new Date(dataFinal + 'T00:00:00');
+
+  var current = new Date(start.getFullYear(), start.getMonth(), 1);
+
+  while (current <= end) {
+    var firstDay = new Date(current.getFullYear(), current.getMonth(), 1);
+    var lastDay = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+
+    ranges.push({
+      data_inicial: firstDay.toISOString().split('T')[0],
+      data_final: lastDay.toISOString().split('T')[0]
+    });
+
+    current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+  }
+
+  return ranges;
+}
+
+async function checkMultiMonthCache(params) {
+  var months = getMonthRanges(params.data_inicial, params.data_final);
+
+  // Se e apenas 1 mes (ou menos), nao usar multi-month logic
+  if (months.length <= 1) return null;
+
+  console.log('[Aurora] Multi-month cache: verificando ' + months.length + ' meses');
+
+  var allDados = [];
+
+  for (var i = 0; i < months.length; i++) {
+    var monthParams = {
+      tipo_data: params.tipo_data,
+      data_inicial: months[i].data_inicial,
+      data_final: months[i].data_final,
+      ordenar: params.ordenar,
+      campo_order: params.campo_order,
+      centro_custo: params.centro_custo,
+      retornar_lider: params.retornar_lider
+    };
+
+    var hash = getFilterHash(monthParams);
+
+    try {
+      var dbCache = await sbFetch(
+        'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at,expires_at'
+      );
+
+      if (dbCache && dbCache.length > 0) {
+        var cached = dbCache[0];
+        var now = new Date();
+        var expiresAt = new Date(cached.expires_at);
+
+        if (now < expiresAt && cached.dados) {
+          console.log('[Aurora] Multi-month cache HIT: ' + months[i].data_inicial + ' a ' + months[i].data_final);
+          allDados.push(cached.dados);
+        } else {
+          console.log('[Aurora] Multi-month cache EXPIRED: ' + months[i].data_inicial);
+          return null; // Um mes expirado, ir para API
+        }
+      } else {
+        console.log('[Aurora] Multi-month cache MISS: ' + months[i].data_inicial);
+        return null; // Um mes faltando, ir para API
+      }
+    } catch (e) {
+      console.warn('[Aurora] Multi-month cache erro:', e.message);
+      return null;
+    }
+  }
+
+  // Todos os meses encontrados no cache, combinar os dados
+  return mergeMultiMonthData(allDados);
+}
+
+// Combina dados de multiplos meses: agrupa por gestor e soma valores numericos
+function mergeMultiMonthData(monthsData) {
+  var gestorMap = {};
+
+  monthsData.forEach(function(monthDados) {
+    if (!Array.isArray(monthDados)) return;
+
+    monthDados.forEach(function(g) {
+      var key = g.gestor.toUpperCase();
+
+      if (!gestorMap[key]) {
+        // Primeira ocorrencia: clonar o objeto
+        gestorMap[key] = {
+          gestor: g.gestor,
+          cidade: g.cidade,
+          taxa_conversao: '',
+          cot_qtd: 0,
+          cot_valor: 0,
+          cot_ticket: 0,
+          cad_qtd: 0,
+          cad_valor: 0,
+          cad_ticket: 0,
+          efe_qtd: 0,
+          efe_valor: 0,
+          efe_ticket: 0,
+          ati_qtd: 0,
+          ati_valor: 0,
+          ati_ticket: 0,
+          sus_qtd: 0,
+          sus_valor: 0,
+          can_qtd: 0,
+          can_valor: 0,
+          pbp_qtd: 0,
+          pbp_valor: 0,
+          total_qtd: 0,
+          total_valor: 0,
+          ticket: 0,
+          equipe: []
+        };
+      }
+
+      var target = gestorMap[key];
+
+      // Somar valores numericos
+      target.cot_qtd += (g.cot_qtd || 0);
+      target.cot_valor += (g.cot_valor || 0);
+      target.cad_qtd += (g.cad_qtd || 0);
+      target.cad_valor += (g.cad_valor || 0);
+      target.efe_qtd += (g.efe_qtd || 0);
+      target.efe_valor += (g.efe_valor || 0);
+      target.ati_qtd += (g.ati_qtd || 0);
+      target.ati_valor += (g.ati_valor || 0);
+      target.sus_qtd += (g.sus_qtd || 0);
+      target.sus_valor += (g.sus_valor || 0);
+      target.can_qtd += (g.can_qtd || 0);
+      target.can_valor += (g.can_valor || 0);
+      target.pbp_qtd += (g.pbp_qtd || 0);
+      target.pbp_valor += (g.pbp_valor || 0);
+
+      // Combinar equipe (membros de todos os meses)
+      if (g.equipe && g.equipe.length > 0) {
+        g.equipe.forEach(function(membro) {
+          var membroKey = membro.gestor.toUpperCase();
+          var existente = target.equipe.find(function(m) {
+            return m.gestor.toUpperCase() === membroKey;
+          });
+
+          if (existente) {
+            existente.cot_qtd += (membro.cot_qtd || 0);
+            existente.cot_valor += (membro.cot_valor || 0);
+            existente.cad_qtd += (membro.cad_qtd || 0);
+            existente.cad_valor += (membro.cad_valor || 0);
+            existente.efe_qtd += (membro.efe_qtd || 0);
+            existente.efe_valor += (membro.efe_valor || 0);
+            existente.ati_qtd += (membro.ati_qtd || 0);
+            existente.ati_valor += (membro.ati_valor || 0);
+            existente.sus_qtd += (membro.sus_qtd || 0);
+            existente.sus_valor += (membro.sus_valor || 0);
+            existente.can_qtd += (membro.can_qtd || 0);
+            existente.can_valor += (membro.can_valor || 0);
+            existente.pbp_qtd += (membro.pbp_qtd || 0);
+            existente.pbp_valor += (membro.pbp_valor || 0);
+          } else {
+            target.equipe.push({
+              gestor: membro.gestor,
+              cidade: membro.cidade,
+              taxa_conversao: '',
+              cot_qtd: membro.cot_qtd || 0,
+              cot_valor: membro.cot_valor || 0,
+              cot_ticket: membro.cot_ticket || 0,
+              cad_qtd: membro.cad_qtd || 0,
+              cad_valor: membro.cad_valor || 0,
+              cad_ticket: membro.cad_ticket || 0,
+              efe_qtd: membro.efe_qtd || 0,
+              efe_valor: membro.efe_valor || 0,
+              efe_ticket: membro.efe_ticket || 0,
+              ati_qtd: membro.ati_qtd || 0,
+              ati_valor: membro.ati_valor || 0,
+              ati_ticket: membro.ati_ticket || 0,
+              sus_qtd: membro.sus_qtd || 0,
+              sus_valor: membro.sus_valor || 0,
+              can_qtd: membro.can_qtd || 0,
+              can_valor: membro.can_valor || 0,
+              pbp_qtd: membro.pbp_qtd || 0,
+              pbp_valor: membro.pbp_valor || 0,
+              total_qtd: membro.ati_qtd || 0,
+              total_valor: membro.ati_valor || 0,
+              ticket: 0,
+              equipe: []
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Recalcular totais e tickets
+  var result = Object.keys(gestorMap).map(function(key) {
+    var g = gestorMap[key];
+    g.total_qtd = g.ati_qtd;
+    g.total_valor = g.ati_valor;
+    g.cot_ticket = g.cot_qtd > 0 ? g.cot_valor / g.cot_qtd : 0;
+    g.cad_ticket = g.cad_qtd > 0 ? g.cad_valor / g.cad_qtd : 0;
+    g.efe_ticket = g.efe_qtd > 0 ? g.efe_valor / g.efe_qtd : 0;
+    g.ati_ticket = g.ati_qtd > 0 ? g.ati_valor / g.ati_qtd : 0;
+    g.ticket = g.ati_ticket;
+    g.taxa_conversao = g.cot_qtd > 0 ? ((g.ati_qtd / g.cot_qtd) * 100).toFixed(2) + '%' : '0,00%';
+
+    // Recalcular tickets dos membros da equipe
+    g.equipe.forEach(function(m) {
+      m.total_qtd = m.ati_qtd;
+      m.total_valor = m.ati_valor;
+      m.cot_ticket = m.cot_qtd > 0 ? m.cot_valor / m.cot_qtd : 0;
+      m.cad_ticket = m.cad_qtd > 0 ? m.cad_valor / m.cad_qtd : 0;
+      m.efe_ticket = m.efe_qtd > 0 ? m.efe_valor / m.efe_qtd : 0;
+      m.ati_ticket = m.ati_qtd > 0 ? m.ati_valor / m.ati_qtd : 0;
+      m.ticket = m.ati_ticket;
+      m.taxa_conversao = m.cot_qtd > 0 ? ((m.ati_qtd / m.cot_qtd) * 100).toFixed(2) + '%' : '0,00%';
+    });
+
+    return g;
+  });
+
+  console.log('[Aurora] Multi-month cache: combinados ' + result.length + ' gestores de ' + monthsData.length + ' meses');
+  return result;
+}
+
+
 // ─── TEMA ───────────────────────────────────────────────────
 function toggleTheme() {
   var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -399,6 +690,19 @@ async function buscarDados(forceRefresh) {
       }
     } catch (e) {
       console.warn('[Aurora] Erro ao verificar cache DB:', e.message);
+    }
+
+    // 1.5 Tentar combinar cache de meses individuais (multi-month)
+    try {
+      var multiCache = await checkMultiMonthCache(params);
+      if (multiCache) {
+        DATA = multiCache;
+        showData('Cache combinado (multi-mes) | ' + multiCache.length + ' gestores');
+        btn.disabled = false;
+        return;
+      }
+    } catch (e) {
+      console.warn('[Aurora] Erro ao verificar cache multi-mes:', e.message);
     }
 
     // 2. Fallback: localStorage (individual)
