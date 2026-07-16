@@ -642,7 +642,28 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: .8rem;
+  table-layout: fixed;
 }
+
+/* Larguras fixas das colunas da tabela principal */
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) { width: 4%; }
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) { width: 28%; }
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) { width: 18%; }
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) { width: 10%; }
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) { width: 10%; }
+.data-table th:nth-child(6),
+.data-table td:nth-child(6) { width: 10%; }
+.data-table th:nth-child(7),
+.data-table td:nth-child(7) { width: 10%; }
+.data-table th:nth-child(8),
+.data-table td:nth-child(8) { width: 10%; }
+.data-table th:nth-child(9),
+.data-table td:nth-child(9) { width: 4%; }
 
 .data-table thead {
   background: var(--surface2);
@@ -795,6 +816,7 @@ body {
   width: 100%;
   font-size: .75rem;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 .equipe-table th {
   padding: 8px 14px;
@@ -820,8 +842,25 @@ body {
 .equipe-table td:first-child {
   text-align: center;
   color: var(--text3);
-  width: 30px;
 }
+
+/* Alinhar colunas da equipe-table com a data-table pai */
+.equipe-table th:nth-child(1),
+.equipe-table td:nth-child(1) { width: 4%; }
+.equipe-table th:nth-child(2),
+.equipe-table td:nth-child(2) { width: 28%; }
+.equipe-table th:nth-child(3),
+.equipe-table td:nth-child(3) { width: 18%; }
+.equipe-table th:nth-child(4),
+.equipe-table td:nth-child(4) { width: 10%; }
+.equipe-table th:nth-child(5),
+.equipe-table td:nth-child(5) { width: 10%; }
+.equipe-table th:nth-child(6),
+.equipe-table td:nth-child(6) { width: 10%; }
+.equipe-table th:nth-child(7),
+.equipe-table td:nth-child(7) { width: 10%; }
+.equipe-table th:nth-child(8),
+.equipe-table td:nth-child(8) { width: 10%; }
 
 /* ─── PAGINATION ─── */
 .pagination {
