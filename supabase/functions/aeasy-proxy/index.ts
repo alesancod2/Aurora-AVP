@@ -112,28 +112,29 @@ serve(async (req: Request) => {
       const session = await getSession(session_cookie);
       if (!session) return jsonResponse({ success: false, error: "Sessao nao disponivel. Configure AEASY_CPF/AEASY_SENHA ou envie session_cookie." }, 401);
 
-      const { tipo_data, data_inicial, data_final, ordenar, campo_order, centro_custo, retornar_lider } = params;
+      const { tipo_data, data_inicial, data_final, ordenar, campo_order, centro_custo, retornar_lider, consultor_id, equipe_id } = params;
 
-      const formData = new URLSearchParams();
-      formData.append("TipoData", tipo_data || "3");
-      formData.append("DataInicial", data_inicial);
-      formData.append("DataFinal", data_final);
-      formData.append("Ordenar", ordenar || "3");
-      formData.append("CampoOrder", campo_order || "Quantidade");
-      if (centro_custo) formData.append("CentrodeCusto", centro_custo);
-      if (retornar_lider) formData.append("RetornarLiderComEquipe", retornar_lider);
+      // TopVendas usa GET com parametros na query string
+      const qs = new URLSearchParams();
+      qs.append("TipoData", tipo_data || "3");
+      qs.append("DataInicial", data_inicial);
+      qs.append("DataFinal", data_final);
+      qs.append("Ordenar", ordenar || "3");
+      qs.append("CampoOrder", campo_order || "Quantidade");
+      qs.append("ConsultoresId", consultor_id || "");
+      qs.append("EquipeId", equipe_id || "");
+      qs.append("CentrodeCusto", centro_custo || "");
+      qs.append("RetornarLiderComEquipe", retornar_lider || "ATE_NIVEL_1");
 
-      const res = await fetch(`${AEASY_BASE}/TopVendas`, {
-        method: "POST",
+      const url = `${AEASY_BASE}/TopVendas?${qs.toString()}`;
+
+      const res = await fetch(url, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-Requested-With": "XMLHttpRequest",
-          "Accept": "text/html, application/xhtml+xml, */*",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Cookie": session,
-          "Referer": `${AEASY_BASE}/TopVendas`,
-          "Origin": AEASY_BASE,
+          "Referer": AEASY_BASE + "/",
         },
-        body: formData.toString(),
       });
 
       const html = await res.text();
@@ -145,8 +146,7 @@ serve(async (req: Request) => {
           response_status: res.status,
           html_length: html.length,
           html_preview: html.substring(0, 500),
-          request_body: formData.toString(),
-          response_headers: Object.fromEntries(res.headers.entries()),
+          request_url: url,
         }
       });
     }
