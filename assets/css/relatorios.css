@@ -1124,14 +1124,14 @@ body {
   font-size: .78rem;
   font-weight: 700;
   color: var(--accent) !important;
-  border-bottom: 2px solid var(--accent) !important;
-  padding: 10px 8px !important;
+  border-bottom: none !important;
+  padding: 8px 8px 2px !important;
   white-space: nowrap;
 }
 
 /* Header equipe (primeira row - vazio) */
 .detalhe-header-equipe {
-  border-bottom: 2px solid var(--accent) !important;
+  border-bottom: none !important;
 }
 
 /* Sub-header equipe (segunda row - titulo) */
@@ -1139,8 +1139,9 @@ body {
   font-size: .72rem !important;
   font-weight: 600 !important;
   color: var(--text2) !important;
-  padding: 8px 14px !important;
+  padding: 2px 14px 8px !important;
   vertical-align: middle !important;
+  border-bottom: 2px solid var(--border2) !important;
 }
 
 /* Sub-header (Cotacoes, Concretizadas, etc) */
@@ -1149,10 +1150,10 @@ body {
   font-weight: 500 !important;
   color: var(--text3) !important;
   text-align: center !important;
-  padding: 6px 10px !important;
+  padding: 2px 10px 8px !important;
   min-width: 100px;
   white-space: nowrap;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: 2px solid var(--border2) !important;
 }
 
 /* Celulas de dados */
@@ -1231,6 +1232,7 @@ body {
 /* Header row */
 .detalhe-header-row th {
   border-bottom: none !important;
+  padding-bottom: 0 !important;
 }
 
 /* Responsivo */
