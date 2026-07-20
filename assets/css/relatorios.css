@@ -1065,11 +1065,40 @@ body {
   max-height: calc(100vh - 240px);
 }
 
-/* Tabela base */
-.detalhe-table {
+/* Tabela base - override do .data-table pai */
+.detalhe-table.data-table {
   table-layout: auto !important;
   min-width: max-content;
   font-size: .75rem;
+  width: max-content !important;
+}
+
+/* Anular larguras fixas do .data-table para detalhe-table */
+.detalhe-table.data-table th,
+.detalhe-table.data-table td {
+  width: auto !important;
+}
+
+/* Forcar override nas nth-child rules */
+.detalhe-table.data-table th:nth-child(1),
+.detalhe-table.data-table td:nth-child(1),
+.detalhe-table.data-table th:nth-child(2),
+.detalhe-table.data-table td:nth-child(2),
+.detalhe-table.data-table th:nth-child(3),
+.detalhe-table.data-table td:nth-child(3),
+.detalhe-table.data-table th:nth-child(4),
+.detalhe-table.data-table td:nth-child(4),
+.detalhe-table.data-table th:nth-child(5),
+.detalhe-table.data-table td:nth-child(5),
+.detalhe-table.data-table th:nth-child(6),
+.detalhe-table.data-table td:nth-child(6),
+.detalhe-table.data-table th:nth-child(7),
+.detalhe-table.data-table td:nth-child(7),
+.detalhe-table.data-table th:nth-child(8),
+.detalhe-table.data-table td:nth-child(8),
+.detalhe-table.data-table th:nth-child(9),
+.detalhe-table.data-table td:nth-child(9) {
+  width: auto !important;
 }
 
 /* Coluna fixa (nome do gestor) */
