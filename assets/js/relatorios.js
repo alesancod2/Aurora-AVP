@@ -1581,3 +1581,346 @@ function esc(str) {
 }
 
 // ─── FIM ────────────────────────────────────────────────────
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DETALHAMENTO ANUAL - Tabela com evolucao mensal
+// Cada linha = gestor ou consultor
+// Colunas = meses do ano (Cotacoes, Concretizadas, Taxa Conversao, Ticket Medio)
+// Setas verdes (maior que mes anterior) / vermelhas (menor)
+// ═══════════════════════════════════════════════════════════════════════════
+
+var DETALHE_DATA = {}; // { '2026-01': [...], '2026-02': [...], ... }
+var DETALHE_GESTORES = []; // lista de nomes unicos de gestores/consultores
+var DETALHE_ANO_ATUAL = '';
+
+var MESES_NOMES = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+var MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// ─── INICIALIZAR ABA DETALHAMENTO ───────────────────────────
+// Chamado quando a aba e ativada pela primeira vez ou apos switchTab
+(function initDetalhamento() {
+  // Popular select de anos ao carregar
+  popularAnosDisponiveis();
+})();
+
+// ─── POPULAR ANOS DISPONIVEIS NO DB ─────────────────────────
+async function popularAnosDisponiveis() {
+  try {
+    var res = await sbFetch(
+      'relatorios_cache?select=data_inicial&order=data_inicial.asc'
+    );
+    if (!res || res.length === 0) return;
+
+    var anos = [];
+    res.forEach(function(r) {
+      if (r.data_inicial) {
+        var ano = r.data_inicial.substring(0, 4);
+        if (anos.indexOf(ano) === -1) anos.push(ano);
+      }
+    });
+
+    var select = document.getElementById('fDetalheAno');
+    if (!select) return;
+
+    var anoAtual = new Date().getFullYear().toString();
+    var html = '';
+    // Ordem decrescente (ano mais recente primeiro)
+    anos.sort().reverse().forEach(function(ano) {
+      var selected = (ano === anoAtual) ? ' selected' : '';
+      html += '<option value="' + ano + '"' + selected + '>' + ano + '</option>';
+    });
+    select.innerHTML = html;
+
+    DETALHE_ANO_ATUAL = select.value;
+  } catch (e) {
+    console.warn('[Aurora] Erro ao popular anos:', e.message);
+  }
+}
+
+// ─── CARREGAR DETALHAMENTO ──────────────────────────────────
+async function carregarDetalhamento() {
+  var selectAno = document.getElementById('fDetalheAno');
+  var selectGestor = document.getElementById('fDetalheGestor');
+  var info = document.getElementById('detalheInfo');
+
+  if (!selectAno || !selectAno.value) {
+    info.textContent = 'Selecione um ano';
+    return;
+  }
+
+  var ano = selectAno.value;
+  DETALHE_ANO_ATUAL = ano;
+  info.textContent = 'Carregando dados de ' + ano + '...';
+
+  try {
+    // Buscar todos os registros do ano no DB (1 query)
+    var firstDay = ano + '-01-01';
+    var lastDay = ano + '-12-31';
+
+    var dbResults = await sbFetch(
+      'relatorios_cache?data_inicial=gte.' + firstDay + '&data_inicial=lte.' + lastDay + '&select=dados,data_inicial,data_final&order=data_inicial.asc'
+    );
+
+    if (!dbResults || dbResults.length === 0) {
+      info.textContent = 'Nenhum dado encontrado para ' + ano;
+      document.getElementById('detalheBody').innerHTML = '<tr><td colspan="1" class="empty-state">Nenhum dado no banco para o ano ' + ano + '</td></tr>';
+      return;
+    }
+
+    // Organizar por mes
+    DETALHE_DATA = {};
+    dbResults.forEach(function(r) {
+      if (r.dados && r.data_inicial) {
+        var mesKey = r.data_inicial.substring(0, 7); // "2026-01"
+        DETALHE_DATA[mesKey] = r.dados;
+      }
+    });
+
+    // Extrair lista de gestores/consultores unicos (incluindo membros de equipe)
+    extrairGestoresDetalhamento();
+
+    // Popular filtro de gestor
+    popularFiltroGestorDetalhe();
+
+    // Renderizar tabela
+    renderDetalhamento();
+
+    var mesesCarregados = Object.keys(DETALHE_DATA).length;
+    info.textContent = ano + ' | ' + mesesCarregados + ' meses carregados | ' + DETALHE_GESTORES.length + ' gestores/consultores';
+
+  } catch (e) {
+    console.error('[Aurora] Erro carregarDetalhamento:', e);
+    info.textContent = 'Erro ao carregar: ' + e.message;
+  }
+}
+
+// ─── EXTRAIR GESTORES UNICOS ────────────────────────────────
+function extrairGestoresDetalhamento() {
+  var nomes = {};
+
+  Object.keys(DETALHE_DATA).forEach(function(mes) {
+    var dados = DETALHE_DATA[mes];
+    if (!Array.isArray(dados)) return;
+
+    dados.forEach(function(g) {
+      var key = g.gestor.toUpperCase();
+      if (!nomes[key]) {
+        nomes[key] = { nome: g.gestor, cidade: g.cidade, tipo: 'gestor' };
+      }
+      // Tambem incluir membros da equipe
+      if (g.equipe && g.equipe.length > 0) {
+        g.equipe.forEach(function(m) {
+          var mKey = m.gestor.toUpperCase();
+          if (!nomes[mKey]) {
+            nomes[mKey] = { nome: m.gestor, cidade: m.cidade, tipo: 'consultor' };
+          }
+        });
+      }
+    });
+  });
+
+  DETALHE_GESTORES = Object.keys(nomes).sort().map(function(k) {
+    return nomes[k];
+  });
+}
+
+// ─── POPULAR FILTRO DE GESTOR ───────────────────────────────
+function popularFiltroGestorDetalhe() {
+  var select = document.getElementById('fDetalheGestor');
+  if (!select) return;
+
+  var valorAtual = select.value;
+  var html = '<option value="">Todos</option>';
+
+  DETALHE_GESTORES.forEach(function(g) {
+    var label = g.nome + (g.cidade ? ' (' + g.cidade + ')' : '');
+    var sel = (g.nome === valorAtual) ? ' selected' : '';
+    html += '<option value="' + esc(g.nome) + '"' + sel + '>' + esc(label) + '</option>';
+  });
+
+  select.innerHTML = html;
+}
+
+// ─── OBTER DADOS DE UM GESTOR/CONSULTOR EM UM MES ───────────
+// Retorna { cotacoes, concretizadas, taxa_conversao, ticket_medio } ou null
+function getDadosMesIndividuo(mesKey, nome) {
+  var dados = DETALHE_DATA[mesKey];
+  if (!dados || !Array.isArray(dados)) return null;
+
+  var nomeUpper = nome.toUpperCase();
+
+  // Procurar como gestor principal (totais gestor+equipe)
+  for (var i = 0; i < dados.length; i++) {
+    var g = dados[i];
+    if (g.gestor.toUpperCase() === nomeUpper) {
+      // Totais (gestor + equipe)
+      var totalCot = g.cot_qtd || 0;
+      var totalAti = g.ati_qtd || 0;
+      var totalValor = g.ati_valor || 0;
+      if (g.equipe && g.equipe.length > 0) {
+        g.equipe.forEach(function(m) {
+          totalCot += m.cot_qtd || 0;
+          totalAti += m.ati_qtd || 0;
+          totalValor += m.ati_valor || 0;
+        });
+      }
+      var taxa = totalCot > 0 ? ((totalAti / totalCot) * 100) : 0;
+      var ticket = totalAti > 0 ? (totalValor / totalAti) : 0;
+      return {
+        cotacoes: totalCot,
+        concretizadas: totalAti,
+        taxa_conversao: taxa,
+        ticket_medio: ticket
+      };
+    }
+  }
+
+  // Procurar como membro de equipe
+  for (var i = 0; i < dados.length; i++) {
+    var g = dados[i];
+    if (g.equipe && g.equipe.length > 0) {
+      for (var j = 0; j < g.equipe.length; j++) {
+        var m = g.equipe[j];
+        if (m.gestor.toUpperCase() === nomeUpper) {
+          var mCot = m.cot_qtd || 0;
+          var mAti = m.ati_qtd || 0;
+          var mValor = m.ati_valor || 0;
+          var mTaxa = mCot > 0 ? ((mAti / mCot) * 100) : 0;
+          var mTicket = mAti > 0 ? (mValor / mAti) : 0;
+          return {
+            cotacoes: mCot,
+            concretizadas: mAti,
+            taxa_conversao: mTaxa,
+            ticket_medio: mTicket
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+// ─── RENDERIZAR TABELA DETALHAMENTO ─────────────────────────
+function renderDetalhamento() {
+  var meses = Object.keys(DETALHE_DATA).sort(); // ["2026-01", "2026-02", ...]
+  if (meses.length === 0) return;
+
+  var filtroGestor = document.getElementById('fDetalheGestor') ? document.getElementById('fDetalheGestor').value : '';
+
+  // Determinar quais gestores mostrar
+  var gestoresExibir;
+  if (filtroGestor) {
+    gestoresExibir = DETALHE_GESTORES.filter(function(g) {
+      return g.nome === filtroGestor;
+    });
+  } else {
+    // Mostrar apenas gestores (lideres), nao consultores individuais (para nao poluir)
+    gestoresExibir = DETALHE_GESTORES.filter(function(g) {
+      return g.tipo === 'gestor';
+    });
+  }
+
+  // ─── HEADER ───
+  var theadHtml = '<tr class="detalhe-header-row">';
+  theadHtml += '<th class="detalhe-col-fixa" rowspan="2">Equipe<br><small>Gestor/Consultor</small></th>';
+  meses.forEach(function(mesKey) {
+    var mesIdx = parseInt(mesKey.substring(5, 7)) - 1;
+    theadHtml += '<th colspan="4" class="detalhe-mes-header">' + MESES_NOMES[mesIdx] + '</th>';
+  });
+  theadHtml += '</tr>';
+
+  // Sub-header com campos
+  theadHtml += '<tr class="detalhe-subheader-row">';
+  meses.forEach(function() {
+    theadHtml += '<th class="detalhe-sub-col">Cotacoes</th>';
+    theadHtml += '<th class="detalhe-sub-col">Concretizadas</th>';
+    theadHtml += '<th class="detalhe-sub-col">Taxa Conversao</th>';
+    theadHtml += '<th class="detalhe-sub-col">Ticket Medio</th>';
+  });
+  theadHtml += '</tr>';
+
+  document.getElementById('detalheThead').innerHTML = theadHtml;
+
+  // ─── BODY ───
+  var tbodyHtml = '';
+
+  gestoresExibir.forEach(function(gestorInfo) {
+    tbodyHtml += '<tr class="detalhe-row">';
+    tbodyHtml += '<td class="detalhe-col-fixa detalhe-nome">';
+    tbodyHtml += '<strong>' + esc(gestorInfo.nome) + '</strong>';
+    if (gestorInfo.cidade) {
+      tbodyHtml += '<br><small class="detalhe-cidade">' + esc(gestorInfo.cidade) + '</small>';
+    }
+    tbodyHtml += '</td>';
+
+    var prevDados = null;
+
+    meses.forEach(function(mesKey) {
+      var dados = getDadosMesIndividuo(mesKey, gestorInfo.nome);
+
+      if (dados) {
+        // Cotacoes
+        tbodyHtml += '<td class="detalhe-cell">';
+        tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.cotacoes) + '</span>';
+        tbodyHtml += getArrow(prevDados ? prevDados.cotacoes : null, dados.cotacoes);
+        tbodyHtml += '</td>';
+
+        // Concretizadas (Ativadas)
+        tbodyHtml += '<td class="detalhe-cell">';
+        tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.concretizadas) + '</span>';
+        tbodyHtml += getArrow(prevDados ? prevDados.concretizadas : null, dados.concretizadas);
+        tbodyHtml += '</td>';
+
+        // Taxa Conversao
+        tbodyHtml += '<td class="detalhe-cell">';
+        tbodyHtml += '<span class="detalhe-valor">' + dados.taxa_conversao.toFixed(2) + '%</span>';
+        tbodyHtml += getArrow(prevDados ? prevDados.taxa_conversao : null, dados.taxa_conversao);
+        tbodyHtml += '</td>';
+
+        // Ticket Medio
+        tbodyHtml += '<td class="detalhe-cell">';
+        tbodyHtml += '<span class="detalhe-valor">' + formatMoney(dados.ticket_medio) + '</span>';
+        tbodyHtml += getArrow(prevDados ? prevDados.ticket_medio : null, dados.ticket_medio);
+        tbodyHtml += '</td>';
+
+        prevDados = dados;
+      } else {
+        // Sem dados para este mes
+        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
+        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
+        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
+        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
+        // Nao resetar prevDados para manter comparacao com ultimo mes com dados
+      }
+    });
+
+    tbodyHtml += '</tr>';
+  });
+
+  if (!tbodyHtml) {
+    tbodyHtml = '<tr><td colspan="' + (1 + meses.length * 4) + '" class="empty-state">Nenhum gestor encontrado</td></tr>';
+  }
+
+  document.getElementById('detalheBody').innerHTML = tbodyHtml;
+}
+
+// ─── SETA DE EVOLUCAO ───────────────────────────────────────
+// Compara valor atual com mes anterior
+// Verde (seta pra cima) = maior | Vermelho (seta pra baixo) = menor | Nada = igual ou sem anterior
+function getArrow(valorAnterior, valorAtual) {
+  if (valorAnterior === null || valorAnterior === undefined) return '';
+  if (valorAtual === valorAnterior) return '';
+
+  if (valorAtual > valorAnterior) {
+    return ' <span class="arrow-up" title="Maior que mes anterior">&#9650;</span>';
+  } else {
+    return ' <span class="arrow-down" title="Menor que mes anterior">&#9660;</span>';
+  }
+}
+
+// ─── FIM DETALHAMENTO ───────────────────────────────────────

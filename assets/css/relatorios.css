@@ -1051,3 +1051,151 @@ body {
   50% { opacity: .5; }
 }
 .loading { animation: pulse 1.5s infinite; }
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   DETALHAMENTO ANUAL - Tabela com evolucao mensal
+   ═══════════════════════════════════════════════════════════ */
+
+/* Wrapper com scroll horizontal */
+.detalhe-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
+}
+
+/* Tabela base */
+.detalhe-table {
+  table-layout: auto !important;
+  min-width: max-content;
+  font-size: .75rem;
+}
+
+/* Coluna fixa (nome do gestor) */
+.detalhe-col-fixa {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--surface) !important;
+  min-width: 180px;
+  max-width: 220px;
+  white-space: nowrap;
+  border-right: 2px solid var(--border2) !important;
+}
+
+.detalhe-table thead .detalhe-col-fixa {
+  background: var(--surface2) !important;
+  z-index: 15;
+}
+
+/* Header de mes (colspan=4) */
+.detalhe-mes-header {
+  text-align: center !important;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--accent) !important;
+  border-bottom: 2px solid var(--accent) !important;
+  padding: 10px 8px !important;
+  white-space: nowrap;
+}
+
+/* Sub-header (Cotacoes, Concretizadas, etc) */
+.detalhe-subheader-row th {
+  font-size: .65rem !important;
+  font-weight: 500 !important;
+  color: var(--text3) !important;
+  text-align: center !important;
+  padding: 6px 8px !important;
+  min-width: 90px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Celulas de dados */
+.detalhe-cell {
+  text-align: center !important;
+  padding: 8px 6px !important;
+  white-space: nowrap;
+  min-width: 90px;
+  font-size: .75rem;
+  vertical-align: middle !important;
+}
+
+.detalhe-valor {
+  font-weight: 500;
+}
+
+.detalhe-empty {
+  color: var(--text3) !important;
+  font-style: italic;
+}
+
+/* Nome do gestor na coluna fixa */
+.detalhe-nome {
+  padding: 10px 14px !important;
+}
+.detalhe-nome strong {
+  font-size: .8rem;
+  display: block;
+  color: var(--text1);
+}
+.detalhe-cidade {
+  font-size: .68rem;
+  color: var(--text3);
+}
+
+/* Linha hover */
+.detalhe-row:hover {
+  background: var(--surface2);
+}
+.detalhe-row:hover .detalhe-col-fixa {
+  background: var(--surface2) !important;
+}
+
+/* ─── SETAS DE EVOLUCAO ─── */
+.arrow-up {
+  color: var(--green);
+  font-size: .7rem;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.arrow-down {
+  color: var(--red);
+  font-size: .7rem;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+/* Separadores visuais entre meses (borda a cada 4 colunas) */
+.detalhe-table td:nth-child(4n+1):not(.detalhe-col-fixa),
+.detalhe-table th:nth-child(4n+1):not(.detalhe-col-fixa) {
+  border-left: 1px solid var(--border2);
+}
+
+/* Header row */
+.detalhe-header-row th {
+  border-bottom: none !important;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .detalhe-col-fixa {
+    min-width: 140px;
+    max-width: 160px;
+  }
+  .detalhe-cell {
+    min-width: 75px;
+    font-size: .7rem;
+  }
+  .detalhe-subheader-row th {
+    font-size: .6rem !important;
+    min-width: 75px;
+  }
+  .detalhe-table-wrap {
+    max-height: calc(100vh - 200px);
+  }
+}

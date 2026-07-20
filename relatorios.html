@@ -214,104 +214,51 @@
 
     </section>
 
-    <!-- ═══════════════ PAINEL: VENDAS/ASSOCIADOS ═══════════════ -->
+    <!-- ═══════════════ PAINEL: DETALHAMENTO ANUAL ═══════════════ -->
     <section class="report-panel" id="panel-vendas">
 
-      <div class="filter-panel">
-        <div class="filter-header" onclick="toggleFilters('vendas')">
-          <h3>Filtros - Associados</h3>
-          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <!-- Filtros do Detalhamento -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Ano</label>
+          <select id="fDetalheAno" onchange="carregarDetalhamento()">
+            <!-- Populado via JS com anos disponiveis no DB -->
+          </select>
         </div>
-        <div class="filter-body" id="filters-vendas">
-          <div class="filter-grid">
-            <div class="filter-group">
-              <label>Situacao</label>
-              <select id="fVendasSituacao">
-                <option value="">Todas</option>
-                <option value="1">Ativo</option>
-                <option value="2">Suspenso</option>
-                <option value="3">Cancelado</option>
-                <option value="4">Aguardando Pagamento</option>
-                <option value="5">Novo</option>
-                <option value="6">Aguardando Vistoria</option>
-                <option value="11">Reativacao</option>
-                <option value="13">Pre-Cancelamento</option>
-                <option value="17">Juridico</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Tipo Data</label>
-              <select id="fVendasTipoData">
-                <option value="VendasDataAtivacao">Data Ativacao</option>
-                <option value="VendasDataCadastro">Data Cadastro</option>
-                <option value="VendasDataCancelamento">Data Cancelamento</option>
-                <option value="VendasDataPagamento">Data Contrato</option>
-                <option value="VendasDataSuspensao">Data Suspensao</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Data Inicial</label>
-              <input type="date" id="fVendasDataInicial">
-            </div>
-            <div class="filter-group">
-              <label>Data Final</label>
-              <input type="date" id="fVendasDataFinal">
-            </div>
-            <div class="filter-group">
-              <label>Busca por</label>
-              <select id="fVendasCampoPesquisa">
-                <option value="">Nenhum</option>
-                <option value="nome">Nome</option>
-                <option value="cpf_cnpj">CPF/CNPJ</option>
-                <option value="placa">Placa</option>
-                <option value="chassi">Chassi</option>
-                <option value="telefone">Telefone</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Termo de busca</label>
-              <input type="text" id="fVendasSearch" placeholder="Digite aqui...">
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn btn-primary" onclick="buscarVendas()">Buscar Associados</button>
-          </div>
+        <div class="filter-group">
+          <label>Gestor / Consultor</label>
+          <select id="fDetalheGestor" onchange="carregarDetalhamento()">
+            <option value="">Todos</option>
+            <!-- Populado via JS -->
+          </select>
+        </div>
+        <div class="filter-group filter-actions-inline">
+          <button class="btn btn-primary" onclick="carregarDetalhamento()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Buscar
+          </button>
         </div>
       </div>
 
-      <div class="kpi-grid" id="kpiGridVendas">
-        <div class="kpi-card kpi-blue">
-          <div class="kpi-label">Total Registros</div>
-          <div class="kpi-value" id="kpiVendasTotal">-</div>
-        </div>
-        <div class="kpi-card kpi-green">
-          <div class="kpi-label">Filtrados</div>
-          <div class="kpi-value" id="kpiVendasFiltrados">-</div>
-        </div>
+      <!-- Info de carregamento -->
+      <div class="data-info" id="detalheInfo" style="margin-bottom:12px;font-size:.75rem;color:var(--text3)">
+        Selecione o ano para carregar o detalhamento
       </div>
 
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
+      <!-- Tabela Detalhamento Anual (scroll horizontal) -->
+      <div class="table-wrap detalhe-table-wrap">
+        <table class="data-table detalhe-table" id="detalheTable">
+          <thead id="detalheThead">
             <tr>
-              <th>#</th>
-              <th>Nome</th>
-              <th>CPF</th>
-              <th>Placa</th>
-              <th>Modelo</th>
-              <th>Plano</th>
-              <th>Situacao</th>
-              <th>Consultor</th>
-              <th>Sede</th>
+              <th class="detalhe-col-fixa">Equipe<br><small>Gestor/Consultor</small></th>
             </tr>
           </thead>
-          <tbody id="vendasBody">
-            <tr><td colspan="9" class="empty-state">Use os filtros para buscar associados</td></tr>
+          <tbody id="detalheBody">
+            <tr><td colspan="1" class="empty-state">Selecione o ano e clique em Buscar</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="pagination" id="vendasPagination"></div>
     </section>
 
     <!-- ═══════════════ PAINEL: FLUXO DE CAIXA ═══════════════ -->
