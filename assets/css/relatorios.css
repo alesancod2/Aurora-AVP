@@ -1107,8 +1107,8 @@ body {
   left: 0;
   z-index: 10;
   background: var(--surface) !important;
-  min-width: 180px;
-  max-width: 220px;
+  min-width: 200px;
+  max-width: 240px;
   white-space: nowrap;
   border-right: 2px solid var(--border2) !important;
 }
@@ -1116,6 +1116,8 @@ body {
 .detalhe-table thead .detalhe-col-fixa {
   background: var(--surface2) !important;
   z-index: 15;
+  vertical-align: middle;
+  border-bottom: 2px solid var(--border2) !important;
 }
 
 /* Header de mes (colspan=4) */
@@ -1127,21 +1129,6 @@ body {
   border-bottom: none !important;
   padding: 8px 8px 2px !important;
   white-space: nowrap;
-}
-
-/* Header equipe (primeira row - vazio) */
-.detalhe-header-equipe {
-  border-bottom: none !important;
-}
-
-/* Sub-header equipe (segunda row - titulo) */
-.detalhe-sub-equipe {
-  font-size: .72rem !important;
-  font-weight: 600 !important;
-  color: var(--text2) !important;
-  padding: 2px 14px 8px !important;
-  vertical-align: middle !important;
-  border-bottom: 2px solid var(--border2) !important;
 }
 
 /* Sub-header (Cotacoes, Concretizadas, etc) */
@@ -1215,17 +1202,11 @@ body {
   margin-left: 2px;
 }
 
-/* Separadores visuais entre meses (borda a cada 4 colunas apos a primeira coluna fixa) */
-.detalhe-table.data-table td:nth-child(5n+2),
-.detalhe-table.data-table th:nth-child(5n+2) {
+/* Separadores visuais entre meses */
+.detalhe-subheader-row th.detalhe-sub-col:nth-child(4n+1) {
   border-left: 2px solid var(--border2);
 }
-
-/* Separador na primeira coluna de dados de cada mes (coluna 2, 6, 10, 14...) */
-.detalhe-row td:nth-child(4n+2) {
-  border-left: 2px solid var(--border2);
-}
-.detalhe-subheader-row th:nth-child(4n+2) {
+.detalhe-row td.detalhe-cell:nth-child(4n+2) {
   border-left: 2px solid var(--border2);
 }
 

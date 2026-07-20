@@ -1827,7 +1827,7 @@ function renderDetalhamento() {
 
   // ─── HEADER ───
   var theadHtml = '<tr class="detalhe-header-row">';
-  theadHtml += '<th class="detalhe-col-fixa detalhe-header-equipe"></th>';
+  theadHtml += '<th class="detalhe-col-fixa" rowspan="2">Equipe<br><small>Gestor/Consultor</small></th>';
   meses.forEach(function(mesKey) {
     var mesIdx = parseInt(mesKey.substring(5, 7)) - 1;
     theadHtml += '<th colspan="4" class="detalhe-mes-header">' + MESES_NOMES[mesIdx] + '</th>';
@@ -1836,7 +1836,6 @@ function renderDetalhamento() {
 
   // Sub-header com campos
   theadHtml += '<tr class="detalhe-subheader-row">';
-  theadHtml += '<th class="detalhe-col-fixa detalhe-sub-equipe">Equipe<br><small>Gestor/Consultor</small></th>';
   meses.forEach(function() {
     theadHtml += '<th class="detalhe-sub-col">Cotacoes</th>';
     theadHtml += '<th class="detalhe-sub-col">Concretizadas</th>';
