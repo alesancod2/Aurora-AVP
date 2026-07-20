@@ -1185,6 +1185,121 @@ body {
   background: var(--surface2) !important;
 }
 
+/* Row do gestor clicavel */
+.detalhe-row-gestor {
+  cursor: pointer;
+}
+.detalhe-row-gestor:hover {
+  background: var(--accent-light) !important;
+}
+.detalhe-row-gestor:hover .detalhe-col-fixa {
+  background: var(--accent-light) !important;
+}
+
+/* ─── EQUIPE EXPANDIVEL NO DETALHAMENTO ─── */
+.detalhe-equipe-row {
+  display: none;
+}
+.detalhe-equipe-row.visible {
+  display: table-row;
+}
+
+.detalhe-equipe-cell {
+  padding: 0 !important;
+  background: var(--surface2) !important;
+}
+
+.detalhe-equipe-content {
+  padding: 12px 16px;
+}
+
+.detalhe-equipe-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Sub-tabela da equipe */
+.detalhe-equipe-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: .72rem;
+}
+
+.detalhe-equipe-table th {
+  padding: 6px 10px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--text3);
+  font-size: .65rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.detalhe-eq-col-nome {
+  text-align: left !important;
+  min-width: 40px;
+}
+
+.detalhe-eq-mes {
+  color: var(--accent) !important;
+  font-weight: 600 !important;
+  font-size: .68rem !important;
+}
+
+.detalhe-eq-sub {
+  font-size: .6rem !important;
+  color: var(--text3) !important;
+  padding: 3px 8px !important;
+}
+
+.detalhe-eq-val {
+  text-align: center;
+  padding: 6px 8px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+}
+
+.detalhe-eq-num {
+  text-align: center;
+  padding: 6px 8px;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+}
+
+.detalhe-eq-nome-cell {
+  text-align: left !important;
+  padding: 6px 10px !important;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  min-width: 180px;
+}
+
+/* Linha do gestor (destacada em verde) */
+.detalhe-eq-gestor-row {
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+}
+.detalhe-eq-gestor-row td {
+  font-weight: 600;
+  color: var(--accent) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Linhas dos membros */
+.detalhe-eq-membro-row:hover {
+  background: var(--surface);
+}
+
+/* Info da equipe */
+.detalhe-eq-info {
+  margin-top: 8px;
+  font-size: .7rem;
+  color: var(--text3);
+}
+
 /* ─── SETAS DE EVOLUCAO ─── */
 .arrow-up {
   color: var(--green);

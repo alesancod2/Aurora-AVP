@@ -1747,16 +1747,31 @@ function popularFiltroGestorDetalhe() {
 
 // ─── OBTER DADOS DE UM GESTOR/CONSULTOR EM UM MES ───────────
 // Retorna { cotacoes, concretizadas, taxa_conversao, ticket_medio } ou null
-function getDadosMesIndividuo(mesKey, nome) {
+// soGestor=true retorna apenas dados individuais do gestor (sem somar equipe)
+function getDadosMesIndividuo(mesKey, nome, soGestor) {
   var dados = DETALHE_DATA[mesKey];
   if (!dados || !Array.isArray(dados)) return null;
 
   var nomeUpper = nome.toUpperCase();
 
-  // Procurar como gestor principal (totais gestor+equipe)
+  // Procurar como gestor principal
   for (var i = 0; i < dados.length; i++) {
     var g = dados[i];
     if (g.gestor.toUpperCase() === nomeUpper) {
+      if (soGestor) {
+        // Apenas dados individuais do gestor
+        var gCot = g.cot_qtd || 0;
+        var gAti = g.ati_qtd || 0;
+        var gValor = g.ati_valor || 0;
+        var gTaxa = gCot > 0 ? ((gAti / gCot) * 100) : 0;
+        var gTicket = gAti > 0 ? (gValor / gAti) : 0;
+        return {
+          cotacoes: gCot,
+          concretizadas: gAti,
+          taxa_conversao: gTaxa,
+          ticket_medio: gTicket
+        };
+      }
       // Totais (gestor + equipe)
       var totalCot = g.cot_qtd || 0;
       var totalAti = g.ati_qtd || 0;
@@ -1805,6 +1820,32 @@ function getDadosMesIndividuo(mesKey, nome) {
   return null;
 }
 
+// ─── OBTER MEMBROS DA EQUIPE DE UM GESTOR ───────────────────
+// Retorna lista unica de nomes de membros (de todos os meses)
+function getEquipeMembros(nomeGestor) {
+  var membros = {};
+  var nomeUpper = nomeGestor.toUpperCase();
+
+  Object.keys(DETALHE_DATA).forEach(function(mesKey) {
+    var dados = DETALHE_DATA[mesKey];
+    if (!Array.isArray(dados)) return;
+
+    for (var i = 0; i < dados.length; i++) {
+      var g = dados[i];
+      if (g.gestor.toUpperCase() === nomeUpper && g.equipe && g.equipe.length > 0) {
+        g.equipe.forEach(function(m) {
+          var mKey = m.gestor.toUpperCase();
+          if (!membros[mKey]) {
+            membros[mKey] = { nome: m.gestor, cidade: m.cidade || '' };
+          }
+        });
+      }
+    }
+  });
+
+  return Object.keys(membros).sort().map(function(k) { return membros[k]; });
+}
+
 // ─── RENDERIZAR TABELA DETALHAMENTO ─────────────────────────
 function renderDetalhamento() {
   var meses = Object.keys(DETALHE_DATA).sort(); // ["2026-01", "2026-02", ...]
@@ -1848,9 +1889,11 @@ function renderDetalhamento() {
 
   // ─── BODY ───
   var tbodyHtml = '';
+  var totalCols = 1 + meses.length * 4;
 
-  gestoresExibir.forEach(function(gestorInfo) {
-    tbodyHtml += '<tr class="detalhe-row">';
+  gestoresExibir.forEach(function(gestorInfo, idx) {
+    // Row principal do gestor (totais gestor+equipe) - clicavel
+    tbodyHtml += '<tr class="detalhe-row detalhe-row-gestor" onclick="toggleDetalheEquipe(' + idx + ')">';
     tbodyHtml += '<td class="detalhe-col-fixa detalhe-nome">';
     tbodyHtml += '<strong>' + esc(gestorInfo.nome) + '</strong>';
     if (gestorInfo.cidade) {
@@ -1861,28 +1904,24 @@ function renderDetalhamento() {
     var prevDados = null;
 
     meses.forEach(function(mesKey) {
-      var dados = getDadosMesIndividuo(mesKey, gestorInfo.nome);
+      var dados = getDadosMesIndividuo(mesKey, gestorInfo.nome, false);
 
       if (dados) {
-        // Cotacoes
         tbodyHtml += '<td class="detalhe-cell">';
         tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.cotacoes) + '</span>';
         tbodyHtml += getArrow(prevDados ? prevDados.cotacoes : null, dados.cotacoes);
         tbodyHtml += '</td>';
 
-        // Concretizadas (Ativadas)
         tbodyHtml += '<td class="detalhe-cell">';
         tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.concretizadas) + '</span>';
         tbodyHtml += getArrow(prevDados ? prevDados.concretizadas : null, dados.concretizadas);
         tbodyHtml += '</td>';
 
-        // Taxa Conversao
         tbodyHtml += '<td class="detalhe-cell">';
         tbodyHtml += '<span class="detalhe-valor">' + dados.taxa_conversao.toFixed(2) + '%</span>';
         tbodyHtml += getArrow(prevDados ? prevDados.taxa_conversao : null, dados.taxa_conversao);
         tbodyHtml += '</td>';
 
-        // Ticket Medio
         tbodyHtml += '<td class="detalhe-cell">';
         tbodyHtml += '<span class="detalhe-valor">' + formatMoney(dados.ticket_medio) + '</span>';
         tbodyHtml += getArrow(prevDados ? prevDados.ticket_medio : null, dados.ticket_medio);
@@ -1890,23 +1929,139 @@ function renderDetalhamento() {
 
         prevDados = dados;
       } else {
-        // Sem dados para este mes
         tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
         tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
         tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
         tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
-        // Nao resetar prevDados para manter comparacao com ultimo mes com dados
       }
     });
+    tbodyHtml += '</tr>';
 
+    // Row expansivel com equipe (oculta por padrao)
+    tbodyHtml += '<tr class="detalhe-equipe-row" id="detalhe-equipe-' + idx + '">';
+    tbodyHtml += '<td colspan="' + totalCols + '" class="detalhe-equipe-cell">';
+    tbodyHtml += '<div class="detalhe-equipe-content" id="detalhe-equipe-content-' + idx + '">';
+    tbodyHtml += '</div>';
+    tbodyHtml += '</td>';
     tbodyHtml += '</tr>';
   });
 
   if (!tbodyHtml) {
-    tbodyHtml = '<tr><td colspan="' + (1 + meses.length * 4) + '" class="empty-state">Nenhum gestor encontrado</td></tr>';
+    tbodyHtml = '<tr><td colspan="' + totalCols + '" class="empty-state">Nenhum gestor encontrado</td></tr>';
   }
 
   document.getElementById('detalheBody').innerHTML = tbodyHtml;
+}
+
+// ─── TOGGLE EQUIPE NO DETALHAMENTO ──────────────────────────
+function toggleDetalheEquipe(idx) {
+  var row = document.getElementById('detalhe-equipe-' + idx);
+  if (!row) return;
+
+  var isVisible = row.classList.contains('visible');
+  if (isVisible) {
+    row.classList.remove('visible');
+    return;
+  }
+
+  // Popular conteudo se ainda nao foi preenchido
+  var content = document.getElementById('detalhe-equipe-content-' + idx);
+  if (!content.innerHTML) {
+    var gestorInfo = getGestorExibidoByIdx(idx);
+    if (gestorInfo) {
+      content.innerHTML = renderDetalheEquipeTabela(gestorInfo);
+    }
+  }
+
+  row.classList.add('visible');
+}
+
+// ─── OBTER GESTOR PELO INDICE ───────────────────────────────
+function getGestorExibidoByIdx(idx) {
+  var filtroGestor = document.getElementById('fDetalheGestor') ? document.getElementById('fDetalheGestor').value : '';
+  var gestoresExibir;
+  if (filtroGestor) {
+    gestoresExibir = DETALHE_GESTORES.filter(function(g) { return g.nome === filtroGestor; });
+  } else {
+    gestoresExibir = DETALHE_GESTORES.filter(function(g) { return g.tipo === 'gestor'; });
+  }
+  return gestoresExibir[idx] || null;
+}
+
+// ─── RENDERIZAR SUB-TABELA DA EQUIPE ────────────────────────
+function renderDetalheEquipeTabela(gestorInfo) {
+  var meses = Object.keys(DETALHE_DATA).sort();
+  var membros = getEquipeMembros(gestorInfo.nome);
+
+  var html = '<div class="detalhe-equipe-scroll">';
+  html += '<table class="detalhe-equipe-table">';
+
+  // Header da sub-tabela
+  html += '<thead><tr>';
+  html += '<th class="detalhe-eq-col-nome">#</th>';
+  html += '<th class="detalhe-eq-col-nome">Membro</th>';
+  meses.forEach(function(mesKey) {
+    var mesIdx = parseInt(mesKey.substring(5, 7)) - 1;
+    html += '<th colspan="4" class="detalhe-eq-mes">' + MESES_ABREV[mesIdx] + '</th>';
+  });
+  html += '</tr>';
+
+  // Sub-header
+  html += '<tr>';
+  html += '<th></th><th></th>';
+  meses.forEach(function() {
+    html += '<th class="detalhe-eq-sub">Cot</th>';
+    html += '<th class="detalhe-eq-sub">Conc</th>';
+    html += '<th class="detalhe-eq-sub">Taxa</th>';
+    html += '<th class="detalhe-eq-sub">Ticket</th>';
+  });
+  html += '</tr></thead>';
+
+  html += '<tbody>';
+
+  // Primeira linha: o proprio gestor (valores individuais, destacado em verde)
+  html += '<tr class="detalhe-eq-gestor-row">';
+  html += '<td></td>';
+  html += '<td class="detalhe-eq-nome-cell"><strong>' + esc(gestorInfo.nome) + '</strong></td>';
+  meses.forEach(function(mesKey) {
+    var d = getDadosMesIndividuo(mesKey, gestorInfo.nome, true);
+    if (d) {
+      html += '<td class="detalhe-eq-val">' + formatNum(d.cotacoes) + '</td>';
+      html += '<td class="detalhe-eq-val">' + formatNum(d.concretizadas) + '</td>';
+      html += '<td class="detalhe-eq-val">' + d.taxa_conversao.toFixed(2) + '%</td>';
+      html += '<td class="detalhe-eq-val">' + formatMoney(d.ticket_medio) + '</td>';
+    } else {
+      html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
+      html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
+    }
+  });
+  html += '</tr>';
+
+  // Membros da equipe
+  membros.forEach(function(membro, i) {
+    html += '<tr class="detalhe-eq-membro-row">';
+    html += '<td class="detalhe-eq-num">' + (i + 1) + '</td>';
+    html += '<td class="detalhe-eq-nome-cell">' + esc(membro.nome) + '</td>';
+    meses.forEach(function(mesKey) {
+      var d = getDadosMesIndividuo(mesKey, membro.nome, false);
+      if (d) {
+        html += '<td class="detalhe-eq-val">' + formatNum(d.cotacoes) + '</td>';
+        html += '<td class="detalhe-eq-val">' + formatNum(d.concretizadas) + '</td>';
+        html += '<td class="detalhe-eq-val">' + d.taxa_conversao.toFixed(2) + '%</td>';
+        html += '<td class="detalhe-eq-val">' + formatMoney(d.ticket_medio) + '</td>';
+      } else {
+        html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
+        html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  html += '<div class="detalhe-eq-info">' + membros.length + ' membros na equipe</div>';
+  html += '</div>';
+
+  return html;
 }
 
 // ─── SETA DE EVOLUCAO ───────────────────────────────────────
