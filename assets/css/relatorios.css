@@ -1129,14 +1129,28 @@ body {
   white-space: nowrap;
 }
 
+/* Header equipe (primeira row - vazio) */
+.detalhe-header-equipe {
+  border-bottom: 2px solid var(--accent) !important;
+}
+
+/* Sub-header equipe (segunda row - titulo) */
+.detalhe-sub-equipe {
+  font-size: .72rem !important;
+  font-weight: 600 !important;
+  color: var(--text2) !important;
+  padding: 8px 14px !important;
+  vertical-align: middle !important;
+}
+
 /* Sub-header (Cotacoes, Concretizadas, etc) */
 .detalhe-subheader-row th {
   font-size: .65rem !important;
   font-weight: 500 !important;
   color: var(--text3) !important;
   text-align: center !important;
-  padding: 6px 8px !important;
-  min-width: 90px;
+  padding: 6px 10px !important;
+  min-width: 100px;
   white-space: nowrap;
   border-bottom: 1px solid var(--border) !important;
 }
@@ -1144,15 +1158,16 @@ body {
 /* Celulas de dados */
 .detalhe-cell {
   text-align: center !important;
-  padding: 8px 6px !important;
+  padding: 10px 10px !important;
   white-space: nowrap;
-  min-width: 90px;
+  min-width: 100px;
   font-size: .75rem;
   vertical-align: middle !important;
 }
 
 .detalhe-valor {
   font-weight: 500;
+  display: inline;
 }
 
 .detalhe-empty {
@@ -1199,10 +1214,18 @@ body {
   margin-left: 2px;
 }
 
-/* Separadores visuais entre meses (borda a cada 4 colunas) */
-.detalhe-table td:nth-child(4n+1):not(.detalhe-col-fixa),
-.detalhe-table th:nth-child(4n+1):not(.detalhe-col-fixa) {
-  border-left: 1px solid var(--border2);
+/* Separadores visuais entre meses (borda a cada 4 colunas apos a primeira coluna fixa) */
+.detalhe-table.data-table td:nth-child(5n+2),
+.detalhe-table.data-table th:nth-child(5n+2) {
+  border-left: 2px solid var(--border2);
+}
+
+/* Separador na primeira coluna de dados de cada mes (coluna 2, 6, 10, 14...) */
+.detalhe-row td:nth-child(4n+2) {
+  border-left: 2px solid var(--border2);
+}
+.detalhe-subheader-row th:nth-child(4n+2) {
+  border-left: 2px solid var(--border2);
 }
 
 /* Header row */
