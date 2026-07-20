@@ -198,6 +198,7 @@ serve(async (req: Request) => {
             id: c.ConsultoresId,
             nome: (c.IndividuosNome || "").trim(),
             centro: c.GruposEmpresasNome || "",
+            cidade: c.IndividuosEnderecosCidadesNome || "",
             forma_lider: c.ConsultoresFormaLider
           }));
       } catch (e) { /* ignore */ }

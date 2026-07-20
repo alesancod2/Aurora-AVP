@@ -864,6 +864,18 @@ async function buscarDados(forceRefresh) {
     // Salvar info dos lideres para uso no expandir equipe
     window._lideresInfo = gestoresRes.lideres_info || [];
 
+    // Substituir "cidade" (centro_custo) pela cidade real do cadastro do consultor
+    if (window._lideresInfo.length > 0) {
+      gestores.forEach(function(g) {
+        var liderInfo = window._lideresInfo.find(function(l) {
+          return l.nome.toUpperCase() === g.gestor.toUpperCase();
+        });
+        if (liderInfo && liderInfo.cidade) {
+          g.cidade = liderInfo.cidade;
+        }
+      });
+    }
+
     console.log('[Aurora] Gestores (lideres) parseados:', gestores.length);
 
     // Passo 3: Para cada lider, buscar equipe completa via EquipeId (PARALELO 5 por vez)
@@ -1094,11 +1106,40 @@ function parseBrCurrency(str) {
 
 // ─── EXIBIR DADOS ───────────────────────────────────────────
 function showData(msg) {
+  // Aplicar cidades reais do cadastro se disponivel
+  if (Object.keys(CIDADES_CONSULTORES).length > 0) {
+    aplicarCidadesNosGestores(DATA);
+  }
   updateKPIs();
   renderTable(sortData(filterData(DATA)));
   updateCidadeFilter();
   document.getElementById('dataInfo').textContent = msg + ' | ' + DATA.length + ' gestores';
   renderHiddenGestores();
+
+  // Se cidades ainda nao foram carregadas, buscar em background e re-renderizar
+  if (Object.keys(CIDADES_CONSULTORES).length === 0) {
+    carregarCidadesConsultores().then(function() {
+      if (Object.keys(CIDADES_CONSULTORES).length > 0) {
+        aplicarCidadesNosGestores(DATA);
+        renderTable(sortData(filterData(DATA)));
+        updateCidadeFilter();
+      }
+    });
+  }
+}
+
+// Aplicar cidades reais nos gestores e equipes
+function aplicarCidadesNosGestores(gestores) {
+  gestores.forEach(function(g) {
+    var cidadeReal = CIDADES_CONSULTORES[g.gestor.toUpperCase()];
+    if (cidadeReal) g.cidade = cidadeReal;
+    if (g.equipe && g.equipe.length > 0) {
+      g.equipe.forEach(function(m) {
+        var mCidade = CIDADES_CONSULTORES[m.gestor.toUpperCase()];
+        if (mCidade) m.cidade = mCidade;
+      });
+    }
+  });
 }
 
 
@@ -1683,6 +1724,9 @@ async function carregarDetalhamento() {
     // Extrair lista de gestores/consultores unicos (incluindo membros de equipe)
     extrairGestoresDetalhamento();
 
+    // Buscar cidades reais do cadastro dos consultores
+    await carregarCidadesConsultores();
+
     // Popular filtro de gestor
     popularFiltroGestorDetalhe();
 
@@ -1695,6 +1739,79 @@ async function carregarDetalhamento() {
   } catch (e) {
     console.error('[Aurora] Erro carregarDetalhamento:', e);
     info.textContent = 'Erro ao carregar: ' + e.message;
+  }
+}
+
+// ─── CARREGAR CIDADES REAIS DOS CONSULTORES ─────────────────
+// Busca cidade do cadastro (IndividuosEnderecosCidadesNome) via Edge Function
+// e atualiza DETALHE_GESTORES e dados no cache com a cidade correta
+var CIDADES_CONSULTORES = {}; // cache local: nome_upper -> cidade
+
+async function carregarCidadesConsultores() {
+  // Se ja temos o cache de cidades, apenas aplicar
+  if (Object.keys(CIDADES_CONSULTORES).length > 0) {
+    aplicarCidadesConsultores();
+    return;
+  }
+
+  try {
+    // Buscar todos os consultores ativos (tipo gestor = lideres) via Edge Function
+    var res = await edgeCall({
+      action: 'consultores',
+      start: 0,
+      length: 5000,
+      situacao: '2',
+      tipo_consultor: '5'
+    });
+
+    if (res.success && res.data && res.data.data) {
+      res.data.data.forEach(function(c) {
+        var nome = (c.IndividuosNome || '').trim().toUpperCase();
+        var cidade = c.IndividuosEnderecosCidadesNome || '';
+        if (nome && cidade) {
+          CIDADES_CONSULTORES[nome] = cidade;
+        }
+      });
+    }
+
+    // Tambem buscar consultores normais (tipo 1) para membros de equipe
+    var res2 = await edgeCall({
+      action: 'consultores',
+      start: 0,
+      length: 5000,
+      situacao: '2',
+      tipo_consultor: '1'
+    });
+
+    if (res2.success && res2.data && res2.data.data) {
+      res2.data.data.forEach(function(c) {
+        var nome = (c.IndividuosNome || '').trim().toUpperCase();
+        var cidade = c.IndividuosEnderecosCidadesNome || '';
+        if (nome && cidade && !CIDADES_CONSULTORES[nome]) {
+          CIDADES_CONSULTORES[nome] = cidade;
+        }
+      });
+    }
+
+    console.log('[Aurora] Cidades carregadas para ' + Object.keys(CIDADES_CONSULTORES).length + ' consultores');
+    aplicarCidadesConsultores();
+  } catch (e) {
+    console.warn('[Aurora] Erro ao carregar cidades:', e.message);
+    // Continuar sem cidades reais
+  }
+}
+
+function aplicarCidadesConsultores() {
+  // Atualizar DETALHE_GESTORES com cidade real
+  DETALHE_GESTORES.forEach(function(g) {
+    var cidadeReal = CIDADES_CONSULTORES[g.nome.toUpperCase()];
+    if (cidadeReal) {
+      g.cidade = cidadeReal;
+    }
+  });
+  // Tambem atualizar dados do DATA (aba Acompanhamento) se disponivel
+  if (DATA && DATA.length > 0) {
+    aplicarCidadesNosGestores(DATA);
   }
 }
 
