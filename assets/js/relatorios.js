@@ -1495,21 +1495,29 @@ async function buscarFluxoCaixa() {
   // Gerar hash para cache
   var fluxoHash = 'fluxo|' + dataInicial + '|' + dataFinal + '|' + tipoData + '|' + faturasTipo;
 
-  // 1. Verificar cache no Supabase DB
+  // 1. Verificar cache no Supabase DB (hash exato OU mesmo mes)
   try {
+    // Primeiro: hash exato
     var dbCache = await sbFetch(
       'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(fluxoHash) + '&select=dados,updated_at'
     );
+    // Se nao encontrou exato, buscar por tipo fluxo-caixa do mesmo mes
+    if (!dbCache || dbCache.length === 0) {
+      var mesInicial = dataInicial.substring(0, 7); // "2026-07"
+      dbCache = await sbFetch(
+        'relatorios_cache?tipo_relatorio=eq.fluxo-caixa&data_inicial=gte.' + mesInicial + '-01&data_inicial=lte.' + mesInicial + '-31&select=dados,updated_at&order=updated_at.desc&limit=1'
+      );
+    }
     if (dbCache && dbCache.length > 0) {
       var cached = dbCache[0];
       var age = Date.now() - new Date(cached.updated_at).getTime();
-      // Cache valido por 1 hora
-      if (age < 60 * 60 * 1000 && cached.dados) {
+      // Cache valido por 24 horas para fluxo
+      if (age < 24 * 60 * 60 * 1000 && cached.dados) {
         var minAgo = Math.round(age / 60000);
-        console.log('[Aurora] Fluxo de caixa: cache DB encontrado (' + minAgo + ' min atras)');
+        var horasAgo = Math.round(minAgo / 60);
+        var tempoLabel = minAgo < 60 ? (minAgo + ' min') : (horasAgo + 'h');
+        console.log('[Aurora] Fluxo de caixa: cache DB encontrado (' + tempoLabel + ' atras)');
         renderFluxoFromCache(cached.dados);
-        document.getElementById('kpiFluxoQtd').insertAdjacentHTML('afterend',
-          '<div style="font-size:.6rem;color:var(--text3);margin-top:2px">Cache ' + minAgo + ' min</div>');
         return;
       }
     }
