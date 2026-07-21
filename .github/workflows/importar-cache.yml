@@ -30,6 +30,7 @@ jobs:
         run: python3 scripts/import_cron.py
 
       - name: Importar fluxo de caixa
+        continue-on-error: true
         env:
           AEASY_CPF: ${{ secrets.AEASY_CPF }}
           AEASY_SENHA: ${{ secrets.AEASY_SENHA }}

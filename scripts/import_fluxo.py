@@ -6,7 +6,7 @@ Executado pelo GitHub Actions a cada hora junto com import_cron.py.
 Variaveis de ambiente necessarias:
   AEASY_CPF, AEASY_SENHA, SUPABASE_URL, SUPABASE_KEY
 """
-import json, subprocess, re, urllib.request, urllib.parse, os
+import json, subprocess, re, urllib.request, urllib.parse, os, time, calendar
 from datetime import datetime
 
 # Configuracao via env vars
@@ -18,51 +18,82 @@ AEASY_SENHA = os.environ.get("AEASY_SENHA", "")
 
 if not SUPABASE_KEY or not AEASY_CPF or not AEASY_SENHA:
     print("ERRO: Variaveis de ambiente nao configuradas")
+    print(f"  SUPABASE_KEY: {'OK' if SUPABASE_KEY else 'FALTA'}")
+    print(f"  AEASY_CPF: {'OK' if AEASY_CPF else 'FALTA'}")
+    print(f"  AEASY_SENHA: {'OK' if AEASY_SENHA else 'FALTA'}")
     exit(1)
 
 
-def login():
-    result = subprocess.run([
-        'curl', '-s', '-D', '-', '-X', 'POST', f'{BASE}/conta/login',
-        '-H', 'Content-Type: application/json',
-        '-d', json.dumps({"UsuariosLogin": AEASY_CPF, "UsuariosSenha": AEASY_SENHA})
-    ], capture_output=True, text=True)
-    match = re.search(r'PHPSESSID=([^;]+)', result.stdout)
-    return f"PHPSESSID={match.group(1)}" if match else None
+def login(tentativas=3):
+    """Login com retry"""
+    for i in range(tentativas):
+        try:
+            result = subprocess.run([
+                'curl', '-s', '-D', '-', '-X', 'POST', f'{BASE}/conta/login',
+                '-H', 'Content-Type: application/json',
+                '--max-time', '30',
+                '-d', json.dumps({"UsuariosLogin": AEASY_CPF, "UsuariosSenha": AEASY_SENHA})
+            ], capture_output=True, text=True, timeout=35)
+            match = re.search(r'PHPSESSID=([^;]+)', result.stdout)
+            if match:
+                return f"PHPSESSID={match.group(1)}"
+            print(f"  Login tentativa {i+1}: sem cookie")
+        except Exception as e:
+            print(f"  Login tentativa {i+1} erro: {e}")
+        if i < tentativas - 1:
+            time.sleep(3)
+    return None
 
 
-def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", page=1, length=500, vencimento=None):
-    """Busca fluxo de caixa da API AEasy"""
-    data = f"page={page}&length={length}&DataInicial={di}&DataFinal={df}&TipoData={tipo_data}"
-    if vencimento:
-        for v in (vencimento if isinstance(vencimento, list) else [vencimento]):
-            data += f"&VendasVencimento%5B%5D={v}"
-    result = subprocess.run([
-        'curl', '-s', '-b', sess, '--max-time', '120',
-        '-X', 'POST', f'{BASE}/fluxo-caixa/buscar-pagina',
-        '-H', 'Content-Type: application/x-www-form-urlencoded',
-        '-H', 'X-Requested-With: XMLHttpRequest',
-        '-d', data
-    ], capture_output=True, text=True)
-    try:
-        return json.loads(result.stdout)
-    except:
-        print(f"  Erro ao parsear resposta: {result.stdout[:200]}")
-        return None
+def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=None, tentativas=3):
+    """Busca totais do fluxo de caixa (length=1 para rapidez - so precisamos dos totais)"""
+    data = f"page=1&length=1&DataInicial={di}&DataFinal={df}&TipoData={tipo_data}"
+    if vencimento is not None:
+        data += f"&VendasVencimento%5B%5D={vencimento}"
+
+    for i in range(tentativas):
+        try:
+            result = subprocess.run([
+                'curl', '-s', '-b', sess, '--max-time', '90',
+                '-X', 'POST', f'{BASE}/fluxo-caixa/buscar-pagina',
+                '-H', 'Content-Type: application/x-www-form-urlencoded',
+                '-H', 'X-Requested-With: XMLHttpRequest',
+                '-d', data
+            ], capture_output=True, text=True, timeout=95)
+
+            if result.stdout and result.stdout.strip():
+                parsed = json.loads(result.stdout)
+                if parsed.get('code') == 200:
+                    return parsed
+                print(f"  Resposta invalida (code={parsed.get('code')}): {result.stdout[:100]}")
+            else:
+                print(f"  Tentativa {i+1}: resposta vazia")
+        except json.JSONDecodeError:
+            print(f"  Tentativa {i+1}: JSON invalido: {result.stdout[:100]}")
+        except subprocess.TimeoutExpired:
+            print(f"  Tentativa {i+1}: timeout (>95s)")
+        except Exception as e:
+            print(f"  Tentativa {i+1} erro: {e}")
+
+        if i < tentativas - 1:
+            print(f"  Aguardando 5s antes de tentar novamente...")
+            time.sleep(5)
+
+    return None
 
 
 def save_to_db(hash_key, di, df, cache_data):
     """Salva fluxo de caixa no cache do Supabase"""
     # Deletar existente
-    req_del = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/relatorios_cache?filtro_hash=eq.{urllib.parse.quote(hash_key)}",
-        headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
-        method='DELETE'
-    )
     try:
+        req_del = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/relatorios_cache?filtro_hash=eq.{urllib.parse.quote(hash_key)}",
+            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+            method='DELETE'
+        )
         urllib.request.urlopen(req_del)
-    except:
-        pass
+    except Exception as e:
+        print(f"  Aviso ao deletar: {e}")
 
     # Inserir novo
     payload = json.dumps({
@@ -71,39 +102,40 @@ def save_to_db(hash_key, di, df, cache_data):
         "data_inicial": di,
         "data_final": df,
         "dados": cache_data,
-        "total_registros": len(cache_data.get('dados', [])),
+        "total_registros": int(cache_data.get('totais', {}).get('Quantidade', 0)),
         "updated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00"),
         "expires_at": (datetime.utcnow().replace(hour=23, minute=59, second=59)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
     }).encode('utf-8')
 
-    req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/relatorios_cache",
-        data=payload,
-        headers={
-            'apikey': SUPABASE_KEY,
-            'Authorization': f'Bearer {SUPABASE_KEY}',
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-        },
-        method='POST'
-    )
     try:
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/relatorios_cache",
+            data=payload,
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            method='POST'
+        )
         resp = urllib.request.urlopen(req)
         return resp.status
     except urllib.error.HTTPError as e:
-        print(f"  DB Erro {e.code}: {e.read().decode()[:100]}")
+        print(f"  DB Erro {e.code}: {e.read().decode()[:200]}")
         return e.code
 
 
 def run():
     hoje = datetime.now()
     di = hoje.replace(day=1).strftime('%Y-%m-%d')
-    df = hoje.strftime('%Y-%m-%d')
     mes = hoje.strftime('%m')
     ano = hoje.strftime('%Y')
+    last_day = calendar.monthrange(int(ano), int(mes))[1]
+    df_full = f"{ano}-{mes}-{last_day:02d}"
 
     print(f"=== Importacao Fluxo de Caixa ===")
-    print(f"Periodo: {di} a {df}")
+    print(f"Periodo: {di} a {df_full}")
     print(f"Hora: {hoje.strftime('%Y-%m-%d %H:%M:%S')}")
     print()
 
@@ -111,64 +143,65 @@ def run():
     print("1. Login...")
     SESS = login()
     if not SESS:
-        print("   FALHA no login")
-        exit(1)
+        print("   FALHA no login - abortando fluxo de caixa (nao bloqueia workflow)")
+        exit(0)  # exit(0) = nao falha o workflow
     print(f"   OK")
 
     # 2. Buscar totais gerais do mes
     print("2. Buscando totais gerais...")
-    res_geral = buscar_fluxo(SESS, di, df, "FaturasDataVencimento", 1, 1)
-    if not res_geral or res_geral.get('code') != 200:
-        print(f"   FALHA: {json.dumps(res_geral)[:200] if res_geral else 'sem resposta'}")
-        exit(1)
+    res_geral = buscar_fluxo(SESS, di, df_full)
+    if not res_geral:
+        print("   API nao respondeu - abortando fluxo (nao bloqueia workflow)")
+        exit(0)  # exit(0) = nao falha o workflow
     totais_gerais = res_geral.get('totais', {})
-    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0)}, Qtd={totais_gerais.get('Quantidade', 0)}")
+    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={totais_gerais.get('Quantidade', 0)}")
 
     # 3. Buscar por cada dia de vencimento (05, 10, 15, 20, 25, 30)
     print("3. Buscando por vencimento...")
     dias_vencimento = [5, 10, 15, 20, 25, 30]
     vencimentos = {}
+    falhas = 0
 
-    import time
     for dia in dias_vencimento:
         print(f"   Vencimento {dia:02d}...")
-        res = buscar_fluxo(SESS, di, df, "FaturasDataVencimento", 1, 1, vencimento=dia)
-        if res and res.get('code') == 200:
+        res = buscar_fluxo(SESS, di, df_full, vencimento=dia)
+        if res:
             t = res.get('totais', {})
             vencimentos[f"{dia:02d}"] = {
                 'total': t.get('ValorTotal', 0),
                 'pago': t.get('ValorPago', 0),
                 'aberto': t.get('ValorAberto', 0),
                 'cancelado': t.get('ValorCancelado', 0),
-                'qtd': t.get('Quantidade', 0)
+                'qtd': int(t.get('Quantidade', 0))
             }
-            print(f"     Total={t.get('ValorTotal',0):.2f}, Qtd={t.get('Quantidade',0)}")
+            print(f"     Total={t.get('ValorTotal',0):.2f}, Pago={t.get('ValorPago',0):.2f}, Qtd={t.get('Quantidade',0)}")
         else:
             vencimentos[f"{dia:02d}"] = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
-            print(f"     Sem dados")
-        time.sleep(0.5)
+            print(f"     Sem dados (API sem resposta)")
+            falhas += 1
+        time.sleep(2)  # Pausa entre requisicoes para nao sobrecarregar API
 
-    # 4. Salvar no cache (dados agrupados por vencimento - JSON pequeno)
+    # Se muitas falhas, nao salvar (manter cache anterior)
+    if falhas >= 5:
+        print(f"\nMuitas falhas ({falhas}/6 vencimentos) - mantendo cache anterior")
+        exit(0)
+
+    # 4. Salvar no cache
     print("4. Salvando no DB...")
-    # Usar o ultimo dia do mes como data_final no hash
-    import calendar
-    last_day = calendar.monthrange(int(ano), int(mes))[1]
-    df_full = f"{ano}-{mes}-{last_day:02d}"
     hash_key = f"fluxo|{di}|{df_full}|FaturasDataVencimento|"
-
     cache_data = {
         'totais': totais_gerais,
         'vencimentos': vencimentos,
-        'dados': []  # Nao guardamos faturas individuais
+        'dados': []
     }
     status = save_to_db(hash_key, di, df_full, cache_data)
 
     print(f"\n=== CONCLUIDO ===")
     print(f"ValorTotal: R$ {totais_gerais.get('ValorTotal', 0):,.2f}")
     print(f"ValorPago: R$ {totais_gerais.get('ValorPago', 0):,.2f}")
-    print(f"Vencimentos: {len(vencimentos)} dias")
+    print(f"Vencimentos importados: {len(vencimentos) - falhas}/{len(vencimentos)}")
     for d, v in sorted(vencimentos.items()):
-        print(f"  Dia {d}: Total={v['total']:.2f}, Pago={v['pago']:.2f}, Aberto={v['aberto']:.2f}, Qtd={v['qtd']}")
+        print(f"  Dia {d}: Total={v['total']:.2f}, Pago={v['pago']:.2f}, Qtd={v['qtd']}")
     print(f"DB status: {status}")
 
 
