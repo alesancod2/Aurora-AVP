@@ -31,9 +31,12 @@ def login():
     return f"PHPSESSID={match.group(1)}" if match else None
 
 
-def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", page=1, length=500):
+def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", page=1, length=500, vencimento=None):
     """Busca fluxo de caixa da API AEasy"""
     data = f"page={page}&length={length}&DataInicial={di}&DataFinal={df}&TipoData={tipo_data}"
+    if vencimento:
+        for v in (vencimento if isinstance(vencimento, list) else [vencimento]):
+            data += f"&VendasVencimento%5B%5D={v}"
     result = subprocess.run([
         'curl', '-s', '-b', sess, '--max-time', '120',
         '-X', 'POST', f'{BASE}/fluxo-caixa/buscar-pagina',
@@ -96,6 +99,8 @@ def run():
     hoje = datetime.now()
     di = hoje.replace(day=1).strftime('%Y-%m-%d')
     df = hoje.strftime('%Y-%m-%d')
+    mes = hoje.strftime('%m')
+    ano = hoje.strftime('%Y')
 
     print(f"=== Importacao Fluxo de Caixa ===")
     print(f"Periodo: {di} a {df}")
@@ -110,29 +115,60 @@ def run():
         exit(1)
     print(f"   OK")
 
-    # 2. Buscar fluxo de caixa (Vencimento)
-    print("2. Buscando fluxo de caixa (Data Vencimento)...")
-    res = buscar_fluxo(SESS, di, df, "FaturasDataVencimento", 1, 500)
-    if not res or res.get('code') != 200:
-        print(f"   FALHA: {json.dumps(res)[:200] if res else 'sem resposta'}")
+    # 2. Buscar totais gerais do mes
+    print("2. Buscando totais gerais...")
+    res_geral = buscar_fluxo(SESS, di, df, "FaturasDataVencimento", 1, 1)
+    if not res_geral or res_geral.get('code') != 200:
+        print(f"   FALHA: {json.dumps(res_geral)[:200] if res_geral else 'sem resposta'}")
         exit(1)
+    totais_gerais = res_geral.get('totais', {})
+    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0)}, Qtd={totais_gerais.get('Quantidade', 0)}")
 
-    totais = res.get('totais', {})
-    dados = res.get('dados', [])
-    print(f"   Totais: ValorTotal={totais.get('ValorTotal', 0)}, Qtd={totais.get('Quantidade', 0)}")
-    print(f"   Faturas retornadas: {len(dados)}")
+    # 3. Buscar por cada dia de vencimento (05, 10, 15, 20, 25, 30)
+    print("3. Buscando por vencimento...")
+    dias_vencimento = [5, 10, 15, 20, 25, 30]
+    vencimentos = {}
 
-    # 3. Salvar no cache (limitar a 200 faturas para nao estourar o DB)
-    print("3. Salvando no DB...")
-    hash_key = f"fluxo|{di}|{df}|FaturasDataVencimento|"
-    # Guardar totais completos + primeiras 200 faturas (para exibicao)
-    cache_data = {'totais': totais, 'dados': dados[:200], 'total_faturas': len(dados)}
-    status = save_to_db(hash_key, di, df, cache_data)
+    import time
+    for dia in dias_vencimento:
+        print(f"   Vencimento {dia:02d}...")
+        res = buscar_fluxo(SESS, di, df, "FaturasDataVencimento", 1, 1, vencimento=dia)
+        if res and res.get('code') == 200:
+            t = res.get('totais', {})
+            vencimentos[f"{dia:02d}"] = {
+                'total': t.get('ValorTotal', 0),
+                'pago': t.get('ValorPago', 0),
+                'aberto': t.get('ValorAberto', 0),
+                'cancelado': t.get('ValorCancelado', 0),
+                'qtd': t.get('Quantidade', 0)
+            }
+            print(f"     Total={t.get('ValorTotal',0):.2f}, Qtd={t.get('Quantidade',0)}")
+        else:
+            vencimentos[f"{dia:02d}"] = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
+            print(f"     Sem dados")
+        time.sleep(0.5)
+
+    # 4. Salvar no cache (dados agrupados por vencimento - JSON pequeno)
+    print("4. Salvando no DB...")
+    # Usar o ultimo dia do mes como data_final no hash
+    import calendar
+    last_day = calendar.monthrange(int(ano), int(mes))[1]
+    df_full = f"{ano}-{mes}-{last_day:02d}"
+    hash_key = f"fluxo|{di}|{df_full}|FaturasDataVencimento|"
+
+    cache_data = {
+        'totais': totais_gerais,
+        'vencimentos': vencimentos,
+        'dados': []  # Nao guardamos faturas individuais
+    }
+    status = save_to_db(hash_key, di, df_full, cache_data)
 
     print(f"\n=== CONCLUIDO ===")
-    print(f"Faturas: {len(dados)}")
-    print(f"ValorTotal: R$ {totais.get('ValorTotal', 0):,.2f}")
-    print(f"ValorPago: R$ {totais.get('ValorPago', 0):,.2f}")
+    print(f"ValorTotal: R$ {totais_gerais.get('ValorTotal', 0):,.2f}")
+    print(f"ValorPago: R$ {totais_gerais.get('ValorPago', 0):,.2f}")
+    print(f"Vencimentos: {len(vencimentos)} dias")
+    for d, v in sorted(vencimentos.items()):
+        print(f"  Dia {d}: Total={v['total']:.2f}, Pago={v['pago']:.2f}, Aberto={v['aberto']:.2f}, Qtd={v['qtd']}")
     print(f"DB status: {status}")
 
 

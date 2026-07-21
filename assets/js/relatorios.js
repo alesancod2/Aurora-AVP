@@ -1562,69 +1562,66 @@ function renderFluxoVencimentos(cacheData, mes, ano) {
   var mesIdx = parseInt(mes) - 1;
   document.getElementById('fluxoTitulo').textContent = 'Contribuicao Mensal - ' + mesesNomes[mesIdx] + '/' + ano;
 
-  // Agrupar faturas por dia de vencimento
-  var vencimentos = {}; // { "05": { total, pago, aberto, cancelado, qtd }, ... }
+  // Usar dados pre-agrupados se disponivel (importados pelo script)
+  var vencimentos = {};
   var diasPadrao = ['05', '10', '15', '20', '25', '30'];
 
-  // Inicializar dias padrao
-  diasPadrao.forEach(function(dia) {
-    vencimentos[dia] = { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
-  });
+  if (cacheData.vencimentos) {
+    // Dados ja vem agrupados pelo script import_fluxo.py
+    vencimentos = cacheData.vencimentos;
+  } else if (dados.length > 0) {
+    // Fallback: agrupar faturas individuais por dia de vencimento
+    diasPadrao.forEach(function(dia) {
+      vencimentos[dia] = { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
+    });
 
-  // Agrupar dados das faturas
-  dados.forEach(function(fatura) {
-    var dataVenc = fatura.FaturasDataVencimento || '';
-    var dia = '';
+    dados.forEach(function(fatura) {
+      var dataVenc = fatura.FaturasDataVencimento || '';
+      var dia = '';
 
-    // Extrair dia do vencimento (pode ser "DD/MM/YYYY" ou "YYYY-MM-DD")
-    if (dataVenc.indexOf('/') !== -1) {
-      dia = dataVenc.substring(0, 2);
-    } else if (dataVenc.indexOf('-') !== -1) {
-      dia = dataVenc.substring(8, 10);
-    }
+      if (dataVenc.indexOf('/') !== -1) {
+        dia = dataVenc.substring(0, 2);
+      } else if (dataVenc.indexOf('-') !== -1) {
+        dia = dataVenc.substring(8, 10);
+      }
 
-    // Arredondar para o dia padrao mais proximo
-    var diaNum = parseInt(dia) || 0;
-    var diaPadrao = '05';
-    if (diaNum <= 7) diaPadrao = '05';
-    else if (diaNum <= 12) diaPadrao = '10';
-    else if (diaNum <= 17) diaPadrao = '15';
-    else if (diaNum <= 22) diaPadrao = '20';
-    else if (diaNum <= 27) diaPadrao = '25';
-    else diaPadrao = '30';
+      var diaNum = parseInt(dia) || 0;
+      var diaPadrao = '05';
+      if (diaNum <= 7) diaPadrao = '05';
+      else if (diaNum <= 12) diaPadrao = '10';
+      else if (diaNum <= 17) diaPadrao = '15';
+      else if (diaNum <= 22) diaPadrao = '20';
+      else if (diaNum <= 27) diaPadrao = '25';
+      else diaPadrao = '30';
 
-    if (!vencimentos[diaPadrao]) {
-      vencimentos[diaPadrao] = { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
-    }
+      if (!vencimentos[diaPadrao]) {
+        vencimentos[diaPadrao] = { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
+      }
 
-    var valor = parseFloat(fatura.FaturasValor) || 0;
-    var valorPago = parseFloat(fatura.FaturasValorPago) || 0;
-    var situacao = (fatura.Situacao || '').toLowerCase();
+      var valor = parseFloat(fatura.FaturasValor) || 0;
+      var valorPago = parseFloat(fatura.FaturasValorPago) || 0;
+      var situacao = (fatura.Situacao || '').toLowerCase();
 
-    vencimentos[diaPadrao].total += valor;
-    vencimentos[diaPadrao].qtd += 1;
+      vencimentos[diaPadrao].total += valor;
+      vencimentos[diaPadrao].qtd += 1;
 
-    if (situacao === 'pago' || situacao === 'paid') {
-      vencimentos[diaPadrao].pago += valorPago || valor;
-    } else if (situacao === 'cancelado' || situacao === 'cancelled') {
-      vencimentos[diaPadrao].cancelado += valor;
-    } else {
-      vencimentos[diaPadrao].aberto += valor;
-    }
-  });
-
-  // Se nao tem dados detalhados mas tem totais, distribuir proporcionalmente
-  var temDadosDetalhados = dados.length > 0;
-  if (!temDadosDetalhados && totais.Quantidade > 0) {
-    // Distribuir igualmente entre os 6 vencimentos (aproximacao)
-    var perVenc = totais.Quantidade / 6;
+      if (situacao === 'pago' || situacao === 'paid') {
+        vencimentos[diaPadrao].pago += valorPago || valor;
+      } else if (situacao === 'cancelado' || situacao === 'cancelled') {
+        vencimentos[diaPadrao].cancelado += valor;
+      } else {
+        vencimentos[diaPadrao].aberto += valor;
+      }
+    });
+  } else if (totais.Quantidade > 0) {
+    // Sem dados detalhados - distribuir igualmente (aproximacao)
     diasPadrao.forEach(function(dia) {
       vencimentos[dia] = {
         total: (totais.ValorTotal || 0) / 6,
         pago: (totais.ValorPago || 0) / 6,
         aberto: (totais.ValorAberto || 0) / 6,
         cancelado: (totais.ValorCancelado || 0) / 6,
-        qtd: Math.round(perVenc)
+        qtd: Math.round((totais.Quantidade || 0) / 6)
       };
     });
   }
@@ -1632,8 +1629,7 @@ function renderFluxoVencimentos(cacheData, mes, ano) {
   // Renderizar cards de vencimento
   var html = '';
   diasPadrao.forEach(function(dia) {
-    var v = vencimentos[dia];
-    if (!v || v.qtd === 0) return; // Pular vencimentos vazios
+    var v = vencimentos[dia] || { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
 
     html += '<div class="fluxo-venc-card">';
     html += '<div class="fluxo-venc-header">Vencimento ' + dia + '/' + mes + '</div>';
