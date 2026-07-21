@@ -1374,3 +1374,100 @@ body {
     max-height: calc(100vh - 200px);
   }
 }
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   FLUXO DE CAIXA - Cards de Vencimento
+   ═══════════════════════════════════════════════════════════ */
+
+.fluxo-titulo {
+  margin-bottom: 16px;
+}
+.fluxo-titulo h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text1);
+  text-align: center;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.fluxo-vencimentos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fluxo-venc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: all var(--transition);
+}
+.fluxo-venc-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.fluxo-venc-header {
+  padding: 10px 20px;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text1);
+  text-align: center;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.fluxo-venc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+
+.fluxo-venc-table th {
+  padding: 8px 16px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text2);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fluxo-venc-table td {
+  padding: 12px 16px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--text1);
+}
+
+.fluxo-val-pago {
+  color: var(--green) !important;
+  font-weight: 600 !important;
+}
+
+.fluxo-val-aberto {
+  color: var(--amber) !important;
+  font-weight: 600 !important;
+}
+
+.fluxo-val-cancelado {
+  color: var(--red) !important;
+  font-weight: 600 !important;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .fluxo-venc-table th,
+  .fluxo-venc-table td {
+    padding: 8px 10px;
+    font-size: .75rem;
+  }
+}

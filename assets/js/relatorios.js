@@ -39,6 +39,12 @@ var vendasTotal = 0;
   setDateValue('fFluxoDataInicial', primeiro);
   setDateValue('fFluxoDataFinal', hoje);
 
+  // Fluxo de Caixa: selecionar mes/ano atual
+  var selectFluxoMes = document.getElementById('fFluxoMes');
+  var selectFluxoAno = document.getElementById('fFluxoAno');
+  if (selectFluxoMes) selectFluxoMes.value = String(hoje.getMonth() + 1).padStart(2, '0');
+  if (selectFluxoAno) selectFluxoAno.value = String(hoje.getFullYear());
+
   // Verificar sessao salva
   var ss = localStorage.getItem('avp_session');
   if (ss) {
@@ -1481,43 +1487,48 @@ function renderVendasPagination() {
 }
 
 // ─── BUSCAR FLUXO DE CAIXA ──────────────────────────────────
+// Busca dados agrupados por dia de vencimento (05, 10, 15, 20, 25, 30)
 async function buscarFluxoCaixa() {
-  var dataInicial = document.getElementById('fFluxoDataInicial').value;
-  var dataFinal = document.getElementById('fFluxoDataFinal').value;
-  var tipoData = document.getElementById('fFluxoTipoData').value;
-  var faturasTipo = document.getElementById('fFluxoTipoFatura').value || '';
+  var mes = document.getElementById('fFluxoMes').value;
+  var ano = document.getElementById('fFluxoAno').value;
 
-  if (!dataInicial || !dataFinal) {
-    alert('Selecione data inicial e final');
+  if (!mes || !ano) {
+    alert('Selecione mes e ano');
     return;
   }
 
-  // Gerar hash para cache
-  var fluxoHash = 'fluxo|' + dataInicial + '|' + dataFinal + '|' + tipoData + '|' + faturasTipo;
+  var dataInicial = ano + '-' + mes + '-01';
+  // Ultimo dia do mes
+  var lastDay = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+  var dataFinal = ano + '-' + mes + '-' + String(lastDay).padStart(2, '0');
+  var fluxoHash = 'fluxo|' + dataInicial + '|' + dataFinal + '|FaturasDataVencimento|';
 
-  // 1. Verificar cache no Supabase DB (hash exato OU mesmo mes)
+  // Mostrar loading
+  document.getElementById('kpiFluxoTotal').textContent = '...';
+  document.getElementById('kpiFluxoPago').textContent = '...';
+  document.getElementById('kpiFluxoAberto').textContent = '...';
+  document.getElementById('kpiFluxoCancelado').textContent = '...';
+  document.getElementById('kpiFluxoQtd').textContent = '...';
+  document.getElementById('fluxoVencimentos').innerHTML = '<div class="empty-state" style="padding:40px;text-align:center">Carregando...</div>';
+
+  // 1. Verificar cache no Supabase DB
   try {
-    // Primeiro: hash exato
+    // Hash exato
     var dbCache = await sbFetch(
       'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(fluxoHash) + '&select=dados,updated_at'
     );
-    // Se nao encontrou exato, buscar por tipo fluxo-caixa do mesmo mes
+    // Se nao encontrou, buscar por tipo fluxo-caixa do mesmo mes
     if (!dbCache || dbCache.length === 0) {
-      var mesInicial = dataInicial.substring(0, 7); // "2026-07"
       dbCache = await sbFetch(
-        'relatorios_cache?tipo_relatorio=eq.fluxo-caixa&data_inicial=gte.' + mesInicial + '-01&data_inicial=lte.' + mesInicial + '-31&select=dados,updated_at&order=updated_at.desc&limit=1'
+        'relatorios_cache?tipo_relatorio=eq.fluxo-caixa&data_inicial=gte.' + dataInicial + '&data_inicial=lte.' + dataFinal + '&select=dados,updated_at&order=updated_at.desc&limit=1'
       );
     }
     if (dbCache && dbCache.length > 0) {
       var cached = dbCache[0];
       var age = Date.now() - new Date(cached.updated_at).getTime();
-      // Cache valido por 24 horas para fluxo
       if (age < 24 * 60 * 60 * 1000 && cached.dados) {
-        var minAgo = Math.round(age / 60000);
-        var horasAgo = Math.round(minAgo / 60);
-        var tempoLabel = minAgo < 60 ? (minAgo + ' min') : (horasAgo + 'h');
-        console.log('[Aurora] Fluxo de caixa: cache DB encontrado (' + tempoLabel + ' atras)');
-        renderFluxoFromCache(cached.dados);
+        console.log('[Aurora] Fluxo de caixa: cache encontrado');
+        renderFluxoVencimentos(cached.dados, mes, ano);
         return;
       }
     }
@@ -1525,57 +1536,136 @@ async function buscarFluxoCaixa() {
     console.warn('[Aurora] Fluxo cache check erro:', e.message);
   }
 
-  // 2. Sem cache - informar usuario
-  // A Edge Function da timeout (plano free). Dados sao populados pelo GitHub Actions (cron 1h)
+  // 2. Sem cache disponivel
   document.getElementById('kpiFluxoTotal').textContent = '-';
   document.getElementById('kpiFluxoPago').textContent = '-';
   document.getElementById('kpiFluxoAberto').textContent = '-';
   document.getElementById('kpiFluxoCancelado').textContent = '-';
   document.getElementById('kpiFluxoQtd').textContent = '-';
-  document.getElementById('fluxoBody').innerHTML = '<tr><td colspan="9" class="empty-state">Dados sendo atualizados automaticamente (cron a cada hora).<br>Tente novamente em alguns minutos.<br><small style="color:var(--text3)">O fluxo de caixa do mes atual e importado pelo GitHub Actions.</small></td></tr>';
+  document.getElementById('fluxoVencimentos').innerHTML = '<div class="empty-state" style="padding:40px;text-align:center">Dados sendo atualizados automaticamente (cron a cada hora).<br>Tente novamente em alguns minutos.</div>';
 }
 
-// Renderizar fluxo de caixa a partir de dados (cache ou API)
-function renderFluxoFromCache(cacheData) {
+// ─── RENDERIZAR FLUXO POR VENCIMENTOS ───────────────────────
+function renderFluxoVencimentos(cacheData, mes, ano) {
   var totais = cacheData.totais || {};
   var dados = cacheData.dados || [];
 
+  // KPIs gerais
   document.getElementById('kpiFluxoTotal').textContent = formatMoney(totais.ValorTotal || 0);
   document.getElementById('kpiFluxoPago').textContent = formatMoney(totais.ValorPago || 0);
   document.getElementById('kpiFluxoAberto').textContent = formatMoney(totais.ValorAberto || 0);
   document.getElementById('kpiFluxoCancelado').textContent = formatMoney(totais.ValorCancelado || 0);
   document.getElementById('kpiFluxoQtd').textContent = formatNum(totais.Quantidade || 0);
 
-  renderFluxoTable(dados);
-}
+  // Titulo
+  var mesesNomes = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var mesIdx = parseInt(mes) - 1;
+  document.getElementById('fluxoTitulo').textContent = 'Contribuicao Mensal - ' + mesesNomes[mesIdx] + '/' + ano;
 
-function renderFluxoTable(data) {
-  var tbody = document.getElementById('fluxoBody');
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma fatura encontrada</td></tr>';
-    return;
+  // Agrupar faturas por dia de vencimento
+  var vencimentos = {}; // { "05": { total, pago, aberto, cancelado, qtd }, ... }
+  var diasPadrao = ['05', '10', '15', '20', '25', '30'];
+
+  // Inicializar dias padrao
+  diasPadrao.forEach(function(dia) {
+    vencimentos[dia] = { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
+  });
+
+  // Agrupar dados das faturas
+  dados.forEach(function(fatura) {
+    var dataVenc = fatura.FaturasDataVencimento || '';
+    var dia = '';
+
+    // Extrair dia do vencimento (pode ser "DD/MM/YYYY" ou "YYYY-MM-DD")
+    if (dataVenc.indexOf('/') !== -1) {
+      dia = dataVenc.substring(0, 2);
+    } else if (dataVenc.indexOf('-') !== -1) {
+      dia = dataVenc.substring(8, 10);
+    }
+
+    // Arredondar para o dia padrao mais proximo
+    var diaNum = parseInt(dia) || 0;
+    var diaPadrao = '05';
+    if (diaNum <= 7) diaPadrao = '05';
+    else if (diaNum <= 12) diaPadrao = '10';
+    else if (diaNum <= 17) diaPadrao = '15';
+    else if (diaNum <= 22) diaPadrao = '20';
+    else if (diaNum <= 27) diaPadrao = '25';
+    else diaPadrao = '30';
+
+    if (!vencimentos[diaPadrao]) {
+      vencimentos[diaPadrao] = { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
+    }
+
+    var valor = parseFloat(fatura.FaturasValor) || 0;
+    var valorPago = parseFloat(fatura.FaturasValorPago) || 0;
+    var situacao = (fatura.Situacao || '').toLowerCase();
+
+    vencimentos[diaPadrao].total += valor;
+    vencimentos[diaPadrao].qtd += 1;
+
+    if (situacao === 'pago' || situacao === 'paid') {
+      vencimentos[diaPadrao].pago += valorPago || valor;
+    } else if (situacao === 'cancelado' || situacao === 'cancelled') {
+      vencimentos[diaPadrao].cancelado += valor;
+    } else {
+      vencimentos[diaPadrao].aberto += valor;
+    }
+  });
+
+  // Se nao tem dados detalhados mas tem totais, distribuir proporcionalmente
+  var temDadosDetalhados = dados.length > 0;
+  if (!temDadosDetalhados && totais.Quantidade > 0) {
+    // Distribuir igualmente entre os 6 vencimentos (aproximacao)
+    var perVenc = totais.Quantidade / 6;
+    diasPadrao.forEach(function(dia) {
+      vencimentos[dia] = {
+        total: (totais.ValorTotal || 0) / 6,
+        pago: (totais.ValorPago || 0) / 6,
+        aberto: (totais.ValorAberto || 0) / 6,
+        cancelado: (totais.ValorCancelado || 0) / 6,
+        qtd: Math.round(perVenc)
+      };
+    });
   }
 
+  // Renderizar cards de vencimento
   var html = '';
-  data.slice(0, 200).forEach(function(r, i) {
-    var sit = r.Situacao || '';
-    var badgeClass = sit === 'Pago' ? 'badge-pago' :
-                     sit === 'Aberto' ? 'badge-aberto' : 'badge-cancelado';
-    html += '<tr>';
-    html += '<td>' + (i + 1) + '</td>';
-    html += '<td>' + esc(r.IndividuosNome || '') + '</td>';
-    html += '<td>' + formatCPF(r.IndividuosDocumento || '') + '</td>';
-    html += '<td>' + esc(r.VendasPlaca || '') + '</td>';
-    html += '<td>' + esc(r.TipoFatura || '') + '</td>';
-    html += '<td>' + esc(r.FaturasDataVencimento || '') + '</td>';
-    html += '<td>' + formatMoney(parseFloat(r.FaturasValor) || 0) + '</td>';
-    html += '<td>' + formatMoney(parseFloat(r.FaturasValorPago) || 0) + '</td>';
-    html += '<td><span class="badge ' + badgeClass + '">' + esc(sit) + '</span></td>';
-    html += '</tr>';
+  diasPadrao.forEach(function(dia) {
+    var v = vencimentos[dia];
+    if (!v || v.qtd === 0) return; // Pular vencimentos vazios
+
+    html += '<div class="fluxo-venc-card">';
+    html += '<div class="fluxo-venc-header">Vencimento ' + dia + '/' + mes + '</div>';
+    html += '<table class="fluxo-venc-table">';
+    html += '<thead><tr>';
+    html += '<th>Total</th><th>Pagos</th><th>Aberto</th><th>Cancelado</th><th>Qnt Faturas</th>';
+    html += '</tr></thead>';
+    html += '<tbody><tr>';
+    html += '<td>' + formatMoney(v.total) + '</td>';
+    html += '<td class="fluxo-val-pago">' + formatMoney(v.pago) + '</td>';
+    html += '<td class="fluxo-val-aberto">' + formatMoney(v.aberto) + '</td>';
+    html += '<td class="fluxo-val-cancelado">' + formatMoney(v.cancelado) + '</td>';
+    html += '<td>' + formatNum(v.qtd) + '</td>';
+    html += '</tr></tbody>';
+    html += '</table>';
+    html += '</div>';
   });
-  tbody.innerHTML = html;
+
+  if (!html) {
+    html = '<div class="empty-state" style="padding:40px;text-align:center">Nenhum dado de vencimento disponivel para este periodo</div>';
+  }
+
+  document.getElementById('fluxoVencimentos').innerHTML = html;
 }
 
+// Renderizar fluxo a partir de dados do cache (compatibilidade)
+function renderFluxoFromCache(cacheData) {
+  var hoje = new Date();
+  var mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  var ano = String(hoje.getFullYear());
+  renderFluxoVencimentos(cacheData, mes, ano);
+}
 
 // ─── BUSCAR CONSULTORES ─────────────────────────────────────
 async function buscarConsultores() {

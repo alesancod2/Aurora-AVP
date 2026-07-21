@@ -264,48 +264,42 @@
     <!-- ═══════════════ PAINEL: FLUXO DE CAIXA ═══════════════ -->
     <section class="report-panel" id="panel-fluxo-caixa">
 
-      <div class="filter-panel">
-        <div class="filter-header" onclick="toggleFilters('fluxo-caixa')">
-          <h3>Filtros - Fluxo de Caixa</h3>
-          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <!-- Filtros simplificados: Mes/Ano -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Mes</label>
+          <select id="fFluxoMes">
+            <option value="01">Janeiro</option>
+            <option value="02">Fevereiro</option>
+            <option value="03">Marco</option>
+            <option value="04">Abril</option>
+            <option value="05">Maio</option>
+            <option value="06">Junho</option>
+            <option value="07">Julho</option>
+            <option value="08">Agosto</option>
+            <option value="09">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
         </div>
-        <div class="filter-body" id="filters-fluxo-caixa">
-          <div class="filter-grid">
-            <div class="filter-group">
-              <label>Data Inicial</label>
-              <input type="date" id="fFluxoDataInicial">
-            </div>
-            <div class="filter-group">
-              <label>Data Final</label>
-              <input type="date" id="fFluxoDataFinal">
-            </div>
-            <div class="filter-group">
-              <label>Tipo Data</label>
-              <select id="fFluxoTipoData">
-                <option value="FaturasDataVencimento">Data Vencimento</option>
-                <option value="FaturasDataOriginal">Data Original</option>
-                <option value="FaturasDataCredito">Data Credito</option>
-                <option value="FaturasDataPagamento">Data Pagamento</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Tipo Fatura</label>
-              <select id="fFluxoTipoFatura">
-                <option value="">Todas</option>
-                <option value="1">Adesao</option>
-                <option value="2">Contribuicao</option>
-                <option value="3">Avulsa</option>
-                <option value="4">Rastreador</option>
-                <option value="8">Reativacao</option>
-              </select>
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn btn-primary" onclick="buscarFluxoCaixa()">Buscar Fluxo</button>
-          </div>
+        <div class="filter-group">
+          <label>Ano</label>
+          <select id="fFluxoAno">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+        </div>
+        <div class="filter-group filter-actions-inline">
+          <button class="btn btn-primary" onclick="buscarFluxoCaixa()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Buscar
+          </button>
         </div>
       </div>
 
+      <!-- KPIs gerais do mes -->
       <div class="kpi-grid" id="kpiGridFluxo">
         <div class="kpi-card kpi-blue">
           <div class="kpi-label">Valor Total</div>
@@ -329,26 +323,18 @@
         </div>
       </div>
 
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nome</th>
-              <th>CPF</th>
-              <th>Placa</th>
-              <th>Tipo</th>
-              <th>Vencimento</th>
-              <th>Valor</th>
-              <th>Pago</th>
-              <th>Situacao</th>
-            </tr>
-          </thead>
-          <tbody id="fluxoBody">
-            <tr><td colspan="9" class="empty-state">Defina as datas e busque o fluxo de caixa</td></tr>
-          </tbody>
-        </table>
+      <!-- Titulo -->
+      <div class="fluxo-titulo">
+        <h3 id="fluxoTitulo">Contribuicao Mensal</h3>
       </div>
+
+      <!-- Cards de vencimento -->
+      <div id="fluxoVencimentos" class="fluxo-vencimentos">
+        <div class="empty-state" style="padding:40px;text-align:center;color:var(--text3)">
+          Selecione o mes/ano e clique em Buscar
+        </div>
+      </div>
+
     </section>
 
       </div><!-- /.container -->
