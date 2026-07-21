@@ -1482,34 +1482,147 @@ function renderVendasPagination() {
 
 // ─── BUSCAR FLUXO DE CAIXA ──────────────────────────────────
 async function buscarFluxoCaixa() {
-  if (!sessionCookie) { showLoginModal(); return; }
+  var dataInicial = document.getElementById('fFluxoDataInicial').value;
+  var dataFinal = document.getElementById('fFluxoDataFinal').value;
+  var tipoData = document.getElementById('fFluxoTipoData').value;
+  var faturasTipo = document.getElementById('fFluxoTipoFatura').value || '';
 
+  if (!dataInicial || !dataFinal) {
+    alert('Selecione data inicial e final');
+    return;
+  }
+
+  // Gerar hash para cache
+  var fluxoHash = 'fluxo|' + dataInicial + '|' + dataFinal + '|' + tipoData + '|' + faturasTipo;
+
+  // 1. Verificar cache no Supabase DB
   try {
+    var dbCache = await sbFetch(
+      'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(fluxoHash) + '&select=dados,updated_at'
+    );
+    if (dbCache && dbCache.length > 0) {
+      var cached = dbCache[0];
+      var age = Date.now() - new Date(cached.updated_at).getTime();
+      // Cache valido por 1 hora
+      if (age < 60 * 60 * 1000 && cached.dados) {
+        var minAgo = Math.round(age / 60000);
+        console.log('[Aurora] Fluxo de caixa: cache DB encontrado (' + minAgo + ' min atras)');
+        renderFluxoFromCache(cached.dados);
+        document.getElementById('kpiFluxoQtd').insertAdjacentHTML('afterend',
+          '<div style="font-size:.6rem;color:var(--text3);margin-top:2px">Cache ' + minAgo + ' min</div>');
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('[Aurora] Fluxo cache check erro:', e.message);
+  }
+
+  // 2. Garantir sessao
+  if (!sessionCookie) {
+    try {
+      var loginRes = await edgeCall({ action: 'login' });
+      if (loginRes.success) {
+        sessionCookie = loginRes.session_cookie;
+        localStorage.setItem('avp_session', sessionCookie);
+        updateSessionBadge(true);
+      } else {
+        showLoginModal();
+        return;
+      }
+    } catch (e) {
+      showLoginModal();
+      return;
+    }
+  }
+
+  // 3. Buscar da API via Edge Function
+  try {
+    // Mostrar loading nos KPIs
+    document.getElementById('kpiFluxoTotal').textContent = '...';
+    document.getElementById('kpiFluxoPago').textContent = '...';
+    document.getElementById('kpiFluxoAberto').textContent = '...';
+    document.getElementById('kpiFluxoCancelado').textContent = '...';
+    document.getElementById('kpiFluxoQtd').textContent = '...';
+    document.getElementById('fluxoBody').innerHTML = '<tr><td colspan="9" class="empty-state">Buscando dados...</td></tr>';
+
     var res = await edgeCall({
       action: 'fluxo-caixa',
       session_cookie: sessionCookie,
       page: 1,
-      length: 100,
-      data_inicial: document.getElementById('fFluxoDataInicial').value,
-      data_final: document.getElementById('fFluxoDataFinal').value,
-      tipo_data: document.getElementById('fFluxoTipoData').value,
-      faturas_tipo: document.getElementById('fFluxoTipoFatura').value || undefined
+      length: 500,
+      data_inicial: dataInicial,
+      data_final: dataFinal,
+      tipo_data: tipoData,
+      faturas_tipo: faturasTipo || undefined
     });
 
     if (res.success && res.data) {
       var d = res.data;
-      if (d.totais) {
-        document.getElementById('kpiFluxoTotal').textContent = formatMoney(d.totais.ValorTotal || 0);
-        document.getElementById('kpiFluxoPago').textContent = formatMoney(d.totais.ValorPago || 0);
-        document.getElementById('kpiFluxoAberto').textContent = formatMoney(d.totais.ValorAberto || 0);
-        document.getElementById('kpiFluxoCancelado').textContent = formatMoney(d.totais.ValorCancelado || 0);
-        document.getElementById('kpiFluxoQtd').textContent = formatNum(d.totais.Quantidade || 0);
+      var cacheData = { totais: d.totais || {}, dados: d.dados || [] };
+
+      // Renderizar
+      renderFluxoFromCache(cacheData);
+
+      // Salvar cache no DB
+      try {
+        await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache?filtro_hash=eq.' + encodeURIComponent(fluxoHash), {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            filtro_hash: fluxoHash,
+            tipo_relatorio: 'fluxo-caixa',
+            data_inicial: dataInicial,
+            data_final: dataFinal,
+            dados: cacheData,
+            total_registros: (d.dados || []).length,
+            updated_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+          })
+        });
+        console.log('[Aurora] Fluxo de caixa: cache salvo');
+      } catch (e) {
+        console.warn('[Aurora] Fluxo cache save erro:', e.message);
       }
-      renderFluxoTable(d.dados || []);
+    } else {
+      alert('Erro: ' + (res.error || 'Resposta invalida'));
     }
   } catch (e) {
-    alert('Erro ao buscar fluxo: ' + e.message);
+    console.error('[Aurora] Erro buscarFluxoCaixa:', e);
+    // Se timeout, informar usuario
+    if (e.message.includes('timeout') || e.message.includes('504') || e.message.includes('Gateway')) {
+      alert('Timeout ao buscar fluxo de caixa. A API pode estar lenta. Tente um periodo menor ou aguarde alguns minutos.');
+    } else {
+      alert('Erro ao buscar fluxo: ' + e.message);
+    }
+    if (e.message.includes('401') || e.message.includes('login')) {
+      sessionCookie = '';
+      localStorage.removeItem('avp_session');
+      updateSessionBadge(false);
+    }
   }
+}
+
+// Renderizar fluxo de caixa a partir de dados (cache ou API)
+function renderFluxoFromCache(cacheData) {
+  var totais = cacheData.totais || {};
+  var dados = cacheData.dados || [];
+
+  document.getElementById('kpiFluxoTotal').textContent = formatMoney(totais.ValorTotal || 0);
+  document.getElementById('kpiFluxoPago').textContent = formatMoney(totais.ValorPago || 0);
+  document.getElementById('kpiFluxoAberto').textContent = formatMoney(totais.ValorAberto || 0);
+  document.getElementById('kpiFluxoCancelado').textContent = formatMoney(totais.ValorCancelado || 0);
+  document.getElementById('kpiFluxoQtd').textContent = formatNum(totais.Quantidade || 0);
+
+  renderFluxoTable(dados);
 }
 
 function renderFluxoTable(data) {
