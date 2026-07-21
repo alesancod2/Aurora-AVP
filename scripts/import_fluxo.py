@@ -122,10 +122,11 @@ def run():
     print(f"   Totais: ValorTotal={totais.get('ValorTotal', 0)}, Qtd={totais.get('Quantidade', 0)}")
     print(f"   Faturas retornadas: {len(dados)}")
 
-    # 3. Salvar no cache
+    # 3. Salvar no cache (limitar a 200 faturas para nao estourar o DB)
     print("3. Salvando no DB...")
     hash_key = f"fluxo|{di}|{df}|FaturasDataVencimento|"
-    cache_data = {'totais': totais, 'dados': dados}
+    # Guardar totais completos + primeiras 200 faturas (para exibicao)
+    cache_data = {'totais': totais, 'dados': dados[:200], 'total_faturas': len(dados)}
     status = save_to_db(hash_key, di, df, cache_data)
 
     print(f"\n=== CONCLUIDO ===")

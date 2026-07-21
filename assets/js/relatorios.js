@@ -1517,98 +1517,14 @@ async function buscarFluxoCaixa() {
     console.warn('[Aurora] Fluxo cache check erro:', e.message);
   }
 
-  // 2. Garantir sessao
-  if (!sessionCookie) {
-    try {
-      var loginRes = await edgeCall({ action: 'login' });
-      if (loginRes.success) {
-        sessionCookie = loginRes.session_cookie;
-        localStorage.setItem('avp_session', sessionCookie);
-        updateSessionBadge(true);
-      } else {
-        showLoginModal();
-        return;
-      }
-    } catch (e) {
-      showLoginModal();
-      return;
-    }
-  }
-
-  // 3. Buscar da API via Edge Function
-  try {
-    // Mostrar loading nos KPIs
-    document.getElementById('kpiFluxoTotal').textContent = '...';
-    document.getElementById('kpiFluxoPago').textContent = '...';
-    document.getElementById('kpiFluxoAberto').textContent = '...';
-    document.getElementById('kpiFluxoCancelado').textContent = '...';
-    document.getElementById('kpiFluxoQtd').textContent = '...';
-    document.getElementById('fluxoBody').innerHTML = '<tr><td colspan="9" class="empty-state">Buscando dados...</td></tr>';
-
-    var res = await edgeCall({
-      action: 'fluxo-caixa',
-      session_cookie: sessionCookie,
-      page: 1,
-      length: 500,
-      data_inicial: dataInicial,
-      data_final: dataFinal,
-      tipo_data: tipoData,
-      faturas_tipo: faturasTipo || undefined
-    });
-
-    if (res.success && res.data) {
-      var d = res.data;
-      var cacheData = { totais: d.totais || {}, dados: d.dados || [] };
-
-      // Renderizar
-      renderFluxoFromCache(cacheData);
-
-      // Salvar cache no DB
-      try {
-        await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache?filtro_hash=eq.' + encodeURIComponent(fluxoHash), {
-          method: 'DELETE',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        });
-        await fetch(SUPABASE_URL + '/rest/v1/relatorios_cache', {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({
-            filtro_hash: fluxoHash,
-            tipo_relatorio: 'fluxo-caixa',
-            data_inicial: dataInicial,
-            data_final: dataFinal,
-            dados: cacheData,
-            total_registros: (d.dados || []).length,
-            updated_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
-          })
-        });
-        console.log('[Aurora] Fluxo de caixa: cache salvo');
-      } catch (e) {
-        console.warn('[Aurora] Fluxo cache save erro:', e.message);
-      }
-    } else {
-      alert('Erro: ' + (res.error || 'Resposta invalida'));
-    }
-  } catch (e) {
-    console.error('[Aurora] Erro buscarFluxoCaixa:', e);
-    // Se timeout, informar usuario
-    if (e.message.includes('timeout') || e.message.includes('504') || e.message.includes('Gateway')) {
-      alert('Timeout ao buscar fluxo de caixa. A API pode estar lenta. Tente um periodo menor ou aguarde alguns minutos.');
-    } else {
-      alert('Erro ao buscar fluxo: ' + e.message);
-    }
-    if (e.message.includes('401') || e.message.includes('login')) {
-      sessionCookie = '';
-      localStorage.removeItem('avp_session');
-      updateSessionBadge(false);
-    }
-  }
+  // 2. Sem cache - informar usuario
+  // A Edge Function da timeout (plano free). Dados sao populados pelo GitHub Actions (cron 1h)
+  document.getElementById('kpiFluxoTotal').textContent = '-';
+  document.getElementById('kpiFluxoPago').textContent = '-';
+  document.getElementById('kpiFluxoAberto').textContent = '-';
+  document.getElementById('kpiFluxoCancelado').textContent = '-';
+  document.getElementById('kpiFluxoQtd').textContent = '-';
+  document.getElementById('fluxoBody').innerHTML = '<tr><td colspan="9" class="empty-state">Dados sendo atualizados automaticamente (cron a cada hora).<br>Tente novamente em alguns minutos.<br><small style="color:var(--text3)">O fluxo de caixa do mes atual e importado pelo GitHub Actions.</small></td></tr>';
 }
 
 // Renderizar fluxo de caixa a partir de dados (cache ou API)
