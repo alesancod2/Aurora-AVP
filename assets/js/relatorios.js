@@ -13,7 +13,7 @@ var BATCH_SIZE = 5;
 var DATA = [];
 var sessionCookie = '';
 var hiddenGestores = JSON.parse(localStorage.getItem('avp_hidden') || '[]');
-var currentSort = { key: 'total_qtd', dir: 'desc' };
+var currentSort = { key: 'gestor', dir: 'asc' };
 var vendasPage = 0;
 var vendasTotal = 0;
 
@@ -1983,17 +1983,9 @@ function renderDetalhamento() {
     });
   }
 
-  // Ordenar por total de concretizadas no ano (maior para menor)
-  var mesesSort = Object.keys(DETALHE_DATA).sort();
+  // Ordenar por nome alfabeticamente (A-Z)
   gestoresExibir.sort(function(a, b) {
-    var totalA = 0, totalB = 0;
-    mesesSort.forEach(function(mesKey) {
-      var dadosA = getDadosMesIndividuo(mesKey, a.nome, false);
-      var dadosB = getDadosMesIndividuo(mesKey, b.nome, false);
-      if (dadosA) totalA += dadosA.concretizadas;
-      if (dadosB) totalB += dadosB.concretizadas;
-    });
-    return totalB - totalA;
+    return a.nome.localeCompare(b.nome);
   });
   var theadHtml = '<tr class="detalhe-header-row">';
   theadHtml += '<th class="detalhe-col-fixa" rowspan="2">Equipe<br><small>Gestor/Consultor</small></th>';
@@ -2121,16 +2113,9 @@ function renderDetalheEquipeTabela(gestorInfo) {
   var meses = Object.keys(DETALHE_DATA).sort();
   var membros = getEquipeMembros(gestorInfo.nome);
 
-  // Ordenar membros por total de concretizadas no ano (maior para menor)
+  // Ordenar membros por nome alfabeticamente (A-Z)
   membros.sort(function(a, b) {
-    var totalA = 0, totalB = 0;
-    meses.forEach(function(mesKey) {
-      var dadosA = getDadosMesIndividuo(mesKey, a.nome, false);
-      var dadosB = getDadosMesIndividuo(mesKey, b.nome, false);
-      if (dadosA) totalA += dadosA.concretizadas;
-      if (dadosB) totalB += dadosB.concretizadas;
-    });
-    return totalB - totalA;
+    return a.nome.localeCompare(b.nome);
   });
 
   var html = '<div class="detalhe-equipe-scroll">';
