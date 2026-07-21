@@ -1983,7 +1983,18 @@ function renderDetalhamento() {
     });
   }
 
-  // ─── HEADER ───
+  // Ordenar por total de concretizadas no ano (maior para menor)
+  var mesesSort = Object.keys(DETALHE_DATA).sort();
+  gestoresExibir.sort(function(a, b) {
+    var totalA = 0, totalB = 0;
+    mesesSort.forEach(function(mesKey) {
+      var dadosA = getDadosMesIndividuo(mesKey, a.nome, false);
+      var dadosB = getDadosMesIndividuo(mesKey, b.nome, false);
+      if (dadosA) totalA += dadosA.concretizadas;
+      if (dadosB) totalB += dadosB.concretizadas;
+    });
+    return totalB - totalA;
+  });
   var theadHtml = '<tr class="detalhe-header-row">';
   theadHtml += '<th class="detalhe-col-fixa" rowspan="2">Equipe<br><small>Gestor/Consultor</small></th>';
   meses.forEach(function(mesKey) {
@@ -2109,6 +2120,18 @@ function getGestorExibidoByIdx(idx) {
 function renderDetalheEquipeTabela(gestorInfo) {
   var meses = Object.keys(DETALHE_DATA).sort();
   var membros = getEquipeMembros(gestorInfo.nome);
+
+  // Ordenar membros por total de concretizadas no ano (maior para menor)
+  membros.sort(function(a, b) {
+    var totalA = 0, totalB = 0;
+    meses.forEach(function(mesKey) {
+      var dadosA = getDadosMesIndividuo(mesKey, a.nome, false);
+      var dadosB = getDadosMesIndividuo(mesKey, b.nome, false);
+      if (dadosA) totalA += dadosA.concretizadas;
+      if (dadosB) totalB += dadosB.concretizadas;
+    });
+    return totalB - totalA;
+  });
 
   var html = '<div class="detalhe-equipe-scroll">';
   html += '<table class="detalhe-equipe-table">';
