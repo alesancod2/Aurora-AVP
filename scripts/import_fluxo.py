@@ -46,20 +46,33 @@ def login(tentativas=3):
 
 
 def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=None, tentativas=3):
-    """Busca totais do fluxo de caixa (length=1 para rapidez - so precisamos dos totais)"""
-    data = f"page=1&length=1&DataInicial={di}&DataFinal={df}&TipoData={tipo_data}"
+    """Busca totais do fluxo de caixa usando parametros corretos (HAR)"""
+    # Parametros no formato correto da API AEasy (confirmado via HAR)
+    params = (
+        f"OrdenarPor=IndividuosNome"
+        f"&TipoData={tipo_data}"
+        f"&DataInicial={di}"
+        f"&DataFinal={df}"
+        f"&Nome=&NomeFantasia=&Placa=&GruposConsultoresId="
+        f"&TipoBaixa=&FaturasTipo=&FormaCobranca=&FaturasParcela="
+        f"&estadosIddhidden=&cidadesIddhidden="
+        f"&RetornarLiderComEquipe=&FaturasNumeroFaturaBoleto="
+        f"&pagina=1&quantidadeLista=1"
+    )
     if vencimento is not None:
-        data += f"&VendasVencimento%5B%5D={vencimento}"
+        params += f"&VendasVencimento%5B%5D={vencimento}"
 
     for i in range(tentativas):
         try:
             result = subprocess.run([
-                'curl', '-s', '-b', sess, '--max-time', '90',
-                '-X', 'POST', f'{BASE}/fluxo-caixa/buscar-pagina',
-                '-H', 'Content-Type: application/x-www-form-urlencoded',
+                'curl', '-s', '-b', sess, '--max-time', '180',
+                '-X', 'POST', f'{BASE}/fluxo-caixa/buscar-pagina/',
+                '-H', 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
                 '-H', 'X-Requested-With: XMLHttpRequest',
-                '-d', data
-            ], capture_output=True, text=True, timeout=95)
+                '-H', f'Referer: {BASE}/fluxo-caixa',
+                '-H', 'Accept: application/json, text/javascript, */*; q=0.01',
+                '-d', params
+            ], capture_output=True, text=True, timeout=185)
 
             if result.stdout and result.stdout.strip():
                 parsed = json.loads(result.stdout)
@@ -71,7 +84,7 @@ def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=Non
         except json.JSONDecodeError:
             print(f"  Tentativa {i+1}: JSON invalido: {result.stdout[:100]}")
         except subprocess.TimeoutExpired:
-            print(f"  Tentativa {i+1}: timeout (>95s)")
+            print(f"  Tentativa {i+1}: timeout (>185s)")
         except Exception as e:
             print(f"  Tentativa {i+1} erro: {e}")
 
