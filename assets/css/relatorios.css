@@ -1058,11 +1058,13 @@ body {
    DETALHAMENTO ANUAL - Tabela com evolucao mensal
    ═══════════════════════════════════════════════════════════ */
 
-/* Wrapper com scroll horizontal */
+/* Wrapper com scroll horizontal e vertical */
 .detalhe-table-wrap {
   overflow-x: auto;
   overflow-y: auto;
-  max-height: calc(100vh - 240px);
+  max-height: calc(100vh - 280px);
+  height: calc(100vh - 280px);
+  position: relative;
 }
 
 /* Tabela base - override do .data-table pai */
@@ -1071,6 +1073,14 @@ body {
   min-width: max-content;
   font-size: .75rem;
   width: max-content !important;
+}
+
+/* Thead sticky dentro do wrapper */
+.detalhe-table.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface2) !important;
 }
 
 /* Anular larguras fixas do .data-table para detalhe-table */
