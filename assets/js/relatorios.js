@@ -678,11 +678,11 @@ async function buscarDados(forceRefresh) {
   // Determinar se precisa buscar da API (Personalizado, Hoje, 7 dias)
   // Presets mensais usam cache do DB (atualizado pelo Cron a cada 1h)
   var preset = document.getElementById('fPeriodoPreset') ? document.getElementById('fPeriodoPreset').value : '';
-  var needsAPI = (preset === '' || preset === 'hoje' || preset === '7dias');
+  var needsAPI = (preset === 'hoje' || preset === '7dias');
 
   // Verificar cache compartilhado no Supabase DB (se nao forcar)
   if (!forceRefresh) {
-    // Para sub-mensais: verificar cache de curta duracao (1h)
+    // Para sub-mensais (hoje, 7 dias): verificar cache de curta duracao (1h)
     if (needsAPI) {
       try {
         var dbCache = await sbFetch(
@@ -702,7 +702,7 @@ async function buscarDados(forceRefresh) {
       } catch (e) { /* continuar para API */ }
     }
 
-    // Para periodos mensais+: usar cache normal
+    // Para periodos mensais+ (incluindo Personalizado): usar cache normal
     if (!needsAPI) {
     // 1. Tentar Supabase DB (compartilhado entre todos os usuarios)
     try {
