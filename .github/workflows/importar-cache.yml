@@ -28,3 +28,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python3 scripts/import_cron.py
+
+      - name: Importar fluxo de caixa
+        env:
+          AEASY_CPF: ${{ secrets.AEASY_CPF }}
+          AEASY_SENHA: ${{ secrets.AEASY_SENHA }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python3 scripts/import_fluxo.py
