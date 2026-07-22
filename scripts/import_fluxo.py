@@ -48,14 +48,14 @@ def login(tentativas=3):
 def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=None, tentativas=3, pagina=1):
     """Busca totais do fluxo de caixa usando parametros corretos (HAR)"""
     # Parametros no formato correto da API AEasy (confirmado via HAR)
-    # FaturasTipo=2 = Contribuição (mensal) - exclui Adesão, Avulsa, etc.
+    # Sem filtro de FaturasTipo (igual ao padrao do sistema AEasy)
     params = (
         f"OrdenarPor=FaturasDataVencimento"
         f"&TipoData={tipo_data}"
         f"&DataInicial={di}"
         f"&DataFinal={df}"
         f"&Nome=&NomeFantasia=&Placa=&GruposConsultoresId="
-        f"&TipoBaixa=&FaturasTipo=2&FormaCobranca=&FaturasParcela="
+        f"&TipoBaixa=&FaturasTipo=&FormaCobranca=&FaturasParcela="
         f"&estadosIddhidden=&cidadesIddhidden="
         f"&RetornarLiderComEquipe=&FaturasNumeroFaturaBoleto="
         f"&pagina={pagina}&quantidadeLista=200"
@@ -208,7 +208,9 @@ def run():
     renegociacao = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
 
     for f in todas_faturas:
-        dv = f.get('FaturasDataVencimento', '')
+        # Usar FaturasDataOriginal (vencimento original do boleto)
+        # Isso garante que renegociacoes fiquem no grupo correto
+        dv = f.get('FaturasDataOriginal', '') or f.get('FaturasDataVencimento', '')
         # Formato DD/MM/YYYY
         dia = '00'
         if '/' in dv:

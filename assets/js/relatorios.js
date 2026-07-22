@@ -1615,7 +1615,7 @@ function renderFluxoVencimentos(cacheData, mes, ano) {
     var v = vencimentos[dia] || { total: 0, pago: 0, aberto: 0, cancelado: 0, qtd: 0 };
 
     html += '<div class="fluxo-venc-card">';
-    html += '<div class="fluxo-venc-header">Vencimento ' + dia + '/' + mes + '</div>';
+    html += '<div class="fluxo-venc-header fluxo-venc-header-' + dia + '">Vencimento ' + dia + '/' + mes + '</div>';
     html += '<table class="fluxo-venc-table">';
     html += '<thead><tr>';
     html += '<th>Total</th><th>Pagos</th><th>Aberto</th><th>Cancelado</th><th>Qnt Faturas</th>';
@@ -1638,9 +1638,8 @@ function renderFluxoVencimentos(cacheData, mes, ano) {
   // Card de Renegociacao (boletos fora dos vencimentos padrao)
   var renego = cacheData.renegociacao;
   if (renego && renego.qtd > 0) {
-    html += '<div class="fluxo-renego-titulo"><h4>Boletos de Renegociacao</h4></div>';
     html += '<div class="fluxo-venc-card fluxo-renego-card">';
-    html += '<div class="fluxo-venc-header fluxo-renego-header">Vencimentos fora do padrao (dias 01-04, 06-09, 11-14, etc)</div>';
+    html += '<div class="fluxo-venc-header fluxo-renego-header">Boletos de Renegociacao</div>';
     html += '<table class="fluxo-venc-table">';
     html += '<thead><tr>';
     html += '<th>Total</th><th>Pagos</th><th>Aberto</th><th>Cancelado</th><th>Qnt Faturas</th>';

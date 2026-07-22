@@ -1405,23 +1405,38 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow);
   transition: all var(--transition);
+  padding-top: 12px;
+  margin-top: 12px;
 }
 .fluxo-venc-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
+/* Cores diferentes para cada vencimento */
+.fluxo-venc-header-05 { background: #2563EB; }
+.fluxo-venc-header-10 { background: #7C3AED; }
+.fluxo-venc-header-15 { background: #0D9F4F; }
+.fluxo-venc-header-20 { background: #D97706; }
+.fluxo-venc-header-25 { background: #DC2626; }
+.fluxo-venc-header-30 { background: #0891B2; }
+
 .fluxo-venc-header {
   padding: 10px 20px;
   font-size: .85rem;
   font-weight: 700;
-  color: var(--text1);
+  color: #fff;
   text-align: center;
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
+  background: var(--accent);
+  border-radius: 30px;
+  margin: 0 16px;
+  margin-top: -18px;
+  position: relative;
+  top: -8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
 
 .fluxo-venc-table {
@@ -1490,12 +1505,10 @@ body {
 
 .fluxo-renego-card {
   border-color: var(--amber) !important;
-  border-left: 4px solid var(--amber) !important;
 }
 
 .fluxo-renego-header {
-  background: var(--amber-light) !important;
-  color: var(--amber) !important;
+  background: #92400E !important;
 }
 
 
