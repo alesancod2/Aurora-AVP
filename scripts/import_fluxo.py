@@ -45,7 +45,7 @@ def login(tentativas=3):
     return None
 
 
-def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=None, tentativas=3):
+def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=None, tentativas=3, pagina=1):
     """Busca totais do fluxo de caixa usando parametros corretos (HAR)"""
     # Parametros no formato correto da API AEasy (confirmado via HAR)
     params = (
@@ -57,7 +57,7 @@ def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=Non
         f"&TipoBaixa=&FaturasTipo=&FormaCobranca=&FaturasParcela="
         f"&estadosIddhidden=&cidadesIddhidden="
         f"&RetornarLiderComEquipe=&FaturasNumeroFaturaBoleto="
-        f"&pagina=1&quantidadeLista=1"
+        f"&pagina={pagina}&quantidadeLista=50"
     )
     if vencimento is not None:
         params += f"&VendasVencimento%5B%5D={vencimento}"
@@ -167,54 +167,116 @@ def run():
         print("   API nao respondeu - abortando fluxo (nao bloqueia workflow)")
         exit(0)  # exit(0) = nao falha o workflow
     totais_gerais = res_geral.get('totais', {})
-    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={totais_gerais.get('Quantidade', 0)}")
+    dados_p1 = res_geral.get('dados', [])
+    paginacao = res_geral.get('paginacao', {})
+    total_faturas = paginacao.get('Total', 0) or totais_gerais.get('Quantidade', 0)
+    total_paginas = paginacao.get('TotalPaginas', 1)
+    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={total_faturas}, Paginas={total_paginas}")
+    print(f"   Faturas na pagina 1: {len(dados_p1)}")
 
-    # 3. Buscar por cada dia de vencimento (05, 10, 15, 20, 25, 30)
-    print("3. Buscando por vencimento...")
-    dias_vencimento = [5, 10, 15, 20, 25, 30]
-    vencimentos = {}
-    falhas = 0
+    # 3. Buscar mais paginas para ter amostra representativa
+    # Buscar ate 10 paginas (500 faturas) para boa amostra
+    print("3. Buscando mais paginas para amostra...")
+    todas_faturas = list(dados_p1)
+    max_paginas = min(10, total_paginas)
 
-    for dia in dias_vencimento:
-        print(f"   Vencimento {dia:02d}...")
-        res = buscar_fluxo(SESS, di, df_full, vencimento=dia)
-        if res:
-            t = res.get('totais', {})
-            vencimentos[f"{dia:02d}"] = {
-                'total': t.get('ValorTotal', 0),
-                'pago': t.get('ValorPago', 0),
-                'aberto': t.get('ValorAberto', 0),
-                'cancelado': t.get('ValorCancelado', 0),
-                'qtd': int(t.get('Quantidade', 0))
-            }
-            print(f"     Total={t.get('ValorTotal',0):.2f}, Pago={t.get('ValorPago',0):.2f}, Qtd={t.get('Quantidade',0)}")
+    for pg in range(2, max_paginas + 1):
+        time.sleep(3)
+        print(f"   Pagina {pg}/{max_paginas}...")
+        res_pg = buscar_fluxo(SESS, di, df_full, pagina=pg)
+        if res_pg and res_pg.get('dados'):
+            todas_faturas.extend(res_pg['dados'])
+            print(f"     +{len(res_pg['dados'])} faturas (total: {len(todas_faturas)})")
         else:
-            vencimentos[f"{dia:02d}"] = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
-            print(f"     Sem dados (API sem resposta)")
-            falhas += 1
-        time.sleep(2)  # Pausa entre requisicoes para nao sobrecarregar API
+            print(f"     Sem dados")
+            break
 
-    # Se muitas falhas, nao salvar (manter cache anterior)
-    if falhas >= 5:
-        print(f"\nMuitas falhas ({falhas}/6 vencimentos) - mantendo cache anterior")
-        exit(0)
+    print(f"   Total faturas coletadas: {len(todas_faturas)}")
 
-    # 4. Salvar no cache
-    print("4. Salvando no DB...")
+    # 4. Agrupar por dia de vencimento
+    print("4. Agrupando por vencimento...")
+    vencimentos = {'05': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
+                   '10': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
+                   '15': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
+                   '20': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
+                   '25': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
+                   '30': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}}
+
+    for f in todas_faturas:
+        dv = f.get('FaturasDataVencimento', '')
+        # Formato DD/MM/YYYY
+        dia = '00'
+        if '/' in dv:
+            dia = dv[:2]
+        elif '-' in dv:
+            dia = dv[8:10]
+
+        dia_num = int(dia) if dia.isdigit() else 0
+
+        # Mapear para dia padrao
+        if dia_num <= 7: dp = '05'
+        elif dia_num <= 12: dp = '10'
+        elif dia_num <= 17: dp = '15'
+        elif dia_num <= 22: dp = '20'
+        elif dia_num <= 27: dp = '25'
+        else: dp = '30'
+
+        # Parse valor (formato "R$ 1.234,56")
+        def parse_valor(s):
+            if not s: return 0
+            s = s.replace('R$', '').strip().replace('.', '').replace(',', '.')
+            try: return float(s)
+            except: return 0
+
+        val = parse_valor(f.get('FaturasValor', ''))
+        pago = parse_valor(f.get('FaturasValorPago', ''))
+        sit = (f.get('Situacao', '') or '').lower()
+
+        vencimentos[dp]['total'] += val
+        vencimentos[dp]['qtd'] += 1
+        if 'pago' in sit:
+            vencimentos[dp]['pago'] += pago
+        elif 'cancelado' in sit:
+            vencimentos[dp]['cancelado'] += val
+        else:
+            vencimentos[dp]['aberto'] += val
+
+    # 5. Escalar proporcoes da amostra para totais gerais
+    print("5. Escalando para totais gerais...")
+    total_amostra_qtd = sum(v['qtd'] for v in vencimentos.values())
+
+    if total_amostra_qtd > 0 and total_faturas > 0:
+        vencimentos_final = {}
+        for d in ['05', '10', '15', '20', '25', '30']:
+            pct = vencimentos[d]['qtd'] / total_amostra_qtd if total_amostra_qtd > 0 else 0
+            # Usar proporção da amostra para escalar totais reais
+            vencimentos_final[d] = {
+                'total': round(totais_gerais.get('ValorTotal', 0) * pct, 2),
+                'pago': round(totais_gerais.get('ValorPago', 0) * pct, 2),
+                'aberto': round(totais_gerais.get('ValorAberto', 0) * pct, 2),
+                'cancelado': round(totais_gerais.get('ValorCancelado', 0) * pct, 2),
+                'qtd': round(total_faturas * pct)
+            }
+    else:
+        vencimentos_final = vencimentos
+
+    # 6. Salvar no cache
+    print("6. Salvando no DB...")
     hash_key = f"fluxo|{di}|{df_full}|FaturasDataVencimento|"
     cache_data = {
         'totais': totais_gerais,
-        'vencimentos': vencimentos,
+        'vencimentos': vencimentos_final,
         'dados': []
     }
     status = save_to_db(hash_key, di, df_full, cache_data)
 
     print(f"\n=== CONCLUIDO ===")
     print(f"ValorTotal: R$ {totais_gerais.get('ValorTotal', 0):,.2f}")
-    print(f"ValorPago: R$ {totais_gerais.get('ValorPago', 0):,.2f}")
-    print(f"Vencimentos importados: {len(vencimentos) - falhas}/{len(vencimentos)}")
-    for d, v in sorted(vencimentos.items()):
-        print(f"  Dia {d}: Total={v['total']:.2f}, Pago={v['pago']:.2f}, Qtd={v['qtd']}")
+    print(f"Amostra: {total_amostra_qtd} faturas de {total_faturas}")
+    print(f"Vencimentos:")
+    for d in sorted(vencimentos_final.keys()):
+        v = vencimentos_final[d]
+        print(f"  Dia {d}: Total=R${v['total']:,.2f}, Pago=R${v['pago']:,.2f}, Qtd={v['qtd']}")
     print(f"DB status: {status}")
 
 
