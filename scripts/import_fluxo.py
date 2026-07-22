@@ -48,14 +48,14 @@ def login(tentativas=3):
 def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=None, tentativas=3, pagina=1):
     """Busca totais do fluxo de caixa usando parametros corretos (HAR)"""
     # Parametros no formato correto da API AEasy (confirmado via HAR)
-    # Sem filtro de FaturasTipo (igual ao padrao do sistema AEasy)
+    # FaturasTipo=2 = Contribuição (valores batem com sistema AEasy)
     params = (
         f"OrdenarPor=FaturasDataVencimento"
         f"&TipoData={tipo_data}"
         f"&DataInicial={di}"
         f"&DataFinal={df}"
         f"&Nome=&NomeFantasia=&Placa=&GruposConsultoresId="
-        f"&TipoBaixa=&FaturasTipo=&FormaCobranca=&FaturasParcela="
+        f"&TipoBaixa=&FaturasTipo=2&FormaCobranca=&FaturasParcela="
         f"&estadosIddhidden=&cidadesIddhidden="
         f"&RetornarLiderComEquipe=&FaturasNumeroFaturaBoleto="
         f"&pagina={pagina}&quantidadeLista=200"
