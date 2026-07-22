@@ -57,7 +57,7 @@ def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=Non
         f"&TipoBaixa=&FaturasTipo=&FormaCobranca=&FaturasParcela="
         f"&estadosIddhidden=&cidadesIddhidden="
         f"&RetornarLiderComEquipe=&FaturasNumeroFaturaBoleto="
-        f"&pagina={pagina}&quantidadeLista=50"
+        f"&pagina={pagina}&quantidadeLista=200"
     )
     if vencimento is not None:
         params += f"&VendasVencimento%5B%5D={vencimento}"
@@ -174,29 +174,25 @@ def run():
     print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={total_faturas}, Paginas={total_paginas}")
     print(f"   Faturas na pagina 1: {len(dados_p1)}")
 
-    # 3. Buscar paginas ESPALHADAS para ter amostra de todos os vencimentos
-    # A API ordena por data, entao paginas diferentes = datas diferentes
-    print("3. Buscando paginas espalhadas para amostra representativa...")
+    # 3. Buscar TODAS as faturas para agrupamento real por vencimento
+    print("3. Buscando todas as faturas...")
     todas_faturas = list(dados_p1)
 
-    # Calcular paginas espalhadas uniformemente
-    if total_paginas > 10:
-        # Buscar paginas distribuidas ao longo de toda a lista
-        step = total_paginas // 10
-        paginas_buscar = [i * step for i in range(1, 11) if i * step <= total_paginas]
-    else:
-        paginas_buscar = list(range(2, total_paginas + 1))
-
-    for pg in paginas_buscar:
-        time.sleep(3)
-        print(f"   Pagina {pg}/{total_paginas}...")
-        res_pg = buscar_fluxo(SESS, di, df_full, pagina=pg)
+    for pg in range(2, total_paginas + 1):
+        time.sleep(1)
+        if pg % 50 == 0:
+            print(f"   Pagina {pg}/{total_paginas} ({len(todas_faturas)} faturas)...")
+        res_pg = buscar_fluxo(SESS, di, df_full, pagina=pg, tentativas=2)
         if res_pg and res_pg.get('dados'):
             todas_faturas.extend(res_pg['dados'])
-            print(f"     +{len(res_pg['dados'])} faturas (total: {len(todas_faturas)})")
         else:
-            print(f"     Sem dados")
-            break
+            print(f"   Pagina {pg} falhou - continuando...")
+            # Re-login se necessario
+            if pg % 100 == 0:
+                SESS = login()
+                if not SESS:
+                    print("   Re-login falhou, parando coleta")
+                    break
 
     print(f"   Total faturas coletadas: {len(todas_faturas)}")
 
@@ -248,24 +244,9 @@ def run():
         else:
             vencimentos[dp]['aberto'] += val
 
-    # 5. Escalar proporcoes da amostra para totais gerais
-    print("5. Escalando para totais gerais...")
-    total_amostra_qtd = sum(v['qtd'] for v in vencimentos.values())
-
-    if total_amostra_qtd > 0 and total_faturas > 0:
-        vencimentos_final = {}
-        for d in ['05', '10', '15', '20', '25', '30']:
-            pct = vencimentos[d]['qtd'] / total_amostra_qtd if total_amostra_qtd > 0 else 0
-            # Usar proporção da amostra para escalar totais reais
-            vencimentos_final[d] = {
-                'total': round(totais_gerais.get('ValorTotal', 0) * pct, 2),
-                'pago': round(totais_gerais.get('ValorPago', 0) * pct, 2),
-                'aberto': round(totais_gerais.get('ValorAberto', 0) * pct, 2),
-                'cancelado': round(totais_gerais.get('ValorCancelado', 0) * pct, 2),
-                'qtd': round(total_faturas * pct)
-            }
-    else:
-        vencimentos_final = vencimentos
+    # 5. Usar valores reais (soma direta das faturas agrupadas)
+    print("5. Valores reais por vencimento...")
+    vencimentos_final = vencimentos
 
     # 6. Salvar no cache
     print("6. Salvando no DB...")
