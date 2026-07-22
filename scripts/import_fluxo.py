@@ -49,7 +49,7 @@ def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=Non
     """Busca totais do fluxo de caixa usando parametros corretos (HAR)"""
     # Parametros no formato correto da API AEasy (confirmado via HAR)
     params = (
-        f"OrdenarPor=IndividuosNome"
+        f"OrdenarPor=FaturasDataVencimento"
         f"&TipoData={tipo_data}"
         f"&DataInicial={di}"
         f"&DataFinal={df}"
@@ -174,15 +174,22 @@ def run():
     print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={total_faturas}, Paginas={total_paginas}")
     print(f"   Faturas na pagina 1: {len(dados_p1)}")
 
-    # 3. Buscar mais paginas para ter amostra representativa
-    # Buscar ate 10 paginas (500 faturas) para boa amostra
-    print("3. Buscando mais paginas para amostra...")
+    # 3. Buscar paginas ESPALHADAS para ter amostra de todos os vencimentos
+    # A API ordena por data, entao paginas diferentes = datas diferentes
+    print("3. Buscando paginas espalhadas para amostra representativa...")
     todas_faturas = list(dados_p1)
-    max_paginas = min(10, total_paginas)
 
-    for pg in range(2, max_paginas + 1):
+    # Calcular paginas espalhadas uniformemente
+    if total_paginas > 10:
+        # Buscar paginas distribuidas ao longo de toda a lista
+        step = total_paginas // 10
+        paginas_buscar = [i * step for i in range(1, 11) if i * step <= total_paginas]
+    else:
+        paginas_buscar = list(range(2, total_paginas + 1))
+
+    for pg in paginas_buscar:
         time.sleep(3)
-        print(f"   Pagina {pg}/{max_paginas}...")
+        print(f"   Pagina {pg}/{total_paginas}...")
         res_pg = buscar_fluxo(SESS, di, df_full, pagina=pg)
         if res_pg and res_pg.get('dados'):
             todas_faturas.extend(res_pg['dados'])
