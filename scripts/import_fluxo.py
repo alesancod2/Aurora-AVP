@@ -260,7 +260,7 @@ def run():
 
     print(f"\n=== CONCLUIDO ===")
     print(f"ValorTotal: R$ {totais_gerais.get('ValorTotal', 0):,.2f}")
-    print(f"Amostra: {total_amostra_qtd} faturas de {total_faturas}")
+    print(f"Faturas coletadas: {len(todas_faturas)} de {total_faturas}")
     print(f"Vencimentos:")
     for d in sorted(vencimentos_final.keys()):
         v = vencimentos_final[d]
