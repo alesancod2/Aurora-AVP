@@ -39,12 +39,6 @@ var vendasTotal = 0;
   setDateValue('fFluxoDataInicial', primeiro);
   setDateValue('fFluxoDataFinal', hoje);
 
-  // Fluxo de Caixa: selecionar mes/ano atual
-  var selectFluxoMes = document.getElementById('fFluxoMes');
-  var selectFluxoAno = document.getElementById('fFluxoAno');
-  if (selectFluxoMes) selectFluxoMes.value = String(hoje.getMonth() + 1).padStart(2, '0');
-  if (selectFluxoAno) selectFluxoAno.value = String(hoje.getFullYear());
-
   // Verificar sessao salva
   var ss = localStorage.getItem('avp_session');
   if (ss) {
@@ -381,6 +375,10 @@ function switchTab(btn) {
   // Em mobile, fechar sidebar apos selecionar (se nao estiver fixada)
   if (window.innerWidth <= 768 && !sidebarPinned) {
     collapseSidebar();
+  }
+  // Auto-carregar fluxo de caixa ao abrir a aba
+  if (tabId === 'fluxo-caixa') {
+    buscarFluxoCaixa();
   }
 }
 
@@ -1487,21 +1485,15 @@ function renderVendasPagination() {
 }
 
 // ─── BUSCAR FLUXO DE CAIXA ──────────────────────────────────
-// Busca dados agrupados por dia de vencimento (05, 10, 15, 20, 25, 30)
+// Carrega automaticamente o mes atual do cache
 async function buscarFluxoCaixa() {
-  var mes = document.getElementById('fFluxoMes').value;
-  var ano = document.getElementById('fFluxoAno').value;
-
-  if (!mes || !ano) {
-    alert('Selecione mes e ano');
-    return;
-  }
+  var hoje = new Date();
+  var mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  var ano = String(hoje.getFullYear());
 
   var dataInicial = ano + '-' + mes + '-01';
-  // Ultimo dia do mes
   var lastDay = new Date(parseInt(ano), parseInt(mes), 0).getDate();
   var dataFinal = ano + '-' + mes + '-' + String(lastDay).padStart(2, '0');
-  var fluxoHash = 'fluxo|' + dataInicial + '|' + dataFinal + '|FaturasDataVencimento|';
 
   // Mostrar loading
   document.getElementById('kpiFluxoTotal').textContent = '...';
@@ -1509,24 +1501,15 @@ async function buscarFluxoCaixa() {
   document.getElementById('kpiFluxoAberto').textContent = '...';
   document.getElementById('kpiFluxoCancelado').textContent = '...';
   document.getElementById('kpiFluxoQtd').textContent = '...';
-  document.getElementById('fluxoVencimentos').innerHTML = '<div class="empty-state" style="padding:40px;text-align:center">Carregando...</div>';
 
-  // 1. Verificar cache no Supabase DB
+  // Buscar cache no Supabase DB
   try {
-    // Hash exato
     var dbCache = await sbFetch(
-      'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(fluxoHash) + '&select=dados,updated_at'
+      'relatorios_cache?tipo_relatorio=eq.fluxo-caixa&data_inicial=gte.' + dataInicial + '&data_inicial=lte.' + dataFinal + '&select=dados,updated_at&order=updated_at.desc&limit=1'
     );
-    // Se nao encontrou, buscar por tipo fluxo-caixa do mesmo mes
-    if (!dbCache || dbCache.length === 0) {
-      dbCache = await sbFetch(
-        'relatorios_cache?tipo_relatorio=eq.fluxo-caixa&data_inicial=gte.' + dataInicial + '&data_inicial=lte.' + dataFinal + '&select=dados,updated_at&order=updated_at.desc&limit=1'
-      );
-    }
     if (dbCache && dbCache.length > 0) {
       var cached = dbCache[0];
-      var age = Date.now() - new Date(cached.updated_at).getTime();
-      if (age < 24 * 60 * 60 * 1000 && cached.dados) {
+      if (cached.dados) {
         console.log('[Aurora] Fluxo de caixa: cache encontrado');
         renderFluxoVencimentos(cached.dados, mes, ano);
         return;
@@ -1536,13 +1519,13 @@ async function buscarFluxoCaixa() {
     console.warn('[Aurora] Fluxo cache check erro:', e.message);
   }
 
-  // 2. Sem cache disponivel
+  // Sem cache disponivel
   document.getElementById('kpiFluxoTotal').textContent = '-';
   document.getElementById('kpiFluxoPago').textContent = '-';
   document.getElementById('kpiFluxoAberto').textContent = '-';
   document.getElementById('kpiFluxoCancelado').textContent = '-';
   document.getElementById('kpiFluxoQtd').textContent = '-';
-  document.getElementById('fluxoVencimentos').innerHTML = '<div class="empty-state" style="padding:40px;text-align:center">Dados sendo atualizados automaticamente (cron a cada hora).<br>Tente novamente em alguns minutos.</div>';
+  document.getElementById('fluxoVencimentos').innerHTML = '<div class="empty-state" style="padding:40px;text-align:center">Dados sendo atualizados automaticamente.<br>Aguarde a proxima atualizacao (a cada hora).</div>';
 }
 
 // ─── RENDERIZAR FLUXO POR VENCIMENTOS ───────────────────────

@@ -1471,3 +1471,44 @@ body {
     font-size: .75rem;
   }
 }
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   INFO PANEL - Janela de observacao
+   ═══════════════════════════════════════════════════════════ */
+
+.info-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--blue-light);
+  border: 1px solid var(--blue);
+  border-left: 4px solid var(--blue);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.info-panel-icon {
+  flex-shrink: 0;
+  color: var(--blue);
+  margin-top: 2px;
+}
+
+.info-panel-content {
+  font-size: .8rem;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.info-panel-content strong {
+  display: block;
+  font-size: .85rem;
+  color: var(--text1);
+  margin-bottom: 4px;
+}
+
+.info-panel-content p {
+  margin: 0;
+}
