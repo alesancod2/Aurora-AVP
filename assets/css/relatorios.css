@@ -1472,6 +1472,32 @@ body {
   }
 }
 
+/* Card Renegociacao */
+.fluxo-renego-titulo {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+.fluxo-renego-titulo h4 {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text1);
+  text-align: center;
+  padding: 10px;
+  background: var(--amber-light);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-lg);
+}
+
+.fluxo-renego-card {
+  border-color: var(--amber) !important;
+  border-left: 4px solid var(--amber) !important;
+}
+
+.fluxo-renego-header {
+  background: var(--amber-light) !important;
+  color: var(--amber) !important;
+}
+
 
 
 /* ═══════════════════════════════════════════════════════════

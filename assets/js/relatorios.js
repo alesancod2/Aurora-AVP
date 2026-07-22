@@ -1635,6 +1635,27 @@ function renderFluxoVencimentos(cacheData, mes, ano) {
     html = '<div class="empty-state" style="padding:40px;text-align:center">Nenhum dado de vencimento disponivel para este periodo</div>';
   }
 
+  // Card de Renegociacao (boletos fora dos vencimentos padrao)
+  var renego = cacheData.renegociacao;
+  if (renego && renego.qtd > 0) {
+    html += '<div class="fluxo-renego-titulo"><h4>Boletos de Renegociacao</h4></div>';
+    html += '<div class="fluxo-venc-card fluxo-renego-card">';
+    html += '<div class="fluxo-venc-header fluxo-renego-header">Vencimentos fora do padrao (dias 01-04, 06-09, 11-14, etc)</div>';
+    html += '<table class="fluxo-venc-table">';
+    html += '<thead><tr>';
+    html += '<th>Total</th><th>Pagos</th><th>Aberto</th><th>Cancelado</th><th>Qnt Faturas</th>';
+    html += '</tr></thead>';
+    html += '<tbody><tr>';
+    html += '<td>' + formatMoney(renego.total) + '</td>';
+    html += '<td class="fluxo-val-pago">' + formatMoney(renego.pago) + '</td>';
+    html += '<td class="fluxo-val-aberto">' + formatMoney(renego.aberto) + '</td>';
+    html += '<td class="fluxo-val-cancelado">' + formatMoney(renego.cancelado) + '</td>';
+    html += '<td>' + formatNum(renego.qtd) + '</td>';
+    html += '</tr></tbody>';
+    html += '</table>';
+    html += '</div>';
+  }
+
   document.getElementById('fluxoVencimentos').innerHTML = html;
 }
 

@@ -204,6 +204,7 @@ def run():
                    '20': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
                    '25': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
                    '30': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}}
+    renegociacao = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
 
     for f in todas_faturas:
         dv = f.get('FaturasDataVencimento', '')
@@ -216,14 +217,6 @@ def run():
 
         dia_num = int(dia) if dia.isdigit() else 0
 
-        # Mapear para dia padrao
-        if dia_num <= 7: dp = '05'
-        elif dia_num <= 12: dp = '10'
-        elif dia_num <= 17: dp = '15'
-        elif dia_num <= 22: dp = '20'
-        elif dia_num <= 27: dp = '25'
-        else: dp = '30'
-
         # Parse valor (formato "R$ 1.234,56")
         def parse_valor(s):
             if not s: return 0
@@ -235,14 +228,27 @@ def run():
         pago = parse_valor(f.get('FaturasValorPago', ''))
         sit = (f.get('Situacao', '') or '').lower()
 
-        vencimentos[dp]['total'] += val
-        vencimentos[dp]['qtd'] += 1
-        if 'pago' in sit:
-            vencimentos[dp]['pago'] += pago
-        elif 'cancelado' in sit:
-            vencimentos[dp]['cancelado'] += val
+        # Classificar: dia padrao ou renegociacao
+        if dia_num in [5, 10, 15, 20, 25, 30]:
+            dp = f'{dia_num:02d}'
+            vencimentos[dp]['total'] += val
+            vencimentos[dp]['qtd'] += 1
+            if 'pago' in sit:
+                vencimentos[dp]['pago'] += pago
+            elif 'cancelado' in sit:
+                vencimentos[dp]['cancelado'] += val
+            else:
+                vencimentos[dp]['aberto'] += val
         else:
-            vencimentos[dp]['aberto'] += val
+            # Boletos fora dos vencimentos padrao = renegociacao
+            renegociacao['total'] += val
+            renegociacao['qtd'] += 1
+            if 'pago' in sit:
+                renegociacao['pago'] += pago
+            elif 'cancelado' in sit:
+                renegociacao['cancelado'] += val
+            else:
+                renegociacao['aberto'] += val
 
     # 5. Usar valores reais (soma direta das faturas agrupadas)
     print("5. Valores reais por vencimento...")
@@ -254,6 +260,7 @@ def run():
     cache_data = {
         'totais': totais_gerais,
         'vencimentos': vencimentos_final,
+        'renegociacao': renegociacao,
         'dados': []
     }
     status = save_to_db(hash_key, di, df_full, cache_data)
@@ -265,6 +272,7 @@ def run():
     for d in sorted(vencimentos_final.keys()):
         v = vencimentos_final[d]
         print(f"  Dia {d}: Total=R${v['total']:,.2f}, Pago=R${v['pago']:,.2f}, Qtd={v['qtd']}")
+    print(f"Renegociacao: Total=R${renegociacao['total']:,.2f}, Pago=R${renegociacao['pago']:,.2f}, Qtd={renegociacao['qtd']}")
     print(f"DB status: {status}")
 
 
