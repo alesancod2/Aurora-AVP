@@ -158,124 +158,81 @@ def run():
     SESS = login()
     if not SESS:
         print("   FALHA no login - abortando fluxo de caixa (nao bloqueia workflow)")
-        exit(0)  # exit(0) = nao falha o workflow
+        exit(0)
     print(f"   OK")
 
-    # 2. Buscar totais gerais do mes
-    print("2. Buscando totais gerais...")
+    # 2. Buscar totais gerais do mes (para KPIs)
+    print("2. Buscando totais gerais do mes...")
     res_geral = buscar_fluxo(SESS, di, df_full)
     if not res_geral:
-        print("   API nao respondeu - abortando fluxo (nao bloqueia workflow)")
-        exit(0)  # exit(0) = nao falha o workflow
+        print("   API nao respondeu - abortando")
+        exit(0)
     totais_gerais = res_geral.get('totais', {})
-    dados_p1 = res_geral.get('dados', [])
-    paginacao = res_geral.get('paginacao', {})
-    total_faturas = paginacao.get('Total', 0) or totais_gerais.get('Quantidade', 0)
-    total_paginas = paginacao.get('TotalPaginas', 1)
-    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={total_faturas}, Paginas={total_paginas}")
-    print(f"   Faturas na pagina 1: {len(dados_p1)}")
+    print(f"   ValorTotal={totais_gerais.get('ValorTotal', 0):.2f}, Qtd={totais_gerais.get('Quantidade', 0)}")
 
-    # 3. Buscar TODAS as faturas para agrupamento real por vencimento
-    print("3. Buscando todas as faturas...")
-    todas_faturas = list(dados_p1)
+    # 3. Buscar por DIA EXATO de vencimento (DataInicial=DataFinal=dia)
+    # Isso replica o comportamento do painel AEasy
+    print("3. Buscando por dia exato de vencimento...")
+    dias_vencimento = [5, 10, 15, 20, 25, 30]
+    vencimentos = {}
 
-    for pg in range(2, total_paginas + 1):
-        time.sleep(1)
-        if pg % 50 == 0:
-            print(f"   Pagina {pg}/{total_paginas} ({len(todas_faturas)} faturas)...")
-        res_pg = buscar_fluxo(SESS, di, df_full, pagina=pg, tentativas=2)
-        if res_pg and res_pg.get('dados'):
-            todas_faturas.extend(res_pg['dados'])
+    for dia in dias_vencimento:
+        dia_str = f"{ano}-{mes}-{dia:02d}"
+        print(f"   Dia {dia:02d} ({dia_str})...")
+        # Buscar com DataInicial=DataFinal=dia exato (1 request por vencimento)
+        res = buscar_fluxo(SESS, dia_str, dia_str, tentativas=2)
+        if res:
+            t = res.get('totais', {})
+            vencimentos[f"{dia:02d}"] = {
+                'total': t.get('ValorTotal', 0),
+                'pago': t.get('ValorPago', 0),
+                'aberto': t.get('ValorAberto', 0),
+                'cancelado': t.get('ValorCancelado', 0),
+                'qtd': int(t.get('Quantidade', 0))
+            }
+            print(f"     Total=R${t.get('ValorTotal',0):,.2f}, Pago=R${t.get('ValorPago',0):,.2f}, Qtd={t.get('Quantidade',0)}")
         else:
-            print(f"   Pagina {pg} falhou - continuando...")
-            # Re-login se necessario
-            if pg % 100 == 0:
-                SESS = login()
-                if not SESS:
-                    print("   Re-login falhou, parando coleta")
-                    break
+            vencimentos[f"{dia:02d}"] = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
+            print(f"     Sem dados")
+        time.sleep(2)
 
-    print(f"   Total faturas coletadas: {len(todas_faturas)}")
+    # 4. Buscar renegociacao (dias fora do padrao)
+    # Soma do mes completo - soma dos dias padrao = renegociacao
+    print("4. Calculando renegociacao...")
+    soma_padrao = {
+        'total': sum(v['total'] for v in vencimentos.values()),
+        'pago': sum(v['pago'] for v in vencimentos.values()),
+        'aberto': sum(v['aberto'] for v in vencimentos.values()),
+        'cancelado': sum(v['cancelado'] for v in vencimentos.values()),
+        'qtd': sum(v['qtd'] for v in vencimentos.values())
+    }
+    renegociacao = {
+        'total': max(0, (totais_gerais.get('ValorTotal', 0) or 0) - soma_padrao['total']),
+        'pago': max(0, (totais_gerais.get('ValorPago', 0) or 0) - soma_padrao['pago']),
+        'aberto': max(0, (totais_gerais.get('ValorAberto', 0) or 0) - soma_padrao['aberto']),
+        'cancelado': max(0, (totais_gerais.get('ValorCancelado', 0) or 0) - soma_padrao['cancelado']),
+        'qtd': max(0, int(totais_gerais.get('Quantidade', 0) or 0) - soma_padrao['qtd'])
+    }
+    print(f"   Renegociacao: Total=R${renegociacao['total']:,.2f}, Qtd={renegociacao['qtd']}")
 
-    # 4. Agrupar por dia de vencimento
-    print("4. Agrupando por vencimento...")
-    vencimentos = {'05': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
-                   '10': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
-                   '15': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
-                   '20': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
-                   '25': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0},
-                   '30': {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}}
-    renegociacao = {'total': 0, 'pago': 0, 'aberto': 0, 'cancelado': 0, 'qtd': 0}
-
-    for f in todas_faturas:
-        # Usar FaturasDataOriginal (vencimento original do boleto)
-        # Isso garante que renegociacoes fiquem no grupo correto
-        dv = f.get('FaturasDataOriginal', '') or f.get('FaturasDataVencimento', '')
-        # Formato DD/MM/YYYY
-        dia = '00'
-        if '/' in dv:
-            dia = dv[:2]
-        elif '-' in dv:
-            dia = dv[8:10]
-
-        dia_num = int(dia) if dia.isdigit() else 0
-
-        # Parse valor (formato "R$ 1.234,56")
-        def parse_valor(s):
-            if not s: return 0
-            s = s.replace('R$', '').strip().replace('.', '').replace(',', '.')
-            try: return float(s)
-            except: return 0
-
-        val = parse_valor(f.get('FaturasValor', ''))
-        pago = parse_valor(f.get('FaturasValorPago', ''))
-        sit = (f.get('Situacao', '') or '').lower()
-
-        # Classificar: dia padrao ou renegociacao
-        if dia_num in [5, 10, 15, 20, 25, 30]:
-            dp = f'{dia_num:02d}'
-            vencimentos[dp]['total'] += val
-            vencimentos[dp]['qtd'] += 1
-            if 'pago' in sit:
-                vencimentos[dp]['pago'] += pago
-            elif 'cancelado' in sit:
-                vencimentos[dp]['cancelado'] += val
-            else:
-                vencimentos[dp]['aberto'] += val
-        else:
-            # Boletos fora dos vencimentos padrao = renegociacao
-            renegociacao['total'] += val
-            renegociacao['qtd'] += 1
-            if 'pago' in sit:
-                renegociacao['pago'] += pago
-            elif 'cancelado' in sit:
-                renegociacao['cancelado'] += val
-            else:
-                renegociacao['aberto'] += val
-
-    # 5. Usar valores reais (soma direta das faturas agrupadas)
-    print("5. Valores reais por vencimento...")
-    vencimentos_final = vencimentos
-
-    # 6. Salvar no cache
-    print("6. Salvando no DB...")
+    # 5. Salvar no cache
+    print("5. Salvando no DB...")
     hash_key = f"fluxo|{di}|{df_full}|FaturasDataVencimento|"
     cache_data = {
         'totais': totais_gerais,
-        'vencimentos': vencimentos_final,
+        'vencimentos': vencimentos,
         'renegociacao': renegociacao,
         'dados': []
     }
     status = save_to_db(hash_key, di, df_full, cache_data)
 
     print(f"\n=== CONCLUIDO ===")
-    print(f"ValorTotal: R$ {totais_gerais.get('ValorTotal', 0):,.2f}")
-    print(f"Faturas coletadas: {len(todas_faturas)} de {total_faturas}")
+    print(f"ValorTotal Mes: R$ {totais_gerais.get('ValorTotal', 0):,.2f}")
     print(f"Vencimentos:")
-    for d in sorted(vencimentos_final.keys()):
-        v = vencimentos_final[d]
+    for d in sorted(vencimentos.keys()):
+        v = vencimentos[d]
         print(f"  Dia {d}: Total=R${v['total']:,.2f}, Pago=R${v['pago']:,.2f}, Qtd={v['qtd']}")
-    print(f"Renegociacao: Total=R${renegociacao['total']:,.2f}, Pago=R${renegociacao['pago']:,.2f}, Qtd={renegociacao['qtd']}")
+    print(f"Renegociacao: Total=R${renegociacao['total']:,.2f}, Qtd={renegociacao['qtd']}")
     print(f"DB status: {status}")
 
 
