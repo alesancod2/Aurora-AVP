@@ -227,7 +227,7 @@
         </div>
         <div class="filter-group">
           <label>Gestor / Consultor</label>
-          <select id="fDetalheGestor" onchange="carregarDetalhamento()">
+          <select id="fDetalheGestor" onchange="setGlobalGestor(this.value); carregarDetalhamento()">
             <option value="">Todos</option>
             <!-- Populado via JS -->
           </select>
@@ -249,14 +249,14 @@
       <div class="detalhe-controls" id="detalheControls" style="display:none">
         <div class="detalhe-col-toggles">
           <span class="detalhe-ctrl-label">Colunas:</span>
-          <label class="detalhe-toggle-item"><input type="checkbox" id="colCotacoes" checked onchange="renderDetalhamento()"><span>Cotacoes</span></label>
-          <label class="detalhe-toggle-item"><input type="checkbox" id="colConcretizadas" checked onchange="renderDetalhamento()"><span>Concretizadas</span></label>
-          <label class="detalhe-toggle-item"><input type="checkbox" id="colTaxa" checked onchange="renderDetalhamento()"><span>Taxa Conversao</span></label>
-          <label class="detalhe-toggle-item"><input type="checkbox" id="colTicket" checked onchange="renderDetalhamento()"><span>Ticket Medio</span></label>
+          <label class="detalhe-toggle-item"><input type="checkbox" id="colCotacoes" checked onchange="readUIIntoGlobalFilters(); renderDetalhamento()"><span>Cotacoes</span></label>
+          <label class="detalhe-toggle-item"><input type="checkbox" id="colConcretizadas" checked onchange="readUIIntoGlobalFilters(); renderDetalhamento()"><span>Concretizadas</span></label>
+          <label class="detalhe-toggle-item"><input type="checkbox" id="colTaxa" checked onchange="readUIIntoGlobalFilters(); renderDetalhamento()"><span>Taxa Conversao</span></label>
+          <label class="detalhe-toggle-item"><input type="checkbox" id="colTicket" checked onchange="readUIIntoGlobalFilters(); renderDetalhamento()"><span>Ticket Medio</span></label>
         </div>
         <div class="detalhe-sort-controls">
           <span class="detalhe-ctrl-label">Ordenar:</span>
-          <select id="fDetalheSortField" onchange="renderDetalhamento()">
+          <select id="fDetalheSortField" onchange="readUIIntoGlobalFilters(); renderDetalhamento()">
             <option value="nome">Gestor (A-Z)</option>
             <option value="nome_desc">Gestor (Z-A)</option>
             <option value="cotacoes_desc">Cotacoes (Maior)</option>

@@ -14,6 +14,77 @@ var sessionCookie = '';
 var hiddenGestores = JSON.parse(localStorage.getItem('avp_hidden') || '[]');
 var currentSort = { key: 'gestor', dir: 'asc' };
 
+// ─── FILTROS GLOBAIS (Global State) ─────────────────────────
+// Estado compartilhado entre todas as abas do dashboard.
+// Qualquer alteracao em filtro propaga para todas as views.
+var GLOBAL_FILTERS = {
+  gestor: '',
+  colCotacoes: true,
+  colConcretizadas: true,
+  colTaxa: true,
+  colTicket: true,
+  sortField: 'nome'
+};
+
+// Restaurar estado salvo
+(function restoreGlobalFilters() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('avp_global_filters'));
+    if (saved) {
+      if (saved.colCotacoes !== undefined) GLOBAL_FILTERS.colCotacoes = saved.colCotacoes;
+      if (saved.colConcretizadas !== undefined) GLOBAL_FILTERS.colConcretizadas = saved.colConcretizadas;
+      if (saved.colTaxa !== undefined) GLOBAL_FILTERS.colTaxa = saved.colTaxa;
+      if (saved.colTicket !== undefined) GLOBAL_FILTERS.colTicket = saved.colTicket;
+      if (saved.sortField) GLOBAL_FILTERS.sortField = saved.sortField;
+      if (saved.gestor !== undefined) GLOBAL_FILTERS.gestor = saved.gestor;
+    }
+  } catch(e) {}
+})();
+
+function saveGlobalFilters() {
+  try { localStorage.setItem('avp_global_filters', JSON.stringify(GLOBAL_FILTERS)); } catch(e) {}
+}
+
+function syncUIFromGlobalFilters() {
+  var el;
+  el = document.getElementById('colCotacoes'); if (el) el.checked = GLOBAL_FILTERS.colCotacoes;
+  el = document.getElementById('colConcretizadas'); if (el) el.checked = GLOBAL_FILTERS.colConcretizadas;
+  el = document.getElementById('colTaxa'); if (el) el.checked = GLOBAL_FILTERS.colTaxa;
+  el = document.getElementById('colTicket'); if (el) el.checked = GLOBAL_FILTERS.colTicket;
+  el = document.getElementById('fDetalheSortField'); if (el) el.value = GLOBAL_FILTERS.sortField;
+  el = document.getElementById('searchInput'); if (el && GLOBAL_FILTERS.gestor) el.value = GLOBAL_FILTERS.gestor;
+  el = document.getElementById('fDetalheGestor');
+  if (el && GLOBAL_FILTERS.gestor) {
+    for (var i = 0; i < el.options.length; i++) {
+      if (el.options[i].value === GLOBAL_FILTERS.gestor) { el.value = GLOBAL_FILTERS.gestor; break; }
+    }
+  }
+}
+
+function readUIIntoGlobalFilters() {
+  var el;
+  el = document.getElementById('colCotacoes'); if (el) GLOBAL_FILTERS.colCotacoes = el.checked;
+  el = document.getElementById('colConcretizadas'); if (el) GLOBAL_FILTERS.colConcretizadas = el.checked;
+  el = document.getElementById('colTaxa'); if (el) GLOBAL_FILTERS.colTaxa = el.checked;
+  el = document.getElementById('colTicket'); if (el) GLOBAL_FILTERS.colTicket = el.checked;
+  el = document.getElementById('fDetalheSortField'); if (el) GLOBAL_FILTERS.sortField = el.value;
+  saveGlobalFilters();
+}
+
+function setGlobalGestor(nome) {
+  GLOBAL_FILTERS.gestor = nome || '';
+  saveGlobalFilters();
+  var el = document.getElementById('searchInput'); if (el) el.value = GLOBAL_FILTERS.gestor;
+  el = document.getElementById('fDetalheGestor');
+  if (el) {
+    var found = false;
+    for (var i = 0; i < el.options.length; i++) {
+      if (el.options[i].value === GLOBAL_FILTERS.gestor) { el.value = GLOBAL_FILTERS.gestor; found = true; break; }
+    }
+    if (!found) el.value = '';
+  }
+}
+
 
 // ─── INICIALIZACAO ──────────────────────────────────────────
 (function init() {
@@ -357,6 +428,9 @@ function toggleTheme() {
 // ─── TABS ───────────────────────────────────────────────────
 function switchTab(btn) {
   var tabId = btn.getAttribute('data-tab');
+  // Capturar estado da aba atual antes de trocar
+  readUIIntoGlobalFilters();
+
   // Desativar todas (sidebar items e tabs legados)
   document.querySelectorAll('.sidebar-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
@@ -365,6 +439,10 @@ function switchTab(btn) {
   btn.classList.add('active');
   var panel = document.getElementById('panel-' + tabId);
   if (panel) panel.classList.add('active');
+
+  // Sincronizar filtros globais na nova aba
+  syncUIFromGlobalFilters();
+
   // Em mobile, fechar sidebar apos selecionar (se nao estiver fixada)
   if (window.innerWidth <= 768 && !sidebarPinned) {
     collapseSidebar();
@@ -372,6 +450,14 @@ function switchTab(btn) {
   // Auto-carregar fluxo de caixa ao abrir a aba
   if (tabId === 'fluxo-caixa') {
     buscarFluxoCaixa();
+  }
+  // Re-renderizar detalhamento com filtros globais
+  if (tabId === 'vendas' && Object.keys(DETALHE_DATA).length > 0) {
+    renderDetalhamento();
+  }
+  // Re-renderizar acompanhamento com filtros globais
+  if (tabId === 'top-adesoes' && DATA.length > 0) {
+    filtrarTabela();
   }
 }
 
@@ -1232,6 +1318,10 @@ function filtrarTabela() {
   var search = document.getElementById('searchInput').value.toLowerCase();
   var cidade = document.getElementById('filterCidade').value;
 
+  // Sincronizar gestor com estado global
+  GLOBAL_FILTERS.gestor = document.getElementById('searchInput').value;
+  saveGlobalFilters();
+
   var filtered = filterData(DATA).filter(function(g) {
     var matchSearch = !search || g.gestor.toLowerCase().indexOf(search) !== -1;
     var matchCidade = !cidade || g.cidade === cidade;
@@ -1553,17 +1643,8 @@ var MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
 (function initDetalhamento() {
   // Popular select de anos ao carregar
   popularAnosDisponiveis();
-
-  // Restaurar preferencias de colunas salvas
-  try {
-    var saved = JSON.parse(localStorage.getItem('avp_detalhe_cols'));
-    if (saved) {
-      if (document.getElementById('colCotacoes')) document.getElementById('colCotacoes').checked = saved.cot !== false;
-      if (document.getElementById('colConcretizadas')) document.getElementById('colConcretizadas').checked = saved.conc !== false;
-      if (document.getElementById('colTaxa')) document.getElementById('colTaxa').checked = saved.taxa !== false;
-      if (document.getElementById('colTicket')) document.getElementById('colTicket').checked = saved.ticket !== false;
-    }
-  } catch(e) {}
+  // Restaurar estado dos filtros globais nos controles
+  syncUIFromGlobalFilters();
 })();
 
 // ─── POPULAR ANOS DISPONIVEIS NO DB ─────────────────────────
@@ -1890,20 +1971,16 @@ function renderDetalhamento() {
   var ctrlPanel = document.getElementById('detalheControls');
   if (ctrlPanel) ctrlPanel.style.display = 'flex';
 
-  // Obter visibilidade das colunas
-  var showCot = document.getElementById('colCotacoes') ? document.getElementById('colCotacoes').checked : true;
-  var showConc = document.getElementById('colConcretizadas') ? document.getElementById('colConcretizadas').checked : true;
-  var showTaxa = document.getElementById('colTaxa') ? document.getElementById('colTaxa').checked : true;
-  var showTicket = document.getElementById('colTicket') ? document.getElementById('colTicket').checked : true;
+  // Obter visibilidade das colunas do estado global
+  readUIIntoGlobalFilters();
+  var showCot = GLOBAL_FILTERS.colCotacoes;
+  var showConc = GLOBAL_FILTERS.colConcretizadas;
+  var showTaxa = GLOBAL_FILTERS.colTaxa;
+  var showTicket = GLOBAL_FILTERS.colTicket;
   var visibleCols = (showCot ? 1 : 0) + (showConc ? 1 : 0) + (showTaxa ? 1 : 0) + (showTicket ? 1 : 0);
   if (visibleCols === 0) visibleCols = 4; // fallback
 
-  // Persistir estado em localStorage
-  try {
-    localStorage.setItem('avp_detalhe_cols', JSON.stringify({cot: showCot, conc: showConc, taxa: showTaxa, ticket: showTicket}));
-  } catch(e) {}
-
-  var filtroGestor = document.getElementById('fDetalheGestor') ? document.getElementById('fDetalheGestor').value : '';
+  var filtroGestor = GLOBAL_FILTERS.gestor || (document.getElementById('fDetalheGestor') ? document.getElementById('fDetalheGestor').value : '');
 
   // Determinar quais gestores mostrar
   var gestoresExibir;
@@ -1918,8 +1995,8 @@ function renderDetalhamento() {
     });
   }
 
-  // ─── ORDENACAO ───
-  var sortField = document.getElementById('fDetalheSortField') ? document.getElementById('fDetalheSortField').value : 'nome';
+  // ─── ORDENACAO (estado global) ───
+  var sortField = GLOBAL_FILTERS.sortField || 'nome';
   var lastMes = meses[meses.length - 1]; // usar ultimo mes para ordenar por valores
 
   gestoresExibir.sort(function(a, b) {
