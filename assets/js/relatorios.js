@@ -7,15 +7,12 @@
 var SUPABASE_URL = 'https://zjacembodtjrkynfmtxf.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqYWNlbWJvZHRqcmt5bmZtdHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc3NTEsImV4cCI6MjA5OTY5Mzc1MX0.8q7I5cTcNVyL7uLXgZ1ZWCE3T1KbfYyevnr8uqLFVvY';
 var PROXY_URL = SUPABASE_URL + '/functions/v1/aeasy-proxy';
-var BATCH_SIZE = 5;
 
 // ─── ESTADO GLOBAL ──────────────────────────────────────────
 var DATA = [];
 var sessionCookie = '';
 var hiddenGestores = JSON.parse(localStorage.getItem('avp_hidden') || '[]');
 var currentSort = { key: 'gestor', dir: 'asc' };
-var vendasPage = 0;
-var vendasTotal = 0;
 
 
 // ─── INICIALIZACAO ──────────────────────────────────────────
@@ -34,10 +31,6 @@ var vendasTotal = 0;
   var primeiro = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   setDateValue('fDataInicial', primeiro);
   setDateValue('fDataFinal', hoje);
-  setDateValue('fVendasDataInicial', primeiro);
-  setDateValue('fVendasDataFinal', hoje);
-  setDateValue('fFluxoDataInicial', primeiro);
-  setDateValue('fFluxoDataFinal', hoje);
 
   // Verificar sessao salva
   var ss = localStorage.getItem('avp_session');
@@ -462,19 +455,6 @@ function togglePinSidebar() {
   localStorage.setItem('avp_sidebar_pinned', JSON.stringify(sidebarPinned));
 }
 
-// ─── FILTROS (toggle) ───────────────────────────────────────
-function toggleFilters(id) {
-  var body = document.getElementById('filters-' + id);
-  var header = body.previousElementSibling;
-  if (body.classList.contains('collapsed')) {
-    body.classList.remove('collapsed');
-    header.classList.remove('collapsed');
-  } else {
-    body.classList.add('collapsed');
-    header.classList.add('collapsed');
-  }
-}
-
 
 // ─── SESSAO / LOGIN ─────────────────────────────────────────
 function updateSessionBadge(active) {
@@ -546,54 +526,6 @@ function getFilterHash(params) {
   var keys = Object.keys(params).sort();
   var parts = keys.map(function(k) { return k + '=' + params[k]; });
   return parts.join('|');
-}
-
-async function checkCache(hash) {
-  try {
-    var data = await sbFetch(
-      'relatorios_cache?filtro_hash=eq.' + encodeURIComponent(hash) + '&select=dados,updated_at'
-    );
-    if (data && data.length > 0) {
-      var cached = data[0];
-      var age = Date.now() - new Date(cached.updated_at).getTime();
-      // Cache valido por 30 minutos
-      if (age < 30 * 60 * 1000) {
-        return cached.dados;
-      }
-    }
-  } catch (e) { /* ignore */ }
-  return null;
-}
-
-async function saveCache(hash, dados, params) {
-  try {
-    await sbFetch('relatorios_cache', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({
-        filtro_hash: hash,
-        tipo_data: params.tipo_data || '',
-        data_inicial: params.data_inicial || '',
-        data_final: params.data_final || '',
-        ordenacao: params.ordenar || '',
-        retornar_lider: params.retornar_lider || '',
-        dados: dados,
-        updated_at: new Date().toISOString()
-      })
-    });
-  } catch (e) { /* ignore */ }
-  // Tambem salvar em localStorage como fallback
-  try {
-    localStorage.setItem('avp_cache_' + hash, JSON.stringify({
-      dados: dados,
-      ts: Date.now()
-    }));
-  } catch (e) { /* storage full */ }
 }
 
 
@@ -1403,87 +1335,6 @@ function updateCidadeFilter() {
   select.innerHTML = html;
 }
 
-// ─── BUSCAR VENDAS (ASSOCIADOS) ─────────────────────────────
-async function buscarVendas(page) {
-  if (!sessionCookie) { showLoginModal(); return; }
-
-  vendasPage = page || 0;
-  var start = vendasPage * 50;
-
-  try {
-    var res = await edgeCall({
-      action: 'vendas',
-      session_cookie: sessionCookie,
-      start: start,
-      length: 50,
-      situacao: document.getElementById('fVendasSituacao').value || undefined,
-      tipo_data: document.getElementById('fVendasTipoData').value,
-      data_inicial: document.getElementById('fVendasDataInicial').value,
-      data_final: document.getElementById('fVendasDataFinal').value,
-      campo_pesquisa: document.getElementById('fVendasCampoPesquisa').value || undefined,
-      search: document.getElementById('fVendasSearch').value || undefined
-    });
-
-    if (res.success && res.data) {
-      vendasTotal = parseInt(res.data.recordsFiltered) || 0;
-      document.getElementById('kpiVendasTotal').textContent = formatNum(parseInt(res.data.recordsTotal) || 0);
-      document.getElementById('kpiVendasFiltrados').textContent = formatNum(vendasTotal);
-      renderVendasTable(res.data.data || []);
-      renderVendasPagination();
-    }
-  } catch (e) {
-    alert('Erro ao buscar vendas: ' + e.message);
-  }
-}
-
-function renderVendasTable(data) {
-  var tbody = document.getElementById('vendasBody');
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum resultado</td></tr>';
-    return;
-  }
-
-  var html = '';
-  data.forEach(function(r, i) {
-    var sit = r.VendasSituacao || '';
-    var badgeClass = sit === 'Ativo' ? 'badge-ativo' :
-                     sit === 'Cancelado' ? 'badge-cancelado' :
-                     sit === 'Suspenso' ? 'badge-suspenso' : 'badge-novo';
-    html += '<tr>';
-    html += '<td>' + (vendasPage * 50 + i + 1) + '</td>';
-    html += '<td>' + esc(r.ClientesIndividuosNome || '') + '</td>';
-    html += '<td>' + formatCPF(r.ClientesIndividuosDocumento || '') + '</td>';
-    html += '<td>' + esc(r.VendasCarrosPlaca || '') + '</td>';
-    html += '<td>' + esc(r.VendasCarrosModelosNome || '') + '</td>';
-    html += '<td>' + esc(r.VendasCarrosCategoriasPlanosNome || '') + '</td>';
-    html += '<td><span class="badge ' + badgeClass + '">' + esc(sit) + '</span></td>';
-    html += '<td>' + esc(r.ConsultoresNome || '') + '</td>';
-    html += '<td>' + esc(r.ConsultoresCentroCustoNome || '') + '</td>';
-    html += '</tr>';
-  });
-  tbody.innerHTML = html;
-}
-
-
-function renderVendasPagination() {
-  var totalPages = Math.ceil(vendasTotal / 50);
-  var div = document.getElementById('vendasPagination');
-  if (totalPages <= 1) { div.innerHTML = ''; return; }
-
-  var html = '';
-  html += '<button ' + (vendasPage === 0 ? 'disabled' : '') + ' onclick="buscarVendas(' + (vendasPage - 1) + ')">Anterior</button>';
-
-  var start = Math.max(0, vendasPage - 3);
-  var end = Math.min(totalPages, vendasPage + 4);
-
-  for (var p = start; p < end; p++) {
-    html += '<button class="' + (p === vendasPage ? 'active' : '') + '" onclick="buscarVendas(' + p + ')">' + (p + 1) + '</button>';
-  }
-
-  html += '<button ' + (vendasPage >= totalPages - 1 ? 'disabled' : '') + ' onclick="buscarVendas(' + (vendasPage + 1) + ')">Proximo</button>';
-  div.innerHTML = html;
-}
-
 // ─── BUSCAR FLUXO DE CAIXA ──────────────────────────────────
 // Carrega automaticamente o mes atual do cache
 async function buscarFluxoCaixa() {
@@ -1658,64 +1509,6 @@ function renderFluxoVencimentos(cacheData, mes, ano) {
   document.getElementById('fluxoVencimentos').innerHTML = html;
 }
 
-// Renderizar fluxo a partir de dados do cache (compatibilidade)
-function renderFluxoFromCache(cacheData) {
-  var hoje = new Date();
-  var mes = String(hoje.getMonth() + 1).padStart(2, '0');
-  var ano = String(hoje.getFullYear());
-  renderFluxoVencimentos(cacheData, mes, ano);
-}
-
-// ─── BUSCAR CONSULTORES ─────────────────────────────────────
-async function buscarConsultores() {
-  if (!sessionCookie) { showLoginModal(); return; }
-
-  try {
-    var res = await edgeCall({
-      action: 'consultores',
-      session_cookie: sessionCookie,
-      start: 0,
-      length: 100,
-      situacao: document.getElementById('fConsultoresSituacao').value || undefined,
-      tipo_consultor: document.getElementById('fConsultoresTipo').value || undefined,
-      centro_custo: document.getElementById('fConsultoresCentro').value || undefined
-    });
-
-    if (res.success && res.data) {
-      renderConsultoresTable(res.data.data || []);
-    }
-  } catch (e) {
-    alert('Erro ao buscar consultores: ' + e.message);
-  }
-}
-
-function renderConsultoresTable(data) {
-  var tbody = document.getElementById('consultoresBody');
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum consultor encontrado</td></tr>';
-    return;
-  }
-
-  var html = '';
-  data.forEach(function(r, i) {
-    var sit = r.ConsultoresSituacaoCadastro || '';
-    var badgeClass = sit === 'Ativo' ? 'badge-ativo' :
-                     sit === 'Cancelado' ? 'badge-cancelado' :
-                     sit === 'Suspenso' ? 'badge-suspenso' : 'badge-novo';
-    html += '<tr>';
-    html += '<td>' + (i + 1) + '</td>';
-    html += '<td>' + esc(r.IndividuosNome || '') + '</td>';
-    html += '<td>' + formatCPF(r.IndividuosDocumento || '') + '</td>';
-    html += '<td>' + esc(r.ConsultoresTipoConsultor || '') + '</td>';
-    html += '<td><span class="badge ' + badgeClass + '">' + esc(sit) + '</span></td>';
-    html += '<td>' + esc(r.IndividuosEnderecosCidadesNome || '') + '</td>';
-    html += '<td>' + esc((r.IndividuosContatosDdd || '') + ' ' + (r.IndividuosContatosTelefone || '')) + '</td>';
-    html += '<td>' + esc(r.IndividuosEmail || '') + '</td>';
-    html += '</tr>';
-  });
-  tbody.innerHTML = html;
-}
-
 
 // ─── UTILITARIOS ────────────────────────────────────────────
 function formatNum(n) {
@@ -1726,18 +1519,6 @@ function formatNum(n) {
 function formatMoney(n) {
   if (n === null || n === undefined || isNaN(n)) return '-';
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function formatCPF(cpf) {
-  if (!cpf || cpf.length < 11) return cpf || '';
-  cpf = cpf.replace(/\D/g, '');
-  if (cpf.length === 11) {
-    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  }
-  if (cpf.length === 14) {
-    return cpf.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  }
-  return cpf;
 }
 
 function esc(str) {
