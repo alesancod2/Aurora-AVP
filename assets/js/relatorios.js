@@ -358,16 +358,20 @@ function toggleTheme() {
 function switchTab(btn) {
   var tabId = btn.getAttribute('data-tab');
   // Desativar todas (sidebar items e tabs legados)
-  document.querySelectorAll('.sidebar-item').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.sidebar-item').forEach(function(t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
   document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.report-panel').forEach(function(p) { p.classList.remove('active'); });
   // Ativar selecionada
   btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
   var panel = document.getElementById('panel-' + tabId);
   if (panel) panel.classList.add('active');
-  // Em mobile, fechar sidebar apos selecionar (se nao estiver fixada)
-  if (window.innerWidth <= 768 && !sidebarPinned) {
-    collapseSidebar();
+  // Em mobile, fechar sidebar apos selecionar
+  if (window.innerWidth <= 768) {
+    closeMobileSidebar();
   }
   // Auto-carregar fluxo de caixa ao abrir a aba
   if (tabId === 'fluxo-caixa') {
@@ -387,20 +391,39 @@ function initSidebar() {
 
   if (sidebarPinned) {
     pinBtn.classList.add('pinned');
+    sidebar.classList.add('pinned');
   }
 
-  if (!sidebarOpen || (!sidebarPinned && window.innerWidth <= 768)) {
+  // Mobile: always start hidden
+  if (window.innerWidth <= 768) {
     sidebar.classList.add('collapsed');
     toggle.classList.add('visible');
     mainContent.classList.add('expanded');
+    return;
+  }
+
+  // Desktop/Tablet: collapsed (icons only) or expanded
+  if (!sidebarOpen || !sidebarPinned) {
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('sidebar-collapsed');
   }
 }
 
 function toggleSidebar() {
   var sidebar = document.getElementById('sidebar');
-  var isCollapsed = sidebar.classList.contains('collapsed');
 
-  if (isCollapsed) {
+  // Mobile: toggle drawer
+  if (window.innerWidth <= 768) {
+    if (sidebar.classList.contains('mobile-open')) {
+      closeMobileSidebar();
+    } else {
+      openMobileSidebar();
+    }
+    return;
+  }
+
+  // Desktop: toggle collapsed/expanded
+  if (sidebar.classList.contains('collapsed')) {
     expandSidebar();
   } else {
     collapseSidebar();
@@ -409,18 +432,13 @@ function toggleSidebar() {
 
 function expandSidebar() {
   var sidebar = document.getElementById('sidebar');
-  var toggle = document.getElementById('sidebarToggle');
   var mainContent = document.getElementById('mainContent');
-  var overlay = document.getElementById('sidebarOverlay');
+  var toggle = document.getElementById('sidebarToggle');
 
   sidebar.classList.remove('collapsed');
-  toggle.classList.remove('visible');
+  mainContent.classList.remove('sidebar-collapsed');
   mainContent.classList.remove('expanded');
-
-  // Show overlay on mobile
-  if (window.innerWidth <= 768) {
-    overlay.classList.add('visible');
-  }
+  toggle.classList.remove('visible');
 
   sidebarOpen = true;
   localStorage.setItem('avp_sidebar_open', 'true');
@@ -428,32 +446,94 @@ function expandSidebar() {
 
 function collapseSidebar() {
   var sidebar = document.getElementById('sidebar');
-  var toggle = document.getElementById('sidebarToggle');
   var mainContent = document.getElementById('mainContent');
   var overlay = document.getElementById('sidebarOverlay');
 
+  // Mobile: close drawer
+  if (window.innerWidth <= 768) {
+    closeMobileSidebar();
+    return;
+  }
+
+  // Desktop: collapse to icons
   sidebar.classList.add('collapsed');
-  toggle.classList.add('visible');
-  mainContent.classList.add('expanded');
+  mainContent.classList.add('sidebar-collapsed');
   overlay.classList.remove('visible');
 
   sidebarOpen = false;
   localStorage.setItem('avp_sidebar_open', 'false');
 }
 
+function openMobileSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  var toggle = document.getElementById('sidebarToggle');
+
+  sidebar.classList.add('mobile-open');
+  sidebar.classList.remove('collapsed');
+  overlay.classList.add('visible');
+  toggle.classList.remove('visible');
+}
+
+function closeMobileSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  var toggle = document.getElementById('sidebarToggle');
+
+  sidebar.classList.remove('mobile-open');
+  sidebar.classList.add('collapsed');
+  overlay.classList.remove('visible');
+  toggle.classList.add('visible');
+}
+
 function togglePinSidebar() {
   var pinBtn = document.getElementById('btnPinSidebar');
+  var sidebar = document.getElementById('sidebar');
   sidebarPinned = !sidebarPinned;
 
   if (sidebarPinned) {
     pinBtn.classList.add('pinned');
+    sidebar.classList.add('pinned');
     expandSidebar();
   } else {
     pinBtn.classList.remove('pinned');
+    sidebar.classList.remove('pinned');
+    collapseSidebar();
   }
 
   localStorage.setItem('avp_sidebar_pinned', JSON.stringify(sidebarPinned));
 }
+
+// Handle window resize
+window.addEventListener('resize', function() {
+  var sidebar = document.getElementById('sidebar');
+  var mainContent = document.getElementById('mainContent');
+  var toggle = document.getElementById('sidebarToggle');
+
+  if (window.innerWidth <= 768) {
+    // Switch to mobile mode
+    mainContent.classList.remove('sidebar-collapsed');
+    mainContent.classList.add('expanded');
+    if (!sidebar.classList.contains('mobile-open')) {
+      sidebar.classList.add('collapsed');
+      toggle.classList.add('visible');
+    }
+  } else {
+    // Switch to desktop mode
+    sidebar.classList.remove('mobile-open');
+    mainContent.classList.remove('expanded');
+    document.getElementById('sidebarOverlay').classList.remove('visible');
+    if (sidebarPinned) {
+      sidebar.classList.remove('collapsed');
+      mainContent.classList.remove('sidebar-collapsed');
+      toggle.classList.remove('visible');
+    } else {
+      sidebar.classList.add('collapsed');
+      mainContent.classList.add('sidebar-collapsed');
+      toggle.classList.remove('visible');
+    }
+  }
+});
 
 
 // ─── SESSAO / LOGIN ─────────────────────────────────────────
