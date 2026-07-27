@@ -315,6 +315,9 @@ serve(async (req: Request) => {
       if (tipo_data) formData.append("TipoData", tipo_data);
       if (faturas_tipo) formData.append("FaturasTipo", faturas_tipo);
       if (forma_cobranca) formData.append("FormaCobranca", forma_cobranca);
+      // Filtrar apenas associados Ativo (1) e Suspenso (2)
+      formData.append("VendasSituacao[]", "1");
+      formData.append("VendasSituacao[]", "2");
 
       const res = await fetch(`${AEASY_BASE}/fluxo-caixa/buscar-pagina`, {
         method: "POST",

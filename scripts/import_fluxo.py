@@ -49,6 +49,7 @@ def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=Non
     """Busca totais do fluxo de caixa usando parametros corretos (HAR)"""
     # Parametros no formato correto da API AEasy (confirmado via HAR)
     # FaturasTipo=2 = Contribuição (valores batem com sistema AEasy)
+    # VendasSituacao[]=1&VendasSituacao[]=2 = Apenas Ativo e Suspenso
     params = (
         f"OrdenarPor=FaturasDataVencimento"
         f"&TipoData={tipo_data}"
@@ -58,6 +59,7 @@ def buscar_fluxo(sess, di, df, tipo_data="FaturasDataVencimento", vencimento=Non
         f"&TipoBaixa=&FaturasTipo=2&FormaCobranca=&FaturasParcela="
         f"&estadosIddhidden=&cidadesIddhidden="
         f"&RetornarLiderComEquipe=&FaturasNumeroFaturaBoleto="
+        f"&VendasSituacao%5B%5D=1&VendasSituacao%5B%5D=2"
         f"&pagina={pagina}&quantidadeLista=200"
     )
     if vencimento is not None:
