@@ -2147,13 +2147,11 @@ function toggleDetalheEquipe(idx) {
     return;
   }
 
-  // Popular conteudo se ainda nao foi preenchido
+  // Sempre re-renderizar conteudo (para respeitar colunas visiveis atuais)
   var content = document.getElementById('detalhe-equipe-content-' + idx);
-  if (!content.innerHTML) {
-    var gestorInfo = getGestorExibidoByIdx(idx);
-    if (gestorInfo) {
-      content.innerHTML = renderDetalheEquipeTabela(gestorInfo);
-    }
+  var gestorInfo = getGestorExibidoByIdx(idx);
+  if (gestorInfo && content) {
+    content.innerHTML = renderDetalheEquipeTabela(gestorInfo);
   }
 
   row.classList.add('visible');
@@ -2181,6 +2179,14 @@ function renderDetalheEquipeTabela(gestorInfo) {
     return a.nome.localeCompare(b.nome);
   });
 
+  // Respeitar visibilidade de colunas do estado global
+  var showCot = GLOBAL_FILTERS.colCotacoes;
+  var showConc = GLOBAL_FILTERS.colConcretizadas;
+  var showTaxa = GLOBAL_FILTERS.colTaxa;
+  var showTicket = GLOBAL_FILTERS.colTicket;
+  var visibleCols = (showCot ? 1 : 0) + (showConc ? 1 : 0) + (showTaxa ? 1 : 0) + (showTicket ? 1 : 0);
+  if (visibleCols === 0) { showCot = showConc = showTaxa = showTicket = true; visibleCols = 4; }
+
   var html = '<div class="detalhe-equipe-scroll">';
   html += '<table class="detalhe-equipe-table">';
 
@@ -2190,18 +2196,18 @@ function renderDetalheEquipeTabela(gestorInfo) {
   html += '<th class="detalhe-eq-col-nome">Membro</th>';
   meses.forEach(function(mesKey) {
     var mesIdx = parseInt(mesKey.substring(5, 7)) - 1;
-    html += '<th colspan="4" class="detalhe-eq-mes">' + MESES_ABREV[mesIdx] + '</th>';
+    html += '<th colspan="' + visibleCols + '" class="detalhe-eq-mes">' + MESES_ABREV[mesIdx] + '</th>';
   });
   html += '</tr>';
 
-  // Sub-header
+  // Sub-header (apenas colunas visiveis)
   html += '<tr>';
   html += '<th></th><th></th>';
   meses.forEach(function() {
-    html += '<th class="detalhe-eq-sub">Cot</th>';
-    html += '<th class="detalhe-eq-sub">Conc</th>';
-    html += '<th class="detalhe-eq-sub">Taxa</th>';
-    html += '<th class="detalhe-eq-sub">Ticket</th>';
+    if (showCot) html += '<th class="detalhe-eq-sub">Cot</th>';
+    if (showConc) html += '<th class="detalhe-eq-sub">Conc</th>';
+    if (showTaxa) html += '<th class="detalhe-eq-sub">Taxa</th>';
+    if (showTicket) html += '<th class="detalhe-eq-sub">Ticket</th>';
   });
   html += '</tr></thead>';
 
@@ -2214,13 +2220,12 @@ function renderDetalheEquipeTabela(gestorInfo) {
   meses.forEach(function(mesKey) {
     var d = getDadosMesIndividuo(mesKey, gestorInfo.nome, true);
     if (d) {
-      html += '<td class="detalhe-eq-val">' + formatNum(d.cotacoes) + '</td>';
-      html += '<td class="detalhe-eq-val">' + formatNum(d.concretizadas) + '</td>';
-      html += '<td class="detalhe-eq-val">' + d.taxa_conversao.toFixed(2) + '%</td>';
-      html += '<td class="detalhe-eq-val">' + formatMoney(d.ticket_medio) + '</td>';
+      if (showCot) html += '<td class="detalhe-eq-val">' + formatNum(d.cotacoes) + '</td>';
+      if (showConc) html += '<td class="detalhe-eq-val">' + formatNum(d.concretizadas) + '</td>';
+      if (showTaxa) html += '<td class="detalhe-eq-val">' + d.taxa_conversao.toFixed(2) + '%</td>';
+      if (showTicket) html += '<td class="detalhe-eq-val">' + formatMoney(d.ticket_medio) + '</td>';
     } else {
-      html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
-      html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
+      for (var c = 0; c < visibleCols; c++) html += '<td class="detalhe-eq-val">-</td>';
     }
   });
   html += '</tr>';
@@ -2233,13 +2238,12 @@ function renderDetalheEquipeTabela(gestorInfo) {
     meses.forEach(function(mesKey) {
       var d = getDadosMesIndividuo(mesKey, membro.nome, false);
       if (d) {
-        html += '<td class="detalhe-eq-val">' + formatNum(d.cotacoes) + '</td>';
-        html += '<td class="detalhe-eq-val">' + formatNum(d.concretizadas) + '</td>';
-        html += '<td class="detalhe-eq-val">' + d.taxa_conversao.toFixed(2) + '%</td>';
-        html += '<td class="detalhe-eq-val">' + formatMoney(d.ticket_medio) + '</td>';
+        if (showCot) html += '<td class="detalhe-eq-val">' + formatNum(d.cotacoes) + '</td>';
+        if (showConc) html += '<td class="detalhe-eq-val">' + formatNum(d.concretizadas) + '</td>';
+        if (showTaxa) html += '<td class="detalhe-eq-val">' + d.taxa_conversao.toFixed(2) + '%</td>';
+        if (showTicket) html += '<td class="detalhe-eq-val">' + formatMoney(d.ticket_medio) + '</td>';
       } else {
-        html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
-        html += '<td class="detalhe-eq-val">-</td><td class="detalhe-eq-val">-</td>';
+        for (var c = 0; c < visibleCols; c++) html += '<td class="detalhe-eq-val">-</td>';
       }
     });
     html += '</tr>';
