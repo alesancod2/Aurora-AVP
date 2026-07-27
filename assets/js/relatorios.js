@@ -1553,13 +1553,24 @@ var MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
 (function initDetalhamento() {
   // Popular select de anos ao carregar
   popularAnosDisponiveis();
+
+  // Restaurar preferencias de colunas salvas
+  try {
+    var saved = JSON.parse(localStorage.getItem('avp_detalhe_cols'));
+    if (saved) {
+      if (document.getElementById('colCotacoes')) document.getElementById('colCotacoes').checked = saved.cot !== false;
+      if (document.getElementById('colConcretizadas')) document.getElementById('colConcretizadas').checked = saved.conc !== false;
+      if (document.getElementById('colTaxa')) document.getElementById('colTaxa').checked = saved.taxa !== false;
+      if (document.getElementById('colTicket')) document.getElementById('colTicket').checked = saved.ticket !== false;
+    }
+  } catch(e) {}
 })();
 
 // ─── POPULAR ANOS DISPONIVEIS NO DB ─────────────────────────
 async function popularAnosDisponiveis() {
   try {
     var res = await sbFetch(
-      'relatorios_cache?select=data_inicial&order=data_inicial.asc'
+      'relatorios_cache?tipo_relatorio=eq.dashboard&select=data_inicial&order=data_inicial.asc'
     );
     if (!res || res.length === 0) return;
 
@@ -1610,7 +1621,7 @@ async function carregarDetalhamento() {
     var lastDay = ano + '-12-31';
 
     var dbResults = await sbFetch(
-      'relatorios_cache?data_inicial=gte.' + firstDay + '&data_inicial=lte.' + lastDay + '&select=dados,data_inicial,data_final&order=data_inicial.asc'
+      'relatorios_cache?tipo_relatorio=eq.dashboard&data_inicial=gte.' + firstDay + '&data_inicial=lte.' + lastDay + '&select=dados,data_inicial,data_final&order=data_inicial.asc'
     );
 
     if (!dbResults || dbResults.length === 0) {
@@ -1875,6 +1886,23 @@ function renderDetalhamento() {
   var meses = Object.keys(DETALHE_DATA).sort(); // ["2026-01", "2026-02", ...]
   if (meses.length === 0) return;
 
+  // Mostrar controles
+  var ctrlPanel = document.getElementById('detalheControls');
+  if (ctrlPanel) ctrlPanel.style.display = 'flex';
+
+  // Obter visibilidade das colunas
+  var showCot = document.getElementById('colCotacoes') ? document.getElementById('colCotacoes').checked : true;
+  var showConc = document.getElementById('colConcretizadas') ? document.getElementById('colConcretizadas').checked : true;
+  var showTaxa = document.getElementById('colTaxa') ? document.getElementById('colTaxa').checked : true;
+  var showTicket = document.getElementById('colTicket') ? document.getElementById('colTicket').checked : true;
+  var visibleCols = (showCot ? 1 : 0) + (showConc ? 1 : 0) + (showTaxa ? 1 : 0) + (showTicket ? 1 : 0);
+  if (visibleCols === 0) visibleCols = 4; // fallback
+
+  // Persistir estado em localStorage
+  try {
+    localStorage.setItem('avp_detalhe_cols', JSON.stringify({cot: showCot, conc: showConc, taxa: showTaxa, ticket: showTicket}));
+  } catch(e) {}
+
   var filtroGestor = document.getElementById('fDetalheGestor') ? document.getElementById('fDetalheGestor').value : '';
 
   // Determinar quais gestores mostrar
@@ -1890,25 +1918,47 @@ function renderDetalhamento() {
     });
   }
 
-  // Ordenar por nome alfabeticamente (A-Z)
+  // ─── ORDENACAO ───
+  var sortField = document.getElementById('fDetalheSortField') ? document.getElementById('fDetalheSortField').value : 'nome';
+  var lastMes = meses[meses.length - 1]; // usar ultimo mes para ordenar por valores
+
   gestoresExibir.sort(function(a, b) {
-    return a.nome.localeCompare(b.nome);
+    if (sortField === 'nome') return a.nome.localeCompare(b.nome);
+    if (sortField === 'nome_desc') return b.nome.localeCompare(a.nome);
+
+    // Para campos numericos, pegar dados do ultimo mes
+    var dA = getDadosMesIndividuo(lastMes, a.nome, false) || {cotacoes:0, concretizadas:0, taxa_conversao:0, ticket_medio:0};
+    var dB = getDadosMesIndividuo(lastMes, b.nome, false) || {cotacoes:0, concretizadas:0, taxa_conversao:0, ticket_medio:0};
+
+    switch(sortField) {
+      case 'cotacoes_desc': return dB.cotacoes - dA.cotacoes;
+      case 'cotacoes_asc': return dA.cotacoes - dB.cotacoes;
+      case 'concretizadas_desc': return dB.concretizadas - dA.concretizadas;
+      case 'concretizadas_asc': return dA.concretizadas - dB.concretizadas;
+      case 'taxa_desc': return dB.taxa_conversao - dA.taxa_conversao;
+      case 'taxa_asc': return dA.taxa_conversao - dB.taxa_conversao;
+      case 'ticket_desc': return dB.ticket_medio - dA.ticket_medio;
+      case 'ticket_asc': return dA.ticket_medio - dB.ticket_medio;
+      default: return a.nome.localeCompare(b.nome);
+    }
   });
+
+  // ─── THEAD ───
   var theadHtml = '<tr class="detalhe-header-row">';
   theadHtml += '<th class="detalhe-col-fixa" rowspan="2">Equipe<br><small>Gestor/Consultor</small></th>';
   meses.forEach(function(mesKey) {
     var mesIdx = parseInt(mesKey.substring(5, 7)) - 1;
-    theadHtml += '<th colspan="4" class="detalhe-mes-header">' + MESES_NOMES[mesIdx] + '</th>';
+    theadHtml += '<th colspan="' + visibleCols + '" class="detalhe-mes-header">' + MESES_NOMES[mesIdx] + '</th>';
   });
   theadHtml += '</tr>';
 
-  // Sub-header com campos
+  // Sub-header com campos visiveis
   theadHtml += '<tr class="detalhe-subheader-row">';
   meses.forEach(function() {
-    theadHtml += '<th class="detalhe-sub-col">Cotacoes</th>';
-    theadHtml += '<th class="detalhe-sub-col">Concretizadas</th>';
-    theadHtml += '<th class="detalhe-sub-col">Taxa Conversao</th>';
-    theadHtml += '<th class="detalhe-sub-col">Ticket Medio</th>';
+    if (showCot) theadHtml += '<th class="detalhe-sub-col">Cotacoes</th>';
+    if (showConc) theadHtml += '<th class="detalhe-sub-col">Concretizadas</th>';
+    if (showTaxa) theadHtml += '<th class="detalhe-sub-col">Taxa Conversao</th>';
+    if (showTicket) theadHtml += '<th class="detalhe-sub-col">Ticket Medio</th>';
   });
   theadHtml += '</tr>';
 
@@ -1916,7 +1966,11 @@ function renderDetalhamento() {
 
   // ─── BODY ───
   var tbodyHtml = '';
-  var totalCols = 1 + meses.length * 4;
+  var totalCols = 1 + meses.length * visibleCols;
+
+  // Acumuladores para totais por mes
+  var mesTotais = {};
+  meses.forEach(function(m) { mesTotais[m] = {cotacoes: 0, concretizadas: 0, valor: 0, count: 0}; });
 
   gestoresExibir.forEach(function(gestorInfo, idx) {
     // Row principal do gestor (totais gestor+equipe) - clicavel
@@ -1934,32 +1988,42 @@ function renderDetalhamento() {
       var dados = getDadosMesIndividuo(mesKey, gestorInfo.nome, false);
 
       if (dados) {
-        tbodyHtml += '<td class="detalhe-cell">';
-        tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.cotacoes) + '</span>';
-        tbodyHtml += getArrow(prevDados ? prevDados.cotacoes : null, dados.cotacoes);
-        tbodyHtml += '</td>';
+        // Acumular totais
+        mesTotais[mesKey].cotacoes += dados.cotacoes;
+        mesTotais[mesKey].concretizadas += dados.concretizadas;
+        mesTotais[mesKey].valor += dados.ticket_medio * dados.concretizadas; // valor total para ticket medio ponderado
+        mesTotais[mesKey].count++;
 
-        tbodyHtml += '<td class="detalhe-cell">';
-        tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.concretizadas) + '</span>';
-        tbodyHtml += getArrow(prevDados ? prevDados.concretizadas : null, dados.concretizadas);
-        tbodyHtml += '</td>';
-
-        tbodyHtml += '<td class="detalhe-cell">';
-        tbodyHtml += '<span class="detalhe-valor">' + dados.taxa_conversao.toFixed(2) + '%</span>';
-        tbodyHtml += getArrow(prevDados ? prevDados.taxa_conversao : null, dados.taxa_conversao);
-        tbodyHtml += '</td>';
-
-        tbodyHtml += '<td class="detalhe-cell">';
-        tbodyHtml += '<span class="detalhe-valor">' + formatMoney(dados.ticket_medio) + '</span>';
-        tbodyHtml += getArrow(prevDados ? prevDados.ticket_medio : null, dados.ticket_medio);
-        tbodyHtml += '</td>';
+        if (showCot) {
+          tbodyHtml += '<td class="detalhe-cell">';
+          tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.cotacoes) + '</span>';
+          tbodyHtml += getArrow(prevDados ? prevDados.cotacoes : null, dados.cotacoes);
+          tbodyHtml += '</td>';
+        }
+        if (showConc) {
+          tbodyHtml += '<td class="detalhe-cell">';
+          tbodyHtml += '<span class="detalhe-valor">' + formatNum(dados.concretizadas) + '</span>';
+          tbodyHtml += getArrow(prevDados ? prevDados.concretizadas : null, dados.concretizadas);
+          tbodyHtml += '</td>';
+        }
+        if (showTaxa) {
+          tbodyHtml += '<td class="detalhe-cell">';
+          tbodyHtml += '<span class="detalhe-valor">' + dados.taxa_conversao.toFixed(2) + '%</span>';
+          tbodyHtml += getArrow(prevDados ? prevDados.taxa_conversao : null, dados.taxa_conversao);
+          tbodyHtml += '</td>';
+        }
+        if (showTicket) {
+          tbodyHtml += '<td class="detalhe-cell">';
+          tbodyHtml += '<span class="detalhe-valor">' + formatMoney(dados.ticket_medio) + '</span>';
+          tbodyHtml += getArrow(prevDados ? prevDados.ticket_medio : null, dados.ticket_medio);
+          tbodyHtml += '</td>';
+        }
 
         prevDados = dados;
       } else {
-        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
-        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
-        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
-        tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
+        for (var c = 0; c < visibleCols; c++) {
+          tbodyHtml += '<td class="detalhe-cell detalhe-empty">-</td>';
+        }
       }
     });
     tbodyHtml += '</tr>';
@@ -1973,7 +2037,22 @@ function renderDetalhamento() {
     tbodyHtml += '</tr>';
   });
 
-  if (!tbodyHtml) {
+  // ─── LINHA DE TOTAIS POR MES ───
+  tbodyHtml += '<tr class="detalhe-row detalhe-row-totals">';
+  tbodyHtml += '<td class="detalhe-col-fixa detalhe-nome"><strong>TOTAIS</strong></td>';
+  meses.forEach(function(mesKey) {
+    var t = mesTotais[mesKey];
+    var taxa = t.cotacoes > 0 ? ((t.concretizadas / t.cotacoes) * 100) : 0;
+    var ticket = t.concretizadas > 0 ? (t.valor / t.concretizadas) : 0;
+
+    if (showCot) tbodyHtml += '<td class="detalhe-cell"><span class="detalhe-valor">' + formatNum(t.cotacoes) + '</span></td>';
+    if (showConc) tbodyHtml += '<td class="detalhe-cell"><span class="detalhe-valor">' + formatNum(t.concretizadas) + '</span></td>';
+    if (showTaxa) tbodyHtml += '<td class="detalhe-cell"><span class="detalhe-valor">' + taxa.toFixed(2) + '%</span></td>';
+    if (showTicket) tbodyHtml += '<td class="detalhe-cell"><span class="detalhe-valor">' + formatMoney(ticket) + '</span></td>';
+  });
+  tbodyHtml += '</tr>';
+
+  if (gestoresExibir.length === 0) {
     tbodyHtml = '<tr><td colspan="' + totalCols + '" class="empty-state">Nenhum gestor encontrado</td></tr>';
   }
 
